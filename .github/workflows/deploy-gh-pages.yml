@@ -34,7 +34,7 @@ jobs:
 
       - name: Upload static build for Pages
         id: upload-artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v5
         with:
           path: './dist'
 
