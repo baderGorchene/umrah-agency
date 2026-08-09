@@ -24,20 +24,30 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Recommended upgrade from Node 18
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci --include=optional
 
       - name: Build
+        # Pass secrets as environment variables during build time
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
+<<<<<<< Updated upstream
       - name: Create SPA 404 fallback
         run: |
           if [ -d "dist" ] && [ -f "dist/index.html" ]; then
             cp dist/index.html dist/404.html || true
           fi
+=======
+      # Fix for 404 routing error on refresh/direct links like /staff
+      - name: Copy index.html to 404.html for SPA routing
+        run: cp ./dist/index.html ./dist/404.html
+>>>>>>> Stashed changes
 
       - name: Upload static build for Pages
         id: upload-artifact
