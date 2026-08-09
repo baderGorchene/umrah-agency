@@ -24,17 +24,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20' # Recommended upgrade from Node 18
+          cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --include=optional
 
       - name: Build
         run: npm run build
 
       - name: Upload static build for Pages
         id: upload-artifact
-        uses: actions/upload-pages-artifact@v5
+        uses: actions/upload-pages-artifact@v3
         with:
           path: './dist'
 
@@ -43,4 +44,4 @@ jobs:
     needs: build
     steps:
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4
