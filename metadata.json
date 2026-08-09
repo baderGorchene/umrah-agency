@@ -1,0 +1,6 @@
+{
+  "name": "Umrah Compagnon",
+  "description": "Plateforme SaaS de gestion pour agences d'Umrah - مسك طيبة للعمرة",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

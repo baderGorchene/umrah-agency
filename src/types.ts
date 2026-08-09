@@ -1,0 +1,119 @@
+export type Language = 'FR' | 'AR';
+
+export const DEFAULT_AVATAR_URL = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><rect width="128" height="128" rx="64" fill="%23E2E8F0"/><circle cx="64" cy="46" r="22" fill="%2364748B"/><path d="M28 106c0-19.882 16.118-36 36-36s36 16.118 36 36Z" fill="%2364748B"/></svg>`;
+
+export type NavTab = 
+  | 'dashboard'
+  | 'pilgrims'
+  | 'staff'
+  | 'trips'
+  | 'qr-center'
+  | 'documents'
+  | 'news'
+  | 'settings';
+
+export interface Pilgrim {
+  id: string;
+  nameArabic: string;
+  nameLatin?: string;
+  phone: string;
+  tripId: string;
+  tripName: string;
+  uniqueCode: string;
+  status: 'مؤكد' | 'في الانتظار' | 'ملغى';
+  passportNumber?: string;
+  avatarUrl?: string;
+  emergencyContact?: string;
+  gender?: 'M' | 'F';
+  birthDate?: string;
+}
+
+export interface Staff {
+  id: string;
+  nameArabic: string;
+  nameLatin?: string;
+  phone: string;
+  whatsapp: string;
+  role: 'Chef de Bus' | 'Coordonnateur Administratif' | 'Guide Spirituel' | 'Responsable Médical';
+  uniqueCode: string;
+  tripId?: string;
+  tripName?: string;
+  avatarUrl?: string;
+}
+
+export interface Trip {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  makkahHotel: string;
+  madinahHotel: string;
+  pilgrimCount: number;
+  guideCount: number;
+  active: boolean;
+  busCount?: number;
+  flightDetails?: string;
+}
+
+export interface Post {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  tripId: string;
+  tripName: string;
+  createdAt: string;
+  notifyPush: boolean;
+}
+
+export interface AgencySettings {
+  name: string;
+  subtitle: string;
+  description: string;
+  bannerUrl: string;
+  logoUrl: string;
+  address: string;
+  city: string;
+  country: string;
+  phone: string;
+  email: string;
+  licenseNumber: string;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  type: 'sos' | 'info' | 'document' | 'trip';
+}
+
+export interface BadgeTemplate {
+  id: string;
+  name: string;
+  nameArabic: string;
+  description: string;
+  accentColor: string;
+  variant: string;
+  isPopular?: boolean;
+}
+
+export interface GeneratedBadgeRecord {
+  id?: string;
+  tripId: string;
+  tripName: string;
+  pilgrimId: string;
+  pilgrimName: string;
+  uniqueCode: string;
+  templateId: string;
+  templateName: string;
+  templateVariant: string;
+  accentColor: string;
+  guide1Name: string;
+  guide1Phone: string;
+  guide2Name: string;
+  guide2Phone: string;
+  payload: Record<string, unknown>;
+  createdAt?: string;
+}

@@ -1,0 +1,46 @@
+# Node modules
+node_modules/
+
+# Build outputs
+build/
+dist/
+.vite/
+.cache/
+*.tsbuildinfo
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Environment files (keep example)
+.env*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# macOS
+.DS_Store
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Misc caches and tools
+.eslintcache
+.parcel-cache/
+.sass-cache/
+.serverless/
+.pnp.*
+.history/
+
+# Project documentation files to ignore
+TODO.md
+GEMINI.md
+@TODO.md
+@GEMINI.md

@@ -1,0 +1,109 @@
+import React from 'react';
+import { NavLink } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  Users, 
+  UserCheck, 
+  Plane, 
+  QrCode, 
+  FileText, 
+  Newspaper, 
+  Settings, 
+  LogOut,
+  Building
+} from 'lucide-react';
+import { Language } from '../types';
+
+interface SidebarProps {
+  onLogout: () => void;
+  lang: Language;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({
+  onLogout,
+  lang
+}) => {
+  const menuItems: { path: string; labelFr: string; labelAr: string; icon: React.ElementType }[] = [
+    { path: '/', labelFr: 'Tableau de bord', labelAr: 'لوحة القيادة', icon: LayoutDashboard },
+    { path: '/pilgrims', labelFr: 'Gestion des pèlerins', labelAr: 'إدارة المعتمرين', icon: Users },
+    { path: '/staff', labelFr: 'Accompagnateurs', labelAr: 'المرافقين والكادر', icon: UserCheck },
+    { path: '/trips', labelFr: 'Gestion des voyages', labelAr: 'إدارة الرحلات', icon: Plane },
+    { path: '/qr-center', labelFr: 'Centre QR', labelAr: 'مركز بطاقات QR', icon: QrCode },
+    { path: '/documents', labelFr: 'مستندات الرحلة / Documents', labelAr: 'مستندات الرحلة', icon: FileText },
+    { path: '/news', labelFr: 'Actualités & Posts', labelAr: 'الأخبار والمنشورات', icon: Newspaper },
+    { path: '/settings', labelFr: 'Configuration Agence', labelAr: 'إعدادات الوكالة', icon: Settings },
+  ];
+
+  return (
+    <aside className="w-64 bg-white border-r rtl:border-r-0 rtl:border-l border-slate-100 flex flex-col justify-between h-screen sticky top-0 shrink-0 z-30 select-none print:hidden">
+      <div>
+        {/* Logo Header */}
+        <div className="p-4 border-b border-slate-100 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-black border border-amber-500/40 flex items-center justify-center text-amber-400 font-bold shadow-sm shrink-0">
+            <span className="text-xs font-serif leading-none text-center">مسك<br/>طيبة</span>
+          </div>
+          <div>
+            <h1 className="font-bold text-slate-900 text-sm leading-tight">مسك طيبة للعمرة</h1>
+            <p className="text-xs text-slate-500 font-medium">Umrah Compagnon</p>
+          </div>
+        </div>
+
+        {/* Navigation items */}
+        <nav className="p-3 space-y-1">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === '/'}
+                className={({ isActive }) =>
+                  `w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all ${
+                    isActive
+                      ? 'bg-black text-white rounded-lg shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                    <span className="truncate">
+                      {lang === 'FR' ? item.labelFr : item.labelAr}
+                    </span>
+                  </>
+                )}
+              </NavLink>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Footer / Profile */}
+      <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+        <div className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100 shadow-2xs">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-amber-100 border border-amber-200 text-amber-800 flex items-center justify-center shrink-0">
+              <Building className="w-4 h-4" />
+            </div>
+            <div className="truncate">
+              <p className="text-xs font-bold text-slate-900 truncate">
+                {lang === 'FR' ? "Agence d'Omra" : "وكالة العمرة"}
+              </p>
+              <p className="text-[10px] text-slate-500 truncate">
+                {lang === 'FR' ? "Directeur d'Agence" : "مدير الوكالة"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onLogout}
+            title={lang === 'FR' ? 'Déconnexion' : 'تسجيل الخروج'}
+            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+};
