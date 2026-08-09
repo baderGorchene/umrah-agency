@@ -32,6 +32,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Create SPA 404 fallback
+        run: |
+          if [ -d "dist" ] && [ -f "dist/index.html" ]; then
+            cp dist/index.html dist/404.html || true
+          fi
+
       - name: Upload static build for Pages
         id: upload-artifact
         uses: actions/upload-pages-artifact@v5
