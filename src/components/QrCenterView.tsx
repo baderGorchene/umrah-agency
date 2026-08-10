@@ -25,6 +25,7 @@ import {
   Language,
   DEFAULT_AVATAR_URL,
 } from "../types";
+import { generateQRCodeDataUrl, QRPayload } from "../lib/qrCode";
 import { badgeTemplates } from "../mockData";
 import { saveGeneratedBadges, getGeneratedBadgeCount } from "../services/generatedBadgesService";
 import { QRCodeView } from "./QRCodeView";
@@ -38,6 +39,7 @@ interface BadgeArtworkProps {
   guide1Phone?: string;
   guide2Name?: string;
   guide2Phone?: string;
+  qrPayload?: string | QRPayload;
   compact?: boolean;
   className?: string;
 }
@@ -205,6 +207,14 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
   }
 };
 
+const buildBadgePageUrl = (uniqueCode: string): string => {
+  const baseUrl = import.meta.env.BASE_URL || '/';
+  const normalizedBase = baseUrl.replace(/\/$/, '');
+  const appOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  const fullUrl = `${appOrigin}${normalizedBase}/badge/${encodeURIComponent(uniqueCode)}`;
+  return fullUrl.replace(/([^:]\/\/)+/g, '$1');
+};
+
 const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   template,
   pilgrim,
@@ -213,6 +223,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   guide1Phone,
   guide2Name,
   guide2Phone,
+  qrPayload,
   compact = false,
   className = "",
 }) => {
@@ -313,7 +324,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
           <>
             <div className="flex justify-center rounded-[22px] border border-slate-200/70 bg-white p-3">
               <QRCodeView
-                payload={{
+                payload={qrPayload || {
                   agency: "مسك طيبة للعمرة",
                   uniqueCode: displayCode,
                   nameArabic: displayName,
@@ -459,31 +470,51 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
       return;
     }
 
-    const records = tripPilgrims.map((pilgrim) => ({
-      tripId: activeTripId,
-      tripName: selectedTrip?.name || pilgrim.tripName,
-      pilgrimId: pilgrim.id,
-      pilgrimName: pilgrim.nameArabic,
-      uniqueCode: pilgrim.uniqueCode,
-      templateId: selectedTemplate.id,
-      templateName: selectedTemplate.name,
-      templateVariant: selectedTemplate.variant,
-      accentColor: selectedTemplate.accentColor,
-      guide1Name,
-      guide1Phone,
-      guide2Name,
-      guide2Phone,
-      payload: {
-        agency: "مسك طيبة للعمرة",
-        uniqueCode: pilgrim.uniqueCode,
-        nameArabic: pilgrim.nameArabic,
-        nameLatin: pilgrim.nameLatin,
-        passportNumber: pilgrim.passportNumber,
-        tripName: selectedTrip?.name || pilgrim.tripName,
-        templateId: selectedTemplate.id,
-        templateVariant: selectedTemplate.variant,
-      },
-    }));
+    const records = await Promise.all(
+      tripPilgrims.map(async (pilgrim) => {
+        const badgeUrl = buildBadgePageUrl(pilgrim.uniqueCode);
+        let qrCodeDataUrl = '';
+
+        try {
+          qrCodeDataUrl = await generateQRCodeDataUrl(badgeUrl, {
+            width: 420,
+            margin: 1,
+            simple: true,
+          });
+        } catch (err) {
+          console.warn('Failed to generate QR code for pilgrim', pilgrim.uniqueCode, err);
+        }
+
+        return {
+          tripId: activeTripId,
+          tripName: selectedTrip?.name || pilgrim.tripName,
+          pilgrimId: pilgrim.id,
+          pilgrimName: pilgrim.nameArabic,
+          uniqueCode: pilgrim.uniqueCode,
+          templateId: selectedTemplate.id,
+          templateName: selectedTemplate.name,
+          templateVariant: selectedTemplate.variant,
+          accentColor: selectedTemplate.accentColor,
+          guide1Name,
+          guide1Phone,
+          guide2Name,
+          guide2Phone,
+          payload: {
+            agency: "مسك طيبة للعمرة",
+            uniqueCode: pilgrim.uniqueCode,
+            nameArabic: pilgrim.nameArabic,
+            nameLatin: pilgrim.nameLatin,
+            passportNumber: pilgrim.passportNumber,
+            tripName: selectedTrip?.name || pilgrim.tripName,
+            templateId: selectedTemplate.id,
+            templateVariant: selectedTemplate.variant,
+            badgeUrl,
+          },
+          pageUrl: badgeUrl,
+          qrCodeDataUrl,
+        };
+      }),
+    );
 
     const persisted = await saveGeneratedBadges(records);
     if (persisted) {
@@ -808,6 +839,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                        guide1Phone={guide1Phone}
                        guide2Name={guide2Name}
                        guide2Phone={guide2Phone}
+                       qrPayload={currentPilgrim ? buildBadgePageUrl(currentPilgrim.uniqueCode) : undefined}
                        className="w-80 print:w-full"
                      />
                      <button
@@ -836,6 +868,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                           guide1Phone={guide1Phone}
                           guide2Name={guide2Name}
                           guide2Phone={guide2Phone}
+                          qrPayload={buildBadgePageUrl(p.uniqueCode)}
                           compact
                           className="w-full"
                         />
@@ -912,6 +945,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                        guide1Phone={guide1Phone}
                        guide2Name={guide2Name}
                        guide2Phone={guide2Phone}
+                       qrPayload={previewPilgrim ? buildBadgePageUrl(previewPilgrim.uniqueCode) : undefined}
                        compact
                        className="w-full"
                      />

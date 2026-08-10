@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
 import { LoginView } from './components/LoginView';
@@ -8,6 +8,7 @@ import { PilgrimsView } from './components/PilgrimsView';
 import { StaffView } from './components/StaffView';
 import { TripsView } from './components/TripsView';
 import { QrCenterView } from './components/QrCenterView';
+import { BadgePage } from './components/BadgePage';
 import { DocumentsView } from './components/DocumentsView';
 import { NewsView } from './components/NewsView';
 import { SettingsView } from './components/SettingsView';
@@ -34,6 +35,7 @@ import { Language, Pilgrim, Staff, Trip, Post, AgencySettings, AppNotification }
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [lang, setLang] = useState<Language>('FR');
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -202,6 +204,12 @@ export default function App() {
     else if (type === 'trip') navigate('/trips');
   };
 
+  const isBadgeRoute = location.pathname.startsWith('/badge');
+
+  if (!isLoggedIn && isBadgeRoute) {
+    return <BadgePage />;
+  }
+
   if (!isLoggedIn) {
     return <LoginView onLoginSuccess={() => setIsLoggedIn(true)} lang={lang} onLanguageToggle={() => setLang(prev => prev === 'FR' ? 'AR' : 'FR')} />;
   }
@@ -319,6 +327,11 @@ export default function App() {
                   selectedTripId={selectedTripForQr}
                 />
               }
+            />
+
+            <Route
+              path="/badge/:code"
+              element={<BadgePage />}
             />
 
             <Route

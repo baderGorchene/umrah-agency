@@ -131,3 +131,41 @@ export const deletePilgrim = async (id: string): Promise<boolean> => {
     return false;
   }
 };
+
+export const getPilgrimByUniqueCode = async (uniqueCode: string): Promise<Pilgrim | null> => {
+  if (!isSupabaseConfigured()) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('pilgrims')
+      .select('*')
+      .eq('unique_code', uniqueCode)
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    const tripName = data.trip_id ? (await supabase.from('trips').select('name').eq('id', data.trip_id).single()).data?.name : '—';
+
+    return {
+      id: data.id,
+      nameArabic: data.name_arabic,
+      nameLatin: data.name_latin,
+      phone: data.phone,
+      tripId: data.trip_id || '',
+      tripName: tripName || '—',
+      uniqueCode: data.unique_code,
+      status: data.status || 'في الانتظار',
+      passportNumber: data.passport_number,
+      avatarUrl: data.avatar_url,
+      emergencyContact: data.emergency_contact,
+      gender: data.gender,
+      birthDate: data.birth_date,
+    };
+  } catch (err) {
+    console.error('Error fetching pilgrim by unique code from Supabase:', err);
+    return null;
+  }
+};
