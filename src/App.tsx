@@ -206,7 +206,10 @@ export default function App() {
 
   const isBadgeRoute = location.pathname.startsWith('/badge');
 
-  if (!isLoggedIn && isBadgeRoute) {
+  // Render the badge page as a standalone responsive page without the app shell
+  // when the URL is /badge/:code. This ensures QR visits show a single-page
+  // badge without sidebar, topbar, or navigation.
+  if (isBadgeRoute) {
     return <BadgePage />;
   }
 
