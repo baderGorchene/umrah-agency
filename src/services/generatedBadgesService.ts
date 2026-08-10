@@ -4,6 +4,28 @@ import { GeneratedBadgeRecord } from '../types';
 const STORAGE_KEY = 'umrah-generated-badges';
 const TABLE_NAME = 'badge_generations';
 
+type GeneratedBadgeStorageItem = Omit<GeneratedBadgeRecord, 'payload'> & {
+  payload: string;
+};
+
+const parseGeneratedBadgeItem = (item: unknown): GeneratedBadgeRecord | null => {
+  if (!item || typeof item !== 'object') return null;
+
+  const parsed = item as GeneratedBadgeStorageItem;
+  let payload: Record<string, unknown> = {};
+
+  try {
+    payload = typeof parsed.payload === 'string' ? JSON.parse(parsed.payload) : parsed.payload;
+  } catch {
+    payload = typeof parsed.payload === 'object' && parsed.payload ? parsed.payload : {};
+  }
+
+  return {
+    ...parsed,
+    payload,
+  };
+};
+
 export const saveGeneratedBadges = async (records: GeneratedBadgeRecord[]): Promise<boolean> => {
   if (!records.length) {
     return false;
@@ -58,6 +80,28 @@ export const saveGeneratedBadges = async (records: GeneratedBadgeRecord[]): Prom
     console.warn(`Unexpected error while saving badges to Supabase table ${TABLE_NAME}:`, error);
     return true;
   }
+};
+
+export const getGeneratedBadges = (): GeneratedBadgeRecord[] => {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const existing = window.localStorage.getItem(STORAGE_KEY);
+    if (!existing) return [];
+
+    const parsed = JSON.parse(existing);
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map(parseGeneratedBadgeItem)
+      .filter((record): record is GeneratedBadgeRecord => record !== null);
+  } catch {
+    return [];
+  }
+};
+
+export const findGeneratedBadgeByCode = (uniqueCode: string): GeneratedBadgeRecord | null => {
+  return getGeneratedBadges().find((record) => record.uniqueCode === uniqueCode) || null;
 };
 
 export const getGeneratedBadgeCount = (): number => {
