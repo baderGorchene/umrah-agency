@@ -846,14 +846,17 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
 
             {hasPilgrims ? (
               <div className="space-y-4">
-                {/* All Badges — vertical stack, click any badge to expand/collapse */}
-                <div className="flex flex-col gap-4 max-h-[80vh] overflow-y-auto pr-1 print:max-h-none print:overflow-visible print:pr-0">
+                {/* All Badges — flex-wrap reflows around the expanded one, no empty gaps */}
+                <div className="flex flex-wrap gap-4 max-h-[80vh] overflow-y-auto pr-1 content-start print:max-h-none print:overflow-visible print:pr-0">
                   {tripPilgrims.map((p) => {
                     const isExpanded = selectedPilgrimForPreview?.id === p.id;
+
                     return (
                       <div
                         key={p.id}
-                        className="mx-auto w-full max-w-sm transition-all duration-300 ease-out print:break-inside-avoid print:max-w-none"
+                        className={`transition-all duration-300 ease-out print:break-inside-avoid ${
+                          isExpanded ? "w-full" : "w-[calc(50%-0.5rem)]"
+                        }`}
                       >
                         <button
                           type="button"
@@ -872,7 +875,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                             guide2Phone={guide2Phone}
                             qrPayload={buildBadgePageUrl(p.uniqueCode)}
                             compact={!isExpanded}
-                            className={`w-full transition-all duration-300 ${
+                            className={`w-full transition-all duration-300 ease-out ${
                               isExpanded
                                 ? "shadow-xl ring-2 ring-black/10"
                                 : "hover:shadow-md hover:-translate-y-0.5"
@@ -914,6 +917,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
           </div>
         </div>
       </div>
+
       {/* Template Selector Modal */}
       {isTemplateModalOpen && (
         <div className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-center justify-center p-4 z-50">

@@ -56,6 +56,7 @@ export const BadgePage: React.FC = () => {
         return;
       }
 
+      // 1) check localStorage first
       const storedBadge = findGeneratedBadgeByCode(code);
       if (storedBadge) {
         setBadgeDetails(parseBadgePayload(storedBadge.payload));
@@ -63,19 +64,37 @@ export const BadgePage: React.FC = () => {
         return;
       }
 
-      const pilgrim = await getPilgrimByUniqueCode(code);
-      if (pilgrim) {
-        setBadgeDetails({
-          agency: 'مسك طيبة للعمرة',
-          uniqueCode: pilgrim.uniqueCode,
-          nameArabic: pilgrim.nameArabic,
-          nameLatin: pilgrim.nameLatin,
-          passportNumber: pilgrim.passportNumber,
-          tripName: pilgrim.tripName,
-          badgeUrl: buildBadgePageUrl(pilgrim.uniqueCode),
-        });
-        setLoading(false);
-        return;
+      // 2) Try Supabase badge_generations table for a persisted generated badge
+      try {
+        const persisted = await import('../services/generatedBadgesService').then(m => m.getGeneratedBadgeByCode(code));
+        if (persisted) {
+          setBadgeDetails(parseBadgePayload(persisted.payload));
+          setLoading(false);
+          return;
+        }
+      } catch (supErr) {
+        // swallow and continue to pilgrim fallback
+        console.warn('Error checking persisted generated badges:', supErr);
+      }
+
+      // 3) Fallback: try to resolve the pilgrim record itself by unique code
+      try {
+        const pilgrim = await getPilgrimByUniqueCode(code);
+        if (pilgrim) {
+          setBadgeDetails({
+            agency: 'مسك طيبة للعمرة',
+            uniqueCode: pilgrim.uniqueCode,
+            nameArabic: pilgrim.nameArabic,
+            nameLatin: pilgrim.nameLatin,
+            passportNumber: pilgrim.passportNumber,
+            tripName: pilgrim.tripName,
+            badgeUrl: buildBadgePageUrl(pilgrim.uniqueCode),
+          });
+          setLoading(false);
+          return;
+        }
+      } catch (pErr) {
+        console.warn('Error fetching pilgrim by code:', pErr);
       }
 
       setError('Aucun badge trouvé pour ce code.');

@@ -104,6 +104,55 @@ export const findGeneratedBadgeByCode = (uniqueCode: string): GeneratedBadgeReco
   return getGeneratedBadges().find((record) => record.uniqueCode === uniqueCode) || null;
 };
 
+export const getGeneratedBadgeByCode = async (uniqueCode: string): Promise<GeneratedBadgeRecord | null> => {
+  if (!isSupabaseConfigured()) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from(TABLE_NAME)
+      .select('*')
+      .eq('unique_code', uniqueCode)
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) {
+      return null;
+    }
+
+    // data.payload may be stored as JSON string or already an object
+    let payloadObj: Record<string, unknown> = {};
+    try {
+      payloadObj = typeof data.payload === 'string' ? JSON.parse(data.payload) : data.payload || {};
+    } catch {
+      payloadObj = {};
+    }
+
+    const record: GeneratedBadgeRecord = {
+      id: data.id,
+      tripId: data.trip_id,
+      tripName: data.trip_name,
+      pilgrimId: data.pilgrim_id,
+      pilgrimName: data.pilgrim_name,
+      uniqueCode: data.unique_code,
+      templateId: data.template_id,
+      templateName: data.template_name,
+      templateVariant: data.template_variant,
+      accentColor: data.accent_color,
+      guide1Name: data.guide_1_name || '',
+      guide1Phone: data.guide_1_phone || '',
+      guide2Name: data.guide_2_name || '',
+      guide2Phone: data.guide_2_phone || '',
+      payload: payloadObj,
+      createdAt: data.created_at,
+    };
+
+    return record;
+  } catch (err) {
+    console.warn('Error querying badge_generations for code', uniqueCode, err);
+    return null;
+  }
+};
+
 export const getGeneratedBadgeCount = (): number => {
   if (typeof window === 'undefined') {
     return 0;
