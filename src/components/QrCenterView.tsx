@@ -27,7 +27,10 @@ import {
 } from "../types";
 import { generateQRCodeDataUrl, QRPayload } from "../lib/qrCode";
 import { badgeTemplates } from "../mockData";
-import { saveGeneratedBadges, getGeneratedBadgeCount } from "../services/generatedBadgesService";
+import {
+  saveGeneratedBadges,
+  getGeneratedBadgeCount,
+} from "../services/generatedBadgesService";
 import { QRCodeView } from "./QRCodeView";
 import { QRPassModal } from "./QRPassModal";
 
@@ -68,7 +71,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#FFFFFF",
         chipTextColor: "#7C3AED",
         highlightColor: "#7C3AED",
-        pattern: "radial-gradient(circle at top right, rgba(255,255,255,0.3) 0 12%, transparent 13%)",
+        pattern:
+          "radial-gradient(circle at top right, rgba(255,255,255,0.3) 0 12%, transparent 13%)",
       };
     case "islamic":
       return {
@@ -80,7 +84,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#FFFFFF",
         chipTextColor: "#166534",
         highlightColor: "#166534",
-        pattern: "linear-gradient(135deg, rgba(255,255,255,0.25) 0 18%, transparent 18% 36%, rgba(255,255,255,0.15) 36% 54%, transparent 54%)",
+        pattern:
+          "linear-gradient(135deg, rgba(255,255,255,0.25) 0 18%, transparent 18% 36%, rgba(255,255,255,0.15) 36% 54%, transparent 54%)",
       };
     case "modern":
       return {
@@ -92,7 +97,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#FFFFFF",
         chipTextColor: "#1D4ED8",
         highlightColor: "#1D4ED8",
-        pattern: "repeating-linear-gradient(90deg, rgba(255,255,255,0.2) 0 2px, transparent 2px 18px)",
+        pattern:
+          "repeating-linear-gradient(90deg, rgba(255,255,255,0.2) 0 2px, transparent 2px 18px)",
       };
     case "elegant":
       return {
@@ -104,7 +110,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#FFF7ED",
         chipTextColor: "#A16207",
         highlightColor: "#A16207",
-        pattern: "linear-gradient(90deg, rgba(255,255,255,0.28) 0 70%, transparent 70%)",
+        pattern:
+          "linear-gradient(90deg, rgba(255,255,255,0.28) 0 70%, transparent 70%)",
       };
     case "noir":
       return {
@@ -116,7 +123,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#111827",
         chipTextColor: "#F8FAFC",
         highlightColor: "#EAB308",
-        pattern: "radial-gradient(circle at 20% 20%, rgba(250,204,21,0.32) 0 8%, transparent 9%)",
+        pattern:
+          "radial-gradient(circle at 20% 20%, rgba(250,204,21,0.32) 0 8%, transparent 9%)",
       };
     case "boarding":
       return {
@@ -128,7 +136,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#FFFFFF",
         chipTextColor: "#115E59",
         highlightColor: "#0F766E",
-        pattern: "linear-gradient(90deg, transparent 0 10px, rgba(255,255,255,0.2) 10px 12px, transparent 12px 24px)",
+        pattern:
+          "linear-gradient(90deg, transparent 0 10px, rgba(255,255,255,0.2) 10px 12px, transparent 12px 24px)",
       };
     case "atlas":
       return {
@@ -140,7 +149,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#FFFFFF",
         chipTextColor: "#0F766E",
         highlightColor: "#F59E0B",
-        pattern: "repeating-linear-gradient(0deg, rgba(255,255,255,0.16) 0 2px, transparent 2px 18px), repeating-linear-gradient(90deg, rgba(255,255,255,0.16) 0 2px, transparent 2px 24px)",
+        pattern:
+          "repeating-linear-gradient(0deg, rgba(255,255,255,0.16) 0 2px, transparent 2px 18px), repeating-linear-gradient(90deg, rgba(255,255,255,0.16) 0 2px, transparent 2px 24px)",
       };
     case "horizon":
       return {
@@ -152,7 +162,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#FFFFFF",
         chipTextColor: "#EA580C",
         highlightColor: "#FB923C",
-        pattern: "radial-gradient(circle at 15% 15%, rgba(255,255,255,0.34) 0 10%, transparent 11%)",
+        pattern:
+          "radial-gradient(circle at 15% 15%, rgba(255,255,255,0.34) 0 10%, transparent 11%)",
       };
     case "diplomat":
       return {
@@ -164,7 +175,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#FFFFFF",
         chipTextColor: "#1E3A8A",
         highlightColor: "#FBBF24",
-        pattern: "linear-gradient(135deg, rgba(255,255,255,0.18) 0 30%, transparent 30%)",
+        pattern:
+          "linear-gradient(135deg, rgba(255,255,255,0.18) 0 30%, transparent 30%)",
       };
     case "prism":
       return {
@@ -176,7 +188,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#FFFFFF",
         chipTextColor: "#7C3AED",
         highlightColor: "#38BDF8",
-        pattern: "linear-gradient(135deg, rgba(255,255,255,0.2) 0 20%, transparent 20% 40%, rgba(255,255,255,0.16) 40% 60%, transparent 60%)",
+        pattern:
+          "linear-gradient(135deg, rgba(255,255,255,0.2) 0 20%, transparent 20% 40%, rgba(255,255,255,0.16) 40% 60%, transparent 60%)",
       };
     case "folio":
       return {
@@ -188,7 +201,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#FFFFFF",
         chipTextColor: "#92400E",
         highlightColor: "#92400E",
-        pattern: "linear-gradient(90deg, rgba(255,255,255,0.18) 0 4px, transparent 4px 18px)",
+        pattern:
+          "linear-gradient(90deg, rgba(255,255,255,0.18) 0 4px, transparent 4px 18px)",
       };
     case "wave":
       return {
@@ -200,7 +214,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
         chipBg: "#FFFFFF",
         chipTextColor: "#0F766E",
         highlightColor: "#0EA5A4",
-        pattern: "radial-gradient(circle at top left, rgba(255,255,255,0.28) 0 8%, transparent 9%), linear-gradient(90deg, transparent 0 15px, rgba(255,255,255,0.22) 15px 18px, transparent 18px 36px)",
+        pattern:
+          "radial-gradient(circle at top left, rgba(255,255,255,0.28) 0 8%, transparent 9%), linear-gradient(90deg, transparent 0 15px, rgba(255,255,255,0.22) 15px 18px, transparent 18px 36px)",
       };
     default:
       return base;
@@ -208,11 +223,11 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
 };
 
 const buildBadgePageUrl = (uniqueCode: string): string => {
-  const baseUrl = import.meta.env.BASE_URL || '/';
-  const normalizedBase = baseUrl.replace(/\/$/, '');
-  const appOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  const baseUrl = import.meta.env.BASE_URL || "/";
+  const normalizedBase = baseUrl.replace(/\/$/, "");
+  const appOrigin = typeof window !== "undefined" ? window.location.origin : "";
   const fullUrl = `${appOrigin}${normalizedBase}/badge/${encodeURIComponent(uniqueCode)}`;
-  return fullUrl.replace(/([^:]\/\/)+/g, '$1');
+  return fullUrl.replace(/([^:]\/\/)+/g, "$1");
 };
 
 const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
@@ -285,7 +300,9 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
             <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/75">
               {compact ? "Badge" : "Pilgrim"}
             </p>
-            <h3 className="text-base font-black leading-tight">{displayName}</h3>
+            <h3 className="text-base font-black leading-tight">
+              {displayName}
+            </h3>
             {!compact && (
               <p className="mt-0.5 text-[11px] text-white/80">{displayTrip}</p>
             )}
@@ -293,7 +310,10 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
         </div>
       </div>
 
-      <div className="relative p-4 space-y-3" style={{ background: visuals.bodyBg }}>
+      <div
+        className="relative p-4 space-y-3"
+        style={{ background: visuals.bodyBg }}
+      >
         <div
           className="flex flex-col items-center justify-center rounded-2xl border px-3 py-2 text-center"
           style={{
@@ -308,7 +328,10 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
             >
               Voyage
             </p>
-            <p className="text-xs font-extrabold" style={{ color: visuals.textColor }}>
+            <p
+              className="text-xs font-extrabold"
+              style={{ color: visuals.textColor }}
+            >
               {displayTrip}
             </p>
           </div>
@@ -324,19 +347,21 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
           <>
             <div className="flex justify-center rounded-[22px] border border-slate-200/70 bg-white p-3">
               <QRCodeView
-                payload={qrPayload || {
-                  agency: "مسك طيبة للعمرة",
-                  uniqueCode: displayCode,
-                  nameArabic: displayName,
-                  nameLatin: pilgrim?.nameLatin,
-                  passportNumber: pilgrim?.passportNumber,
-                  tripName: displayTrip,
-                  emergencyGuide1: `${guide1Name || "—"} (${guide1Phone || "—"})`,
-                  emergencyGuide2:
-                    guide2Name && guide2Phone
-                      ? `${guide2Name} (${guide2Phone})`
-                      : undefined,
-                }}
+                payload={
+                  qrPayload || {
+                    agency: "مسك طيبة للعمرة",
+                    uniqueCode: displayCode,
+                    nameArabic: displayName,
+                    nameLatin: pilgrim?.nameLatin,
+                    passportNumber: pilgrim?.passportNumber,
+                    tripName: displayTrip,
+                    emergencyGuide1: `${guide1Name || "—"} (${guide1Phone || "—"})`,
+                    emergencyGuide2:
+                      guide2Name && guide2Phone
+                        ? `${guide2Name} (${guide2Phone})`
+                        : undefined,
+                  }
+                }
                 size={108}
               />
             </div>
@@ -344,7 +369,9 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
             <div className="rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-center text-[11px] text-slate-600">
               <div className="flex justify-between gap-3">
                 <span className="text-slate-400">Code</span>
-                <span className="font-semibold text-slate-800">{displayCode}</span>
+                <span className="font-semibold text-slate-800">
+                  {displayCode}
+                </span>
               </div>
               <div className="mt-1 flex justify-between gap-3">
                 <span className="text-slate-400">Urgence</span>
@@ -355,7 +382,9 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
               {guide2Name && (
                 <div className="mt-1 flex justify-between gap-3">
                   <span className="text-slate-400">Accompagnateur</span>
-                  <span className="font-semibold text-slate-800">{guide2Name}</span>
+                  <span className="font-semibold text-slate-800">
+                    {guide2Name}
+                  </span>
                 </div>
               )}
             </div>
@@ -408,7 +437,9 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
   const [selectedPilgrimForPreview, setSelectedPilgrimForPreview] =
     useState<Pilgrim | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [savedBadgeCount, setSavedBadgeCount] = useState(getGeneratedBadgeCount());
+  const [savedBadgeCount, setSavedBadgeCount] = useState(
+    getGeneratedBadgeCount(),
+  );
 
   // Batch print mode vs single badge mode.
   // Kept in state so the batch-grid rendering path below still works if you
@@ -449,7 +480,9 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
   useEffect(() => {
     if (tripPilgrims.length > 0) {
       const pilgrimStillAvailable = selectedPilgrimForPreview
-        ? tripPilgrims.some((pilgrim) => pilgrim.id === selectedPilgrimForPreview.id)
+        ? tripPilgrims.some(
+            (pilgrim) => pilgrim.id === selectedPilgrimForPreview.id,
+          )
         : false;
 
       if (!pilgrimStillAvailable) {
@@ -473,7 +506,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
     const records = await Promise.all(
       tripPilgrims.map(async (pilgrim) => {
         const badgeUrl = buildBadgePageUrl(pilgrim.uniqueCode);
-        let qrCodeDataUrl = '';
+        let qrCodeDataUrl = "";
 
         try {
           qrCodeDataUrl = await generateQRCodeDataUrl(badgeUrl, {
@@ -482,7 +515,11 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
             simple: true,
           });
         } catch (err) {
-          console.warn('Failed to generate QR code for pilgrim', pilgrim.uniqueCode, err);
+          console.warn(
+            "Failed to generate QR code for pilgrim",
+            pilgrim.uniqueCode,
+            err,
+          );
         }
 
         return {
@@ -519,7 +556,9 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
     const persisted = await saveGeneratedBadges(records);
     if (persisted) {
       setSavedBadgeCount(getGeneratedBadgeCount());
-      setSaveStatus(`Badges sauvegardés (${records.length}) dans la base de données et le stockage local.`);
+      setSaveStatus(
+        `Badges sauvegardés (${records.length}) dans la base de données et le stockage local.`,
+      );
     }
   };
 
@@ -807,75 +846,54 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
 
             {hasPilgrims ? (
               <div className="space-y-4">
-                {/* Pilgrim Selector Tabs if single mode & multiple pilgrims */}
-                {printMode === "single" && tripPilgrims.length > 1 && (
-                  <div className="flex gap-2 overflow-x-auto pb-1 print:hidden">
-                    {tripPilgrims.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => setSelectedPilgrimForPreview(p)}
-                        className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                          currentPilgrim?.id === p.id
-                            ? "bg-black text-white shadow-xs"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                        }`}
-                      >
-                        {p.nameArabic}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Print Layout Container */}
-                {printMode === "single" ? (
-                  /* Single Badge Mode */
-                  <div className="flex flex-col items-center justify-center py-4 bg-slate-100/60 rounded-2xl border border-slate-200/60 print:bg-white print:border-none print:py-0">
-                    <div className="flex flex-col items-center justify-center py-4 print:py-0">
-                     <BadgeArtwork
-                       template={selectedTemplate}
-                       pilgrim={currentPilgrim}
-                       trip={selectedTrip}
-                       guide1Name={guide1Name}
-                       guide1Phone={guide1Phone}
-                       guide2Name={guide2Name}
-                       guide2Phone={guide2Phone}
-                       qrPayload={currentPilgrim ? buildBadgePageUrl(currentPilgrim.uniqueCode) : undefined}
-                       className="w-80 print:w-full"
-                     />
-                     <button
-                       type="button"
-                       onClick={() => setInspectingPilgrim(currentPilgrim)}
-                       className="mt-4 w-full max-w-[320px] bg-slate-900 hover:bg-black text-white text-[11px] font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer print:hidden"
-                     >
-                       <Eye className="w-3.5 h-3.5 text-amber-400" />
-                       <span>Inspecter le Pass Numérique</span>
-                     </button>
-                   </div>
-                  </div>
-                ) : (
-                  /* Batch Mode Grid for Printing All Badges of the Trip */
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 print:grid-cols-2 print:gap-4 print:p-0">
-                    {tripPilgrims.map((p) => (
+                {/* All Badges — vertical stack, click any badge to expand/collapse */}
+                <div className="flex flex-col gap-4 max-h-[80vh] overflow-y-auto pr-1 print:max-h-none print:overflow-visible print:pr-0">
+                  {tripPilgrims.map((p) => {
+                    const isExpanded = selectedPilgrimForPreview?.id === p.id;
+                    return (
                       <div
                         key={p.id}
-                        className="print:break-inside-avoid"
+                        className="mx-auto w-full max-w-sm transition-all duration-300 ease-out print:break-inside-avoid print:max-w-none"
                       >
-                        <BadgeArtwork
-                          template={selectedTemplate}
-                          pilgrim={p}
-                          trip={selectedTrip}
-                          guide1Name={guide1Name}
-                          guide1Phone={guide1Phone}
-                          guide2Name={guide2Name}
-                          guide2Phone={guide2Phone}
-                          qrPayload={buildBadgePageUrl(p.uniqueCode)}
-                          compact
-                          className="w-full"
-                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSelectedPilgrimForPreview(isExpanded ? null : p)
+                          }
+                          className="block w-full cursor-pointer text-left print:pointer-events-none"
+                        >
+                          <BadgeArtwork
+                            template={selectedTemplate}
+                            pilgrim={p}
+                            trip={selectedTrip}
+                            guide1Name={guide1Name}
+                            guide1Phone={guide1Phone}
+                            guide2Name={guide2Name}
+                            guide2Phone={guide2Phone}
+                            qrPayload={buildBadgePageUrl(p.uniqueCode)}
+                            compact={!isExpanded}
+                            className={`w-full transition-all duration-300 ${
+                              isExpanded
+                                ? "shadow-xl ring-2 ring-black/10"
+                                : "hover:shadow-md hover:-translate-y-0.5"
+                            }`}
+                          />
+                        </button>
+
+                        {isExpanded && (
+                          <button
+                            type="button"
+                            onClick={() => setInspectingPilgrim(p)}
+                            className="mt-3 w-full bg-slate-900 hover:bg-black text-white text-[11px] font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer print:hidden"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-amber-400" />
+                            <span>Inspecter le Pass Numérique</span>
+                          </button>
+                        )}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
               </div>
             ) : (
               <div className="py-14 flex flex-col items-center justify-center text-center gap-4 bg-slate-50/60 rounded-2xl border border-slate-100">
@@ -896,87 +914,95 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
           </div>
         </div>
       </div>
-
       {/* Template Selector Modal */}
       {isTemplateModalOpen && (
-       <div className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-         <div className="w-full max-w-3xl rounded-[28px] border border-slate-100 bg-white shadow-2xl overflow-hidden">
-           <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
-             <div>
-               <h2 className="font-bold text-slate-900 text-base">
-                 Modèles de Badges de Voyage ({badgeTemplates.length} modèles)
-               </h2>
-               <p className="text-sm text-slate-500">
-                 Choisissez un style de badge plus riche qu’un simple jeu de couleurs.
-               </p>
-             </div>
-             <button
-               onClick={() => setIsTemplateModalOpen(false)}
-               className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100"
-             >
-               ✕
-             </button>
-           </div>
+        <div className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="w-full max-w-3xl rounded-[28px] border border-slate-100 bg-white shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
+              <div>
+                <h2 className="font-bold text-slate-900 text-base">
+                  Modèles de Badges de Voyage ({badgeTemplates.length} modèles)
+                </h2>
+                <p className="text-sm text-slate-500">
+                  Choisissez un style de badge plus riche qu’un simple jeu de
+                  couleurs.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsTemplateModalOpen(false)}
+                className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100"
+              >
+                ✕
+              </button>
+            </div>
 
-           <div className="grid max-h-[70vh] grid-cols-1 gap-4 overflow-y-auto p-5 sm:grid-cols-2">
-             {badgeTemplates.map((tpl) => {
-               const isSelected = selectedTemplate.id === tpl.id;
-               const previewPilgrim =
-                 currentPilgrim || tripPilgrims[0] || pilgrims[0] || null;
-               return (
-                 <div
-                   key={tpl.id}
-                   onClick={() => {
-                     setSelectedTemplate(tpl);
-                     setIsTemplateModalOpen(false);
-                   }}
-                   className={`cursor-pointer rounded-[24px] border p-3 transition-all ${
-                     isSelected
-                       ? "border-black bg-slate-50 ring-2 ring-black/10"
-                       : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-md"
-                   }`}
-                 >
-                   <div className="mb-3 overflow-hidden rounded-[20px] border border-slate-200/70">
-                     <BadgeArtwork
-                       template={tpl}
-                       pilgrim={previewPilgrim}
-                       trip={selectedTrip}
-                       guide1Name={guide1Name}
-                       guide1Phone={guide1Phone}
-                       guide2Name={guide2Name}
-                       guide2Phone={guide2Phone}
-                       qrPayload={previewPilgrim ? buildBadgePageUrl(previewPilgrim.uniqueCode) : undefined}
-                       compact
-                       className="w-full"
-                     />
-                   </div>
-                   <div className="flex items-start justify-between gap-2">
-                     <div>
-                       <p className="font-bold text-xs text-slate-900">{tpl.name}</p>
-                       <p className="text-[11px] font-bold text-slate-800 dir-rtl">
-                         {tpl.nameArabic}
-                       </p>
-                     </div>
-                     <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500">
-                       {tpl.variant}
-                     </span>
-                   </div>
-                   <p className="mt-2 text-[11px] text-slate-500">{tpl.description}</p>
-                 </div>
-               );
-             })}
-           </div>
+            <div className="grid max-h-[70vh] grid-cols-1 gap-4 overflow-y-auto p-5 sm:grid-cols-2">
+              {badgeTemplates.map((tpl) => {
+                const isSelected = selectedTemplate.id === tpl.id;
+                const previewPilgrim =
+                  currentPilgrim || tripPilgrims[0] || pilgrims[0] || null;
+                return (
+                  <div
+                    key={tpl.id}
+                    onClick={() => {
+                      setSelectedTemplate(tpl);
+                      setIsTemplateModalOpen(false);
+                    }}
+                    className={`cursor-pointer rounded-[24px] border p-3 transition-all ${
+                      isSelected
+                        ? "border-black bg-slate-50 ring-2 ring-black/10"
+                        : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-md"
+                    }`}
+                  >
+                    <div className="mb-3 overflow-hidden rounded-[20px] border border-slate-200/70">
+                      <BadgeArtwork
+                        template={tpl}
+                        pilgrim={previewPilgrim}
+                        trip={selectedTrip}
+                        guide1Name={guide1Name}
+                        guide1Phone={guide1Phone}
+                        guide2Name={guide2Name}
+                        guide2Phone={guide2Phone}
+                        qrPayload={
+                          previewPilgrim
+                            ? buildBadgePageUrl(previewPilgrim.uniqueCode)
+                            : undefined
+                        }
+                        compact
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-bold text-xs text-slate-900">
+                          {tpl.name}
+                        </p>
+                        <p className="text-[11px] font-bold text-slate-800 dir-rtl">
+                          {tpl.nameArabic}
+                        </p>
+                      </div>
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-semibold text-slate-500">
+                        {tpl.variant}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[11px] text-slate-500">
+                      {tpl.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
 
-           <div className="flex justify-end border-t border-slate-100 bg-slate-50 px-6 py-4">
-             <button
-               onClick={() => setIsTemplateModalOpen(false)}
-               className="rounded-xl bg-black px-4 py-2 text-xs font-bold text-white hover:bg-slate-900"
-             >
-               Fermer
-             </button>
-           </div>
-         </div>
-       </div>
+            <div className="flex justify-end border-t border-slate-100 bg-slate-50 px-6 py-4">
+              <button
+                onClick={() => setIsTemplateModalOpen(false)}
+                className="rounded-xl bg-black px-4 py-2 text-xs font-bold text-white hover:bg-slate-900"
+              >
+                Fermer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Live Digital Pass Inspection Modal */}
