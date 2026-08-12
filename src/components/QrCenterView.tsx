@@ -222,7 +222,7 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
   }
 };
 
-const buildBadgePageUrl = (uniqueCode: string): string => {
+export const buildBadgePageUrl = (uniqueCode: string): string => {
   const baseUrl = import.meta.env.BASE_URL || "/";
   const normalizedBase = baseUrl.replace(/\/$/, "");
   const appOrigin = typeof window !== "undefined" ? window.location.origin : "";
@@ -230,7 +230,7 @@ const buildBadgePageUrl = (uniqueCode: string): string => {
   return fullUrl.replace(/([^:]\/\/)+/g, "$1");
 };
 
-const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
+export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   template,
   pilgrim,
   trip,
