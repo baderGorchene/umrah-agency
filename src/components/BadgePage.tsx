@@ -149,8 +149,8 @@ export const BadgePage: React.FC = () => {
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent_60%)] pointer-events-none" />
             
             <div className="relative z-10 space-y-1">
-              <div className="w-12 h-12 bg-slate-950 text-amber-400 rounded-2xl flex items-center justify-center mx-auto shadow-lg border border-amber-300/40 font-serif font-bold text-xs">
-                <span className="leading-none text-center">مسك<br/>طيبة</span>
+              <div className="w-12 h-12 bg-slate-950 rounded-2xl overflow-hidden flex items-center justify-center mx-auto shadow-lg border border-amber-300/40">
+                <img src="/logo.png" alt="Agency logo" className="h-full w-full object-cover" />
               </div>
               <h1 className="text-xl font-black tracking-tight text-slate-950 pt-1">
                 {badgeData?.agencyName || 'مسك طيبة للاسفار و السياحة'}
