@@ -30,18 +30,25 @@ import { getPilgrims, createPilgrim, updatePilgrim, deletePilgrim } from './serv
 import { getStaff, createStaff, updateStaff, deleteStaff } from './services/staffService';
 import { getPosts, createPost, deletePost } from './services/postsService';
 import { getNotifications, createNotification, markAllNotificationsAsRead, clearAllNotifications } from './services/notificationsService';
-import { logoutUser, DEMO_PROFILES, fetchUserProfile } from './services/authService';
+import { logoutUser, fetchUserProfile } from './services/authService';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 
 import { Language, Pilgrim, Staff, Trip, Post, AgencySettings, AppNotification, UserProfile, UserRole } from './types';
+
+const DEFAULT_ADMIN_USER: UserProfile = {
+  id: 'admin-default',
+  email: 'misktibajammel@gmail.com',
+  fullName: 'محمد علي — مدير الوكالة',
+  role: 'admin',
+};
 
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Auth State (JWT & RBAC User Profile)
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(DEMO_PROFILES.admin);
-  const [jwtToken, setJwtToken] = useState<string | null>('demo-jwt-admin');
+  // Auth State
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(DEFAULT_ADMIN_USER);
+  const [jwtToken, setJwtToken] = useState<string | null>('session-token');
   const [isLoggedIn, setIsLoggedIn] = useState(true);
 
   const [lang, setLang] = useState<Language>('FR');

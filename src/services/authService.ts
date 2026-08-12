@@ -2,54 +2,6 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { UserProfile, UserRole } from '../types';
 
 /**
- * Decodes standard JWT tokens (Base64 payload decoding)
- */
-export function decodeJWT(token: string): Record<string, any> | null {
-  try {
-    const base64Url = token.split('.')[1];
-    if (!base64Url) return null;
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch (e) {
-    console.error('Failed to decode JWT:', e);
-    return null;
-  }
-}
-
-/**
- * Demo fallback profiles for offline / quick role selection
- */
-export const DEMO_PROFILES: Record<UserRole, UserProfile> = {
-  admin: {
-    id: 'demo-admin-id',
-    email: 'admin@misktiba.tn',
-    fullName: 'مدير الوكالة — misktiba',
-    role: 'admin',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-  },
-  agent: {
-    id: 'demo-agent-id',
-    email: 'agent@misktiba.tn',
-    fullName: 'مرافق الرحلة — Coordonnateur',
-    role: 'agent',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-  },
-  pilgrim: {
-    id: 'demo-pilgrim-id',
-    email: 'pilgrim@misktiba.tn',
-    fullName: 'المعتمر — Mohamed Ali',
-    role: 'pilgrim',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-  },
-};
-
-/**
  * Fetch profile from public.profiles table or user metadata
  */
 export async function fetchUserProfile(userId: string, email: string): Promise<UserProfile | null> {
@@ -65,7 +17,7 @@ export async function fetchUserProfile(userId: string, email: string): Promise<U
       .single();
 
     if (error || !data) {
-      console.warn('Profile record not found, falling back to metadata:', error?.message);
+      console.warn('Profile record not found, checking metadata:', error?.message);
       const { data: userData } = await supabase.auth.getUser();
       const meta = userData?.user?.user_metadata || {};
       return {
@@ -93,21 +45,26 @@ export async function fetchUserProfile(userId: string, email: string): Promise<U
 }
 
 /**
- * Login with Supabase Auth & JWT
+ * Login with Supabase Auth
+ * Role is automatically loaded from user credentials / profiles database table
  */
 export async function loginWithSupabase(
   email: string,
-  password: string,
-  selectedRole?: UserRole
+  password: string
 ): Promise<{ success: boolean; user: UserProfile | null; token: string | null; error?: string }> {
+  // Infer role based on email credentials when Supabase is not configured (offline demo mode)
+  let inferredRole: UserRole = 'admin';
+  if (email.toLowerCase().includes('agent')) inferredRole = 'agent';
+  else if (email.toLowerCase().includes('pilgrim')) inferredRole = 'pilgrim';
+
   if (!isSupabaseConfigured()) {
-    // Return demo login when Supabase is not configured
-    const role: UserRole = selectedRole || 'admin';
-    const demoUser = DEMO_PROFILES[role];
-    const dummyJwt = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(
-      JSON.stringify({ sub: demoUser.id, email: demoUser.email, role: demoUser.role, exp: Math.floor(Date.now() / 1000) + 86400 })
-    )}.signature`;
-    return { success: true, user: demoUser, token: dummyJwt };
+    const fallbackUser: UserProfile = {
+      id: 'demo-user-' + Date.now(),
+      email,
+      fullName: email.split('@')[0].toUpperCase(),
+      role: inferredRole,
+    };
+    return { success: true, user: fallbackUser, token: 'demo-session-token' };
   }
 
   try {
@@ -132,20 +89,9 @@ export async function loginWithSupabase(
       profile = {
         id: data.user.id,
         email: data.user.email || email,
-        fullName: data.user.user_metadata?.full_name || email,
-        role: selectedRole || (data.user.user_metadata?.role as UserRole) || 'agent',
+        fullName: data.user.user_metadata?.full_name || email.split('@')[0],
+        role: (data.user.user_metadata?.role as UserRole) || 'agent',
       };
-    }
-
-    // Update role if explicitly selected on login
-    if (selectedRole && profile.role !== selectedRole) {
-      profile.role = selectedRole;
-      await supabase.from('profiles').upsert({
-        id: profile.id,
-        email: profile.email,
-        full_name: profile.fullName,
-        role: selectedRole,
-      });
     }
 
     return {
@@ -170,9 +116,10 @@ export async function loginWithSupabase(
 export async function signUpWithSupabase(
   email: string,
   password: string,
-  fullName: string,
-  role: UserRole = 'agent'
+  fullName: string
 ): Promise<{ success: boolean; user: UserProfile | null; token: string | null; error?: string }> {
+  const role: UserRole = 'agent';
+
   if (!isSupabaseConfigured()) {
     const user: UserProfile = {
       id: 'demo-' + Date.now(),

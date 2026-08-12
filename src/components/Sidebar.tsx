@@ -45,19 +45,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const roleBadgeInfo = {
     admin: {
       titleFr: "Directeur d'Agence",
-      titleAr: 'مدير الوكالة (Admin)',
+      titleAr: 'مدير الوكالة',
       bg: 'bg-amber-100 border-amber-300 text-amber-900',
       icon: ShieldCheck,
     },
     agent: {
       titleFr: 'Accompagnateur / Staff',
-      titleAr: 'مرافق الرحلة (Agent)',
+      titleAr: 'مرافق الرحلة',
       bg: 'bg-blue-100 border-blue-300 text-blue-900',
       icon: StaffIcon,
     },
     pilgrim: {
       titleFr: 'Moutamire / Client',
-      titleAr: 'معتمر (Pilgrim)',
+      titleAr: 'معتمر',
       bg: 'bg-emerald-100 border-emerald-300 text-emerald-900',
       icon: User,
     },
@@ -128,7 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           <button
             onClick={onLogout}
-            title={lang === 'FR' ? 'Déconnexion (JWT)' : 'تسجيل الخروج'}
+            title={lang === 'FR' ? 'Déconnexion' : 'تسجيل الخروج'}
             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
           >
             <LogOut className="w-4 h-4" />

@@ -57,9 +57,9 @@ export const TopBar: React.FC<TopBarProps> = ({
   const hasSearchResults = filteredPilgrims.length > 0 || filteredStaff.length > 0 || filteredTrips.length > 0;
 
   const roleLabel = {
-    admin: lang === 'FR' ? 'Admin (Supabase JWT)' : 'مدير (Supabase JWT)',
-    agent: lang === 'FR' ? 'Accompagnateur / Agent' : 'مرافق / Agent',
-    pilgrim: lang === 'FR' ? 'Pèlerin / Client' : 'معتمر / Client',
+    admin: lang === 'FR' ? "Directeur d'Agence" : 'مدير الوكالة',
+    agent: lang === 'FR' ? 'Accompagnateur' : 'مرافق الرحلة',
+    pilgrim: lang === 'FR' ? 'Pèlerin' : 'معتمر',
   }[currentUser?.role || 'admin'];
 
   return (
