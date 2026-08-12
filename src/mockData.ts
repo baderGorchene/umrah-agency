@@ -5,7 +5,7 @@ export const initialAgencySettings: AgencySettings = {
   subtitle: "Umrah Compagnon",
   description: "وكالة مسك طيبة للأسفار والعمرة - خدمات متميزة ومرافقة شاملة للمعتمرين من تونس إلى البقاع المقدسة.",
   bannerUrl: "https://images.unsplash.com/photo-1591604466107-ec97de577aff?auto=format&fit=crop&w=1400&q=80", // Madinah Green Dome / Mosque style
-  logoUrl: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=300&q=80",
+  logoUrl: "/logo.png",
   address: "شارع الحبيب بورقيبة، جمّال 5020",
   city: "المنستير / جمّال",
   country: "تونس",

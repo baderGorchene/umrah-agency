@@ -266,8 +266,8 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
         />
         <div className="relative flex flex-col items-center justify-center gap-2 text-center">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/40 bg-white/15 text-base font-black shadow-sm">
-              🕋
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/15 shadow-sm">
+              <img src="/logo.png" alt="Agency logo" className="h-full w-full object-cover" />
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-[0.28em] text-white/70">
