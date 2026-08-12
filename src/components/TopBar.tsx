@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Bell, Shield, Languages as LangIcon } from 'lucide-react';
-import { Language, Pilgrim, Staff, Trip } from '../types';
+import { Search, Bell, Shield, Key } from 'lucide-react';
+import { Language, Pilgrim, Staff, Trip, UserProfile } from '../types';
 
 interface TopBarProps {
   lang: Language;
@@ -13,6 +13,7 @@ interface TopBarProps {
   staff: Staff[];
   trips: Trip[];
   onSelectSearchResult?: (type: 'pilgrim' | 'staff' | 'trip', id: string) => void;
+  currentUser?: UserProfile | null;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -24,7 +25,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   pilgrims,
   staff,
   trips,
-  onSelectSearchResult
+  onSelectSearchResult,
+  currentUser
 }) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,6 +55,12 @@ export const TopBar: React.FC<TopBarProps> = ({
     : [];
 
   const hasSearchResults = filteredPilgrims.length > 0 || filteredStaff.length > 0 || filteredTrips.length > 0;
+
+  const roleLabel = {
+    admin: lang === 'FR' ? 'Admin (Supabase JWT)' : 'مدير (Supabase JWT)',
+    agent: lang === 'FR' ? 'Accompagnateur / Agent' : 'مرافق / Agent',
+    pilgrim: lang === 'FR' ? 'Pèlerin / Client' : 'معتمر / Client',
+  }[currentUser?.role || 'admin'];
 
   return (
     <header className="h-16 bg-white border-b border-slate-100 px-6 flex items-center justify-between sticky top-0 z-20 print:hidden">
@@ -162,6 +170,12 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* Right Controls */}
       <div className="flex items-center gap-3">
+        {/* JWT Session Badge */}
+        <div className="hidden md:flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200/80 rounded-full text-amber-900 text-xs font-semibold shadow-2xs">
+          <Key className="w-3.5 h-3.5 text-amber-600" />
+          <span>{roleLabel}</span>
+        </div>
+
         {/* Security Shield Icon with Alert Dot */}
         <button
           onClick={onOpenSecurityModal}

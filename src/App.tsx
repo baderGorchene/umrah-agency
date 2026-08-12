@@ -30,13 +30,20 @@ import { getPilgrims, createPilgrim, updatePilgrim, deletePilgrim } from './serv
 import { getStaff, createStaff, updateStaff, deleteStaff } from './services/staffService';
 import { getPosts, createPost, deletePost } from './services/postsService';
 import { getNotifications, createNotification, markAllNotificationsAsRead, clearAllNotifications } from './services/notificationsService';
+import { logoutUser, DEMO_PROFILES, fetchUserProfile } from './services/authService';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 
-import { Language, Pilgrim, Staff, Trip, Post, AgencySettings, AppNotification } from './types';
+import { Language, Pilgrim, Staff, Trip, Post, AgencySettings, AppNotification, UserProfile, UserRole } from './types';
 
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Auth State (JWT & RBAC User Profile)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(DEMO_PROFILES.admin);
+  const [jwtToken, setJwtToken] = useState<string | null>('demo-jwt-admin');
   const [isLoggedIn, setIsLoggedIn] = useState(true);
+
   const [lang, setLang] = useState<Language>('FR');
   const [isLoadingData, setIsLoadingData] = useState(true);
 
@@ -55,6 +62,39 @@ export default function App() {
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
   const [isAddTripModalOpen, setIsAddTripModalOpen] = useState(false);
   const [selectedTripForQr, setSelectedTripForQr] = useState<string | undefined>(undefined);
+
+  // Supabase Auth State Listener
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    // Check existing Supabase session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setJwtToken(session.access_token);
+        setIsLoggedIn(true);
+        fetchUserProfile(session.user.id, session.user.email || '').then(profile => {
+          if (profile) setCurrentUser(profile);
+        });
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        setJwtToken(session.access_token);
+        setIsLoggedIn(true);
+        const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+        if (profile) setCurrentUser(profile);
+      } else if (_event === 'SIGNED_OUT') {
+        setIsLoggedIn(false);
+        setCurrentUser(null);
+        setJwtToken(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Async load data from Supabase on mount
   useEffect(() => {
@@ -95,9 +135,24 @@ export default function App() {
   }, [lang]);
 
   const isRtl = lang === 'AR';
+  const userRole: UserRole = currentUser?.role || 'admin';
 
   // Unread notifications count
   const unreadNotifsCount = notifications.filter(n => !n.read).length;
+
+  // Handlers for Auth
+  const handleLoginSuccess = (user: UserProfile, token: string | null) => {
+    setCurrentUser(user);
+    setJwtToken(token);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    setJwtToken(null);
+  };
 
   // Handlers for Agency Settings
   const handleUpdateSettings = async (newSettings: AgencySettings) => {
@@ -196,7 +251,6 @@ export default function App() {
     await deletePost(id);
   };
 
-
   // Search result jump
   const handleSelectSearchResult = (type: 'pilgrim' | 'staff' | 'trip', id: string) => {
     if (type === 'pilgrim') navigate('/pilgrims');
@@ -207,14 +261,18 @@ export default function App() {
   const isBadgeRoute = location.pathname.startsWith('/badge');
 
   // Render the badge page as a standalone responsive page without the app shell
-  // when the URL is /badge/:code. This ensures QR visits show a single-page
-  // badge without sidebar, topbar, or navigation.
   if (isBadgeRoute) {
     return <BadgePage />;
   }
 
   if (!isLoggedIn) {
-    return <LoginView onLoginSuccess={() => setIsLoggedIn(true)} lang={lang} onLanguageToggle={() => setLang(prev => prev === 'FR' ? 'AR' : 'FR')} />;
+    return (
+      <LoginView
+        onLoginSuccess={handleLoginSuccess}
+        lang={lang}
+        onLanguageToggle={() => setLang(prev => prev === 'FR' ? 'AR' : 'FR')}
+      />
+    );
   }
 
   return (
@@ -224,8 +282,9 @@ export default function App() {
     >
       {/* App Shell Sidebar */}
       <Sidebar
-        onLogout={() => setIsLoggedIn(false)}
+        onLogout={handleLogout}
         lang={lang}
+        currentUser={currentUser}
       />
 
       {/* Main Container */}
@@ -240,6 +299,7 @@ export default function App() {
           staff={staff}
           trips={trips}
           onSelectSearchResult={handleSelectSearchResult}
+          currentUser={currentUser}
         />
 
         {/* Dynamic Router Page Views */}
@@ -269,56 +329,72 @@ export default function App() {
               }
             />
 
+            {/* Pilgrims View: Admin & Agent */}
             <Route
               path="/pilgrims"
               element={
-                <PilgrimsView
-                  lang={lang}
-                  pilgrims={pilgrims}
-                  trips={trips}
-                  onAddPilgrim={handleAddPilgrim}
-                  onEditPilgrim={handleEditPilgrim}
-                  onDeletePilgrim={handleDeletePilgrim}
-                  isAddModalOpen={isAddPilgrimModalOpen}
-                  setIsAddModalOpen={setIsAddPilgrimModalOpen}
-                />
+                ['admin', 'agent'].includes(userRole) ? (
+                  <PilgrimsView
+                    lang={lang}
+                    pilgrims={pilgrims}
+                    trips={trips}
+                    onAddPilgrim={handleAddPilgrim}
+                    onEditPilgrim={handleEditPilgrim}
+                    onDeletePilgrim={handleDeletePilgrim}
+                    isAddModalOpen={isAddPilgrimModalOpen}
+                    setIsAddModalOpen={setIsAddPilgrimModalOpen}
+                  />
+                ) : (
+                  <Navigate to="/" replace />
+                )
               }
             />
 
+            {/* Staff View: Admin & Agent */}
             <Route
               path="/staff"
               element={
-                <StaffView
-                  lang={lang}
-                  staffList={staff}
-                  trips={trips}
-                  onAddStaff={handleAddStaff}
-                  onEditStaff={handleEditStaff}
-                  onDeleteStaff={handleDeleteStaff}
-                  isAddModalOpen={isAddStaffModalOpen}
-                  setIsAddModalOpen={setIsAddStaffModalOpen}
-                />
+                ['admin', 'agent'].includes(userRole) ? (
+                  <StaffView
+                    lang={lang}
+                    staffList={staff}
+                    trips={trips}
+                    onAddStaff={handleAddStaff}
+                    onEditStaff={handleEditStaff}
+                    onDeleteStaff={handleDeleteStaff}
+                    isAddModalOpen={isAddStaffModalOpen}
+                    setIsAddModalOpen={setIsAddStaffModalOpen}
+                  />
+                ) : (
+                  <Navigate to="/" replace />
+                )
               }
             />
 
+            {/* Trips View: Admin & Agent */}
             <Route
               path="/trips"
               element={
-                <TripsView
-                  lang={lang}
-                  trips={trips}
-                  onAddTrip={handleAddTrip}
-                  onEditTrip={handleEditTrip}
-                  onNavigateToQrCenter={(tripId) => {
-                    setSelectedTripForQr(tripId);
-                    navigate(`/qr-center?tripId=${tripId}`);
-                  }}
-                  isAddModalOpen={isAddTripModalOpen}
-                  setIsAddModalOpen={setIsAddTripModalOpen}
-                />
+                ['admin', 'agent'].includes(userRole) ? (
+                  <TripsView
+                    lang={lang}
+                    trips={trips}
+                    onAddTrip={handleAddTrip}
+                    onEditTrip={handleEditTrip}
+                    onNavigateToQrCenter={(tripId) => {
+                      setSelectedTripForQr(tripId);
+                      navigate(`/qr-center?tripId=${tripId}`);
+                    }}
+                    isAddModalOpen={isAddTripModalOpen}
+                    setIsAddModalOpen={setIsAddTripModalOpen}
+                  />
+                ) : (
+                  <Navigate to="/" replace />
+                )
               }
             />
 
+            {/* QR Center: All Roles */}
             <Route
               path="/qr-center"
               element={
@@ -337,20 +413,26 @@ export default function App() {
               element={<BadgePage />}
             />
 
+            {/* Documents View: Admin & Agent */}
             <Route
               path="/documents"
               element={
-                <DocumentsView
-                  lang={lang}
-                  trips={trips}
-                  pilgrims={pilgrims}
-                  staff={staff}
-                  agencySettings={agencySettings}
-                  onAddPilgrim={handleAddPilgrim}
-                />
+                ['admin', 'agent'].includes(userRole) ? (
+                  <DocumentsView
+                    lang={lang}
+                    trips={trips}
+                    pilgrims={pilgrims}
+                    staff={staff}
+                    agencySettings={agencySettings}
+                    onAddPilgrim={handleAddPilgrim}
+                  />
+                ) : (
+                  <Navigate to="/" replace />
+                )
               }
             />
 
+            {/* News View: All Roles */}
             <Route
               path="/news"
               element={
@@ -364,14 +446,19 @@ export default function App() {
               }
             />
 
+            {/* Settings View: Admin only */}
             <Route
               path="/settings"
               element={
-                <SettingsView
-                  lang={lang}
-                  settings={agencySettings}
-                  onUpdateSettings={handleUpdateSettings}
-                />
+                userRole === 'admin' ? (
+                  <SettingsView
+                    lang={lang}
+                    settings={agencySettings}
+                    onUpdateSettings={handleUpdateSettings}
+                  />
+                ) : (
+                  <Navigate to="/" replace />
+                )
               }
             />
 
@@ -404,4 +491,3 @@ export default function App() {
     </div>
   );
 }
-

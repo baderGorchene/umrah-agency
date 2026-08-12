@@ -1,4 +1,24 @@
 export type Language = 'FR' | 'AR';
+export type UserRole = 'admin' | 'agent' | 'pilgrim';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  fullName?: string;
+  role: UserRole;
+  avatarUrl?: string;
+  phone?: string;
+  tripId?: string;
+  createdAt?: string;
+}
+
+export interface AuthState {
+  user: UserProfile | null;
+  sessionToken: string | null;
+  isAuthenticated: boolean;
+  role: UserRole;
+  loading: boolean;
+}
 
 export const DEFAULT_AVATAR_URL = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><rect width="128" height="128" rx="64" fill="%23E2E8F0"/><circle cx="64" cy="46" r="22" fill="%2364748B"/><path d="M28 106c0-19.882 16.118-36 36-36s36 16.118 36 36Z" fill="%2364748B"/></svg>`;
 

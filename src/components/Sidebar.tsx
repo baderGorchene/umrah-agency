@@ -10,29 +10,60 @@ import {
   Newspaper, 
   Settings, 
   LogOut,
-  Building
+  ShieldCheck,
+  User,
+  UserCheck as StaffIcon
 } from 'lucide-react';
-import { Language } from '../types';
+import { Language, UserProfile, UserRole } from '../types';
 
 interface SidebarProps {
   onLogout: () => void;
   lang: Language;
+  currentUser: UserProfile | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
-  lang
+  lang,
+  currentUser
 }) => {
-  const menuItems: { path: string; labelFr: string; labelAr: string; icon: React.ElementType }[] = [
-    { path: '/', labelFr: 'Tableau de bord', labelAr: 'لوحة القيادة', icon: LayoutDashboard },
-    { path: '/pilgrims', labelFr: 'Gestion des pèlerins', labelAr: 'إدارة المعتمرين', icon: Users },
-    { path: '/staff', labelFr: 'Accompagnateurs', labelAr: 'المرافقين والكادر', icon: UserCheck },
-    { path: '/trips', labelFr: 'Gestion des voyages', labelAr: 'إدارة الرحلات', icon: Plane },
-    { path: '/qr-center', labelFr: 'Centre QR', labelAr: 'مركز بطاقات QR', icon: QrCode },
-    { path: '/documents', labelFr: 'مستندات الرحلة / Documents', labelAr: 'مستندات الرحلة', icon: FileText },
-    { path: '/news', labelFr: 'Actualités & Posts', labelAr: 'الأخبار والمنشورات', icon: Newspaper },
-    { path: '/settings', labelFr: 'Configuration Agence', labelAr: 'إعدادات الوكالة', icon: Settings },
+  const userRole: UserRole = currentUser?.role || 'admin';
+
+  const menuItems: { path: string; labelFr: string; labelAr: string; icon: React.ElementType; allowedRoles: UserRole[] }[] = [
+    { path: '/', labelFr: 'Tableau de bord', labelAr: 'لوحة القيادة', icon: LayoutDashboard, allowedRoles: ['admin', 'agent', 'pilgrim'] },
+    { path: '/pilgrims', labelFr: 'Gestion des pèlerins', labelAr: 'إدارة المعتمرين', icon: Users, allowedRoles: ['admin', 'agent'] },
+    { path: '/staff', labelFr: 'Accompagnateurs', labelAr: 'المرافقين والكادر', icon: UserCheck, allowedRoles: ['admin', 'agent'] },
+    { path: '/trips', labelFr: 'Gestion des voyages', labelAr: 'إدارة الرحلات', icon: Plane, allowedRoles: ['admin', 'agent'] },
+    { path: '/qr-center', labelFr: 'Centre QR', labelAr: 'مركز بطاقات QR', icon: QrCode, allowedRoles: ['admin', 'agent', 'pilgrim'] },
+    { path: '/documents', labelFr: 'مستندات الرحلة / Documents', labelAr: 'مستندات الرحلة', icon: FileText, allowedRoles: ['admin', 'agent'] },
+    { path: '/news', labelFr: 'Actualités & Posts', labelAr: 'الأخبار والمنشورات', icon: Newspaper, allowedRoles: ['admin', 'agent', 'pilgrim'] },
+    { path: '/settings', labelFr: 'Configuration Agence', labelAr: 'إعدادات الوكالة', icon: Settings, allowedRoles: ['admin'] },
   ];
+
+  const visibleMenuItems = menuItems.filter(item => item.allowedRoles.includes(userRole));
+
+  const roleBadgeInfo = {
+    admin: {
+      titleFr: "Directeur d'Agence",
+      titleAr: 'مدير الوكالة (Admin)',
+      bg: 'bg-amber-100 border-amber-300 text-amber-900',
+      icon: ShieldCheck,
+    },
+    agent: {
+      titleFr: 'Accompagnateur / Staff',
+      titleAr: 'مرافق الرحلة (Agent)',
+      bg: 'bg-blue-100 border-blue-300 text-blue-900',
+      icon: StaffIcon,
+    },
+    pilgrim: {
+      titleFr: 'Moutamire / Client',
+      titleAr: 'معتمر (Pilgrim)',
+      bg: 'bg-emerald-100 border-emerald-300 text-emerald-900',
+      icon: User,
+    },
+  }[userRole];
+
+  const RoleIcon = roleBadgeInfo.icon;
 
   return (
     <aside className="w-64 bg-white border-r rtl:border-r-0 rtl:border-l border-slate-100 flex flex-col justify-between h-screen sticky top-0 shrink-0 z-30 select-none print:hidden">
@@ -50,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation items */}
         <nav className="p-3 space-y-1">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
@@ -79,25 +110,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Footer / Profile */}
-      <div className="p-3 border-t border-slate-100 bg-slate-50/50">
-        <div className="flex items-center justify-between p-2 rounded-lg bg-white border border-slate-100 shadow-2xs">
+      {/* Footer / Profile & Role Badge */}
+      <div className="p-3 border-t border-slate-100 bg-slate-50/50 space-y-2">
+        <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
           <div className="flex items-center gap-2 overflow-hidden">
-            <div className="w-8 h-8 rounded-full bg-amber-100 border border-amber-200 text-amber-800 flex items-center justify-center shrink-0">
-              <Building className="w-4 h-4" />
+            <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${roleBadgeInfo.bg}`}>
+              <RoleIcon className="w-4 h-4" />
             </div>
             <div className="truncate">
               <p className="text-xs font-bold text-slate-900 truncate">
-                {lang === 'FR' ? "Agence d'Omra" : "وكالة العمرة"}
+                {currentUser?.fullName || (lang === 'FR' ? "Utilisateur" : "المستخدم")}
               </p>
-              <p className="text-[10px] text-slate-500 truncate">
-                {lang === 'FR' ? "Directeur d'Agence" : "مدير الوكالة"}
+              <p className="text-[10px] text-slate-500 font-medium truncate">
+                {lang === 'FR' ? roleBadgeInfo.titleFr : roleBadgeInfo.titleAr}
               </p>
             </div>
           </div>
           <button
             onClick={onLogout}
-            title={lang === 'FR' ? 'Déconnexion' : 'تسجيل الخروج'}
+            title={lang === 'FR' ? 'Déconnexion (JWT)' : 'تسجيل الخروج'}
             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
           >
             <LogOut className="w-4 h-4" />
