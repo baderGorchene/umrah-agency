@@ -19,7 +19,8 @@ export function buildBadgePublicUrl(uniqueCode: string): string {
   const origin = typeof window !== 'undefined' && window.location?.origin
     ? window.location.origin
     : 'http://localhost:3000';
-  return `${origin}/badge/${encodeURIComponent(uniqueCode)}`;
+  const basePath = import.meta.env.BASE_URL || '/';
+  return `${origin}${basePath}#/badge/${encodeURIComponent(uniqueCode)}`;
 }
 
 /**

@@ -224,10 +224,8 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
 
 const buildBadgePageUrl = (uniqueCode: string): string => {
   const baseUrl = import.meta.env.BASE_URL || "/";
-  const normalizedBase = baseUrl.replace(/\/$/, "");
   const appOrigin = typeof window !== "undefined" ? window.location.origin : "";
-  const fullUrl = `${appOrigin}${normalizedBase}/badge/${encodeURIComponent(uniqueCode)}`;
-  return fullUrl.replace(/([^:]\/\/)+/g, "$1");
+  return `${appOrigin}${baseUrl}#/badge/${encodeURIComponent(uniqueCode)}`;
 };
 
 const BadgeArtwork: React.FC<BadgeArtworkProps> = ({

@@ -1,21 +1,19 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { HashRouter } from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
 import './i18n';
 
-// Ensure the app root URL redirects to the app base so BrowserRouter with a basename matches.
-if (typeof window !== 'undefined' && window.location.pathname === '/') {
-  // Replace instead of push so not to pollute history stack.
-  window.history.replaceState({}, '', '/umrah-agency');
+if (typeof window !== 'undefined' && window.location.pathname === '/' && !window.location.hash) {
+  window.history.replaceState({}, '', '/umrah-agency/');
 }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter basename="/umrah-agency">
+    <HashRouter>
       <App />
-    </BrowserRouter>
+    </HashRouter>
   </StrictMode>,
 );
 

@@ -42,9 +42,8 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
         run: npm run build
 
-      # Copies index.html to 404.html so direct routing (e.g. /umrah-agency/staff) works on GitHub Pages
-      - name: Setup SPA fallback for GitHub Pages
-        run: cp ./dist/index.html ./dist/404.html
+      # The repo's public/404.html is copied into dist during the Vite build and
+      # redirects deep links to the hash-based app entry so GitHub Pages can serve them.
 
       - name: Upload static build for Pages
         id: upload-artifact

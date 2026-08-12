@@ -143,13 +143,21 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
         }),
       });
 
-      const result = await response.json();
+      const text = await response.text();
+      let result: { success?: boolean; error?: string; data?: ExtractedPassportData } | null = null;
 
-      if (!result.success) {
-        throw new Error(result.error || "Échec de l'extraction OCR.");
+      try {
+        result = text ? JSON.parse(text) : null;
+      } catch {
+        result = null;
       }
 
-      setExtractedData(result.data);
+      if (!response.ok || !result || !result.success) {
+        const message = result?.error || "Le scan OCR n'est pas disponible sur cette plateforme statique. Utilisez l'application serveur ou chargez un passeport de démonstration.";
+        throw new Error(message);
+      }
+
+      setExtractedData(result.data || null);
     } catch (err: any) {
       console.error(err);
       setError(

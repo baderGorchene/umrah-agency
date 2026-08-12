@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Redirecting...</title>
+    <script>
+      (() => {
+        const path = window.location.pathname.replace(/^\/umrah-agency/, '') || '/';
+        const hash = window.location.hash || '';
+
+        if (!hash.startsWith('#/')) {
+          const targetPath = path === '/' ? '' : path;
+          window.location.replace(`/umrah-agency/#${targetPath}${window.location.search}`);
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    Redirecting…
+  </body>
+</html>
