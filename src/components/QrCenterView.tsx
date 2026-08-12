@@ -440,6 +440,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
   const [savedBadgeCount, setSavedBadgeCount] = useState(
     getGeneratedBadgeCount(),
   );
+  const [isPrintMode, setIsPrintMode] = useState(false);
 
   // Batch print mode vs single badge mode.
   // Kept in state so the batch-grid rendering path below still works if you
@@ -563,357 +564,416 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
   };
 
   const handlePrint = () => {
-    window.print();
+    setIsPrintMode(true);
+    window.setTimeout(() => {
+      window.print();
+    }, 50);
+
+    window.addEventListener(
+      "afterprint",
+      () => {
+        setIsPrintMode(false);
+      },
+      { once: true },
+    );
   };
 
+  const printStyles = `
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 8mm;
+      }
+
+      html, body {
+        background: #ffffff !important;
+      }
+
+      body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .badge-print-grid {
+        display: block !important;
+        max-height: none !important;
+        overflow: visible !important;
+      }
+
+      .badge-print-item {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        page-break-after: always;
+        margin: 0 auto 12mm;
+      }
+
+      .badge-print-item:last-child {
+        page-break-after: auto;
+      }
+
+      .badge-print-item .badge-artwork-shell {
+        width: 100% !important;
+        max-width: 430px !important;
+        margin: 0 auto;
+      }
+    }
+  `;
+
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:block">
-        {/* Left Panel (Controls) - Hidden on Print */}
-        <div className="lg:col-span-5 space-y-6 print:hidden">
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-5">
-            <h2 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-3 flex items-center gap-2">
-              <SlidersHorizontal className="w-4 h-4 text-slate-500" />
-              {isAr
-                ? "إعداد بطاقات الرحلة"
-                : "Configuration des Badges de Voyage"}
-            </h2>
-
-            {/* Step 1: Select Trip */}
-            <div className="space-y-1.5 text-start">
-              <label className="text-xs font-bold text-slate-700">
-                {isAr ? "1. اختر الرحلة" : "1. Sélectionner le Voyage"}
-              </label>
-              <div className="relative">
-                <Compass className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <select
-                  value={activeTripId}
-                  onChange={(e) => {
-                    setActiveTripId(e.target.value);
-                    setSelectedPilgrimForPreview(null);
-                  }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-black/5 text-start appearance-none"
-                >
-                  <option value="">
-                    {isAr
-                      ? "-- اختر رحلة نشطة --"
-                      : "-- Sélectionner un voyage actif --"}
-                  </option>
-                  {trips.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name} ({t.startDate})
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Emergency Contacts Inputs */}
-            <div className="space-y-3 bg-slate-50/70 border border-slate-100 rounded-xl p-4 text-start">
-              <label className="text-xs font-bold text-slate-700 block">
+    <>
+      <style>{printStyles}</style>
+      <div className={`space-y-6 ${isPrintMode ? "badge-print-mode" : ""}`}>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:block">
+          {/* Left Panel (Controls) - Hidden on Print */}
+          <div className="lg:col-span-5 space-y-6 print:hidden">
+            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-5">
+              <h2 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-3 flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-slate-500" />
                 {isAr
-                  ? "أرقام الطوارئ (المرافقون)"
-                  : "Contacts Urgences (Accompagnateurs)"}
-              </label>
+                  ? "إعداد بطاقات الرحلة"
+                  : "Configuration des Badges de Voyage"}
+              </h2>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center shrink-0">
-                    1
-                  </span>
-                  <input
-                    type="text"
-                    value={guide1Name}
-                    onChange={(e) => setGuide1Name(e.target.value)}
-                    placeholder="اسم المرافق الأول"
-                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-start"
-                  />
+              {/* Step 1: Select Trip */}
+              <div className="space-y-1.5 text-start">
+                <label className="text-xs font-bold text-slate-700">
+                  {isAr ? "1. اختر الرحلة" : "1. Sélectionner le Voyage"}
+                </label>
+                <div className="relative">
+                  <Compass className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <select
+                    value={activeTripId}
+                    onChange={(e) => {
+                      setActiveTripId(e.target.value);
+                      setSelectedPilgrimForPreview(null);
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-black/5 text-start appearance-none"
+                  >
+                    <option value="">
+                      {isAr
+                        ? "-- اختر رحلة نشطة --"
+                        : "-- Sélectionner un voyage actif --"}
+                    </option>
+                    {trips.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.startDate})
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <input
-                  type="text"
-                  value={guide1Phone}
-                  onChange={(e) => setGuide1Phone(e.target.value)}
-                  placeholder="+966 5..."
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs"
-                />
               </div>
 
-              <div className="space-y-2 pt-2 border-t border-slate-200/60">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center shrink-0">
-                    2
-                  </span>
+              {/* Emergency Contacts Inputs */}
+              <div className="space-y-3 bg-slate-50/70 border border-slate-100 rounded-xl p-4 text-start">
+                <label className="text-xs font-bold text-slate-700 block">
+                  {isAr
+                    ? "أرقام الطوارئ (المرافقون)"
+                    : "Contacts Urgences (Accompagnateurs)"}
+                </label>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center shrink-0">
+                      1
+                    </span>
+                    <input
+                      type="text"
+                      value={guide1Name}
+                      onChange={(e) => setGuide1Name(e.target.value)}
+                      placeholder="اسم المرافق الأول"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-start"
+                    />
+                  </div>
                   <input
                     type="text"
-                    value={guide2Name}
-                    onChange={(e) => setGuide2Name(e.target.value)}
-                    placeholder="اسم المرافق الثاني"
+                    value={guide1Phone}
+                    onChange={(e) => setGuide1Phone(e.target.value)}
+                    placeholder="+966 5..."
                     className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs"
                   />
                 </div>
-                <input
-                  type="text"
-                  value={guide2Phone}
-                  onChange={(e) => setGuide2Phone(e.target.value)}
-                  placeholder="+966 5..."
-                  className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs"
-                />
-              </div>
-            </div>
 
-            {/* Action Button */}
-            <button
-              onClick={handleGenerateBadges}
-              className="w-full bg-black hover:bg-slate-900 text-white font-bold py-3.5 px-4 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer text-xs"
-            >
-              <QrCode className="w-4 h-4" />
-              <span>
-                {isAr
-                  ? "توليد ومعاينة البطاقات"
-                  : "Générer & Prévisualiser Badges"}
-              </span>
-            </button>
-          </div>
-
-          {/* Data Summary Cards */}
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-4">
-            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-              <Info className="w-4 h-4 text-slate-400" />
-              Résumé des Données
-            </h3>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
-                <Users className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase">
-                  PÈLERINS
-                </p>
-                <p className="text-xl font-extrabold text-slate-900">
-                  {tripPilgrims.length}
-                </p>
-              </div>
-
-              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
-                <UserRound className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase">
-                  ACCOMPAGNATEURS
-                </p>
-                <p className="text-xl font-extrabold text-slate-900">
-                  {tripStaff.length}
-                </p>
-              </div>
-
-              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
-                <IdCard className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase">
-                  BADGES GÉNÉRÉS
-                </p>
-                <p className="text-xl font-extrabold text-slate-900">
-                  {badgesGenerated ? tripPilgrims.length : 0}
-                </p>
-              </div>
-
-              <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
-                <Activity className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
-                <p className="text-[10px] font-bold text-slate-400 uppercase">
-                  STATUT
-                </p>
-                <p className="text-xs font-bold mt-1.5 text-slate-800 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                  Prêt à générer
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Panel (Preview & Template Controls) */}
-        <div className="lg:col-span-7 space-y-6 print:w-full print:p-0">
-          <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-6 print:border-none print:shadow-none print:p-0">
-            {/* Top Toolbar */}
-            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4 print:hidden">
-              <h2 className="font-bold text-slate-900 text-base leading-snug max-w-[220px]">
-                {isAr
-                  ? "معاينة بطاقات الهوية الرقمية"
-                  : "Aperçu des Cartes d'Identité Numériques"}
-              </h2>
-
-              <div className="flex items-center gap-2 flex-wrap justify-end">
-                <span className="px-3 py-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                  Aperçu en Direct
-                </span>
-                <button
-                  onClick={handlePrint}
-                  disabled={!hasPilgrims}
-                  className="px-3 py-1.5 bg-white border border-slate-200 disabled:text-slate-300 text-slate-500 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Imprimer les Cartes</span>
-                </button>
-                <button
-                  onClick={handlePrint}
-                  disabled={!hasPilgrims}
-                  className="px-3 py-1.5 bg-white border border-slate-200 disabled:text-slate-300 text-slate-500 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Exporter en PDF</span>
-                </button>
-                <button
-                  onClick={handleGenerateBadges}
-                  className="px-3 py-1.5 bg-black hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Mettre à jour les Badges</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Template Selector */}
-            <div className="space-y-3 print:hidden">
-              <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0">
-                    <Palette className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-xs text-slate-900 dir-rtl">
-                      قالب بطاقة الهوية
-                    </h3>
-                    <p className="text-[11px] text-slate-500 truncate">
-                      Choisissez un style — l'aperçu se met à jour
-                      instantanément
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 text-[11px] font-bold rounded-full">
-                    {badgeTemplates.length} modèles
-                  </span>
-                  <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[11px] font-bold rounded-full">
-                    {savedBadgeCount} sauvegardés
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-white border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div
-                    className="w-12 h-14 rounded-lg shrink-0 flex items-center justify-center border border-slate-200 overflow-hidden"
-                    style={{
-                      backgroundColor: `${selectedTemplate.accentColor}1A`,
-                    }}
-                  >
-                    <QrCode
-                      className="w-4 h-4"
-                      style={{ color: selectedTemplate.accentColor }}
+                <div className="space-y-2 pt-2 border-t border-slate-200/60">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center shrink-0">
+                      2
+                    </span>
+                    <input
+                      type="text"
+                      value={guide2Name}
+                      onChange={(e) => setGuide2Name(e.target.value)}
+                      placeholder="اسم المرافق الثاني"
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs"
                     />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-semibold text-slate-400">
-                      Design actuel
-                    </p>
-                    <p className="font-bold text-sm text-slate-900 truncate">
-                      {selectedTemplate.name}
-                    </p>
-                    <p className="text-[11px] text-slate-500 truncate">
-                      {selectedTemplate.description}
-                    </p>
-                  </div>
+                  <input
+                    type="text"
+                    value={guide2Phone}
+                    onChange={(e) => setGuide2Phone(e.target.value)}
+                    placeholder="+966 5..."
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs"
+                  />
                 </div>
-                <button
-                  onClick={() => setIsTemplateModalOpen(true)}
-                  className="bg-black hover:bg-slate-900 text-white text-xs font-bold pl-3 pr-2.5 py-2 rounded-xl flex items-center gap-2 cursor-pointer shrink-0"
-                >
-                  <LayoutGrid className="w-3.5 h-3.5" />
-                  <span className="text-left leading-tight">
-                    <span className="block">Voir et changer</span>
-                    <span className="block text-[10px] font-semibold text-white/60">
-                      {badgeTemplates.length} modèles prêts
-                    </span>
-                  </span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </button>
               </div>
+
+              {/* Action Button */}
+              <button
+                onClick={handleGenerateBadges}
+                className="w-full bg-black hover:bg-slate-900 text-white font-bold py-3.5 px-4 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer text-xs"
+              >
+                <QrCode className="w-4 h-4" />
+                <span>
+                  {isAr
+                    ? "توليد ومعاينة البطاقات"
+                    : "Générer & Prévisualiser Badges"}
+                </span>
+              </button>
             </div>
 
-            {/* Badge Preview Area */}
-            {saveStatus && (
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 print:hidden">
-                {saveStatus}
-              </div>
-            )}
+            {/* Data Summary Cards */}
+            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-4">
+              <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <Info className="w-4 h-4 text-slate-400" />
+                Résumé des Données
+              </h3>
 
-            {hasPilgrims ? (
-              <div className="space-y-4">
-                {/* All Badges — flex-wrap reflows around the expanded one, no empty gaps */}
-                <div className="flex flex-wrap gap-4 max-h-[80vh] overflow-y-auto pr-1 content-start print:max-h-none print:overflow-visible print:pr-0">
-                  {tripPilgrims.map((p) => {
-                    const isExpanded = selectedPilgrimForPreview?.id === p.id;
-
-                    return (
-                      <div
-                        key={p.id}
-                        className={`transition-all duration-300 ease-out print:break-inside-avoid ${
-                          isExpanded ? "w-full" : "w-[calc(50%-0.5rem)]"
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setSelectedPilgrimForPreview(isExpanded ? null : p)
-                          }
-                          className="block w-full cursor-pointer text-left print:pointer-events-none"
-                        >
-                          <BadgeArtwork
-                            template={selectedTemplate}
-                            pilgrim={p}
-                            trip={selectedTrip}
-                            guide1Name={guide1Name}
-                            guide1Phone={guide1Phone}
-                            guide2Name={guide2Name}
-                            guide2Phone={guide2Phone}
-                            qrPayload={buildBadgePageUrl(p.uniqueCode)}
-                            compact={!isExpanded}
-                            className={`w-full transition-all duration-300 ease-out ${
-                              isExpanded
-                                ? "shadow-xl ring-2 ring-black/10"
-                                : "hover:shadow-md hover:-translate-y-0.5"
-                            }`}
-                          />
-                        </button>
-
-                        {isExpanded && (
-                          <button
-                            type="button"
-                            onClick={() => setInspectingPilgrim(p)}
-                            className="mt-3 w-full bg-slate-900 hover:bg-black text-white text-[11px] font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer print:hidden"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Inspecter le Pass Numérique</span>
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
+                  <Users className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                    PÈLERINS
+                  </p>
+                  <p className="text-xl font-extrabold text-slate-900">
+                    {tripPilgrims.length}
+                  </p>
                 </div>
-              </div>
-            ) : (
-              <div className="py-14 flex flex-col items-center justify-center text-center gap-4 bg-slate-50/60 rounded-2xl border border-slate-100">
-                <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center">
-                  <QrCode className="w-7 h-7 text-slate-300" />
+
+                <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
+                  <UserRound className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                    ACCOMPAGNATEURS
+                  </p>
+                  <p className="text-xl font-extrabold text-slate-900">
+                    {tripStaff.length}
+                  </p>
                 </div>
-                <div className="space-y-1 max-w-xs">
-                  <h3 className="font-bold text-slate-900 text-sm">
-                    En attente de Génération de Cartes
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Sélectionnez un voyage et configurez les contacts d'urgence
-                    pour afficher les badges imprimables.
+
+                <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
+                  <IdCard className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                    BADGES GÉNÉRÉS
+                  </p>
+                  <p className="text-xl font-extrabold text-slate-900">
+                    {badgesGenerated ? tripPilgrims.length : 0}
+                  </p>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
+                  <Activity className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                    STATUT
+                  </p>
+                  <p className="text-xs font-bold mt-1.5 text-slate-800 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                    Prêt à générer
                   </p>
                 </div>
               </div>
-            )}
+            </div>
+          </div>
+
+          {/* Right Panel (Preview & Template Controls) */}
+          <div className="lg:col-span-7 space-y-6 print:w-full print:p-0">
+            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-6 print:border-none print:shadow-none print:p-0">
+              {/* Top Toolbar */}
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4 print:hidden">
+                <h2 className="font-bold text-slate-900 text-base leading-snug max-w-[220px]">
+                  {isAr
+                    ? "معاينة بطاقات الهوية الرقمية"
+                    : "Aperçu des Cartes d'Identité Numériques"}
+                </h2>
+
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <span className="px-3 py-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                    Aperçu en Direct
+                  </span>
+                  <button
+                    onClick={handlePrint}
+                    disabled={!hasPilgrims}
+                    className="px-3 py-1.5 bg-white border border-slate-200 disabled:text-slate-300 text-slate-500 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Imprimer les Cartes</span>
+                  </button>
+                  <button
+                    onClick={handlePrint}
+                    disabled={!hasPilgrims}
+                    className="px-3 py-1.5 bg-white border border-slate-200 disabled:text-slate-300 text-slate-500 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Exporter en PDF</span>
+                  </button>
+                  <button
+                    onClick={handleGenerateBadges}
+                    className="px-3 py-1.5 bg-black hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Mettre à jour les Badges</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Template Selector */}
+              <div className="space-y-3 print:hidden">
+                <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0">
+                      <Palette className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-xs text-slate-900 dir-rtl">
+                        قالب بطاقة الهوية
+                      </h3>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        Choisissez un style — l'aperçu se met à jour
+                        instantanément
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 text-[11px] font-bold rounded-full">
+                      {badgeTemplates.length} modèles
+                    </span>
+                    <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[11px] font-bold rounded-full">
+                      {savedBadgeCount} sauvegardés
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="w-12 h-14 rounded-lg shrink-0 flex items-center justify-center border border-slate-200 overflow-hidden"
+                      style={{
+                        backgroundColor: `${selectedTemplate.accentColor}1A`,
+                      }}
+                    >
+                      <QrCode
+                        className="w-4 h-4"
+                        style={{ color: selectedTemplate.accentColor }}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold text-slate-400">
+                        Design actuel
+                      </p>
+                      <p className="font-bold text-sm text-slate-900 truncate">
+                        {selectedTemplate.name}
+                      </p>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        {selectedTemplate.description}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsTemplateModalOpen(true)}
+                    className="bg-black hover:bg-slate-900 text-white text-xs font-bold pl-3 pr-2.5 py-2 rounded-xl flex items-center gap-2 cursor-pointer shrink-0"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span className="text-left leading-tight">
+                      <span className="block">Voir et changer</span>
+                      <span className="block text-[10px] font-semibold text-white/60">
+                        {badgeTemplates.length} modèles prêts
+                      </span>
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Badge Preview Area */}
+              {saveStatus && (
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 print:hidden">
+                  {saveStatus}
+                </div>
+              )}
+
+              {hasPilgrims ? (
+                <div className="space-y-4">
+                  {/* All Badges — flex-wrap reflows around the expanded one, no empty gaps */}
+                  <div className="badge-print-grid flex flex-wrap gap-4 max-h-[80vh] overflow-y-auto pr-1 content-start print:max-h-none print:overflow-visible print:pr-0">
+                    {tripPilgrims.map((p) => {
+                      const isExpanded = selectedPilgrimForPreview?.id === p.id;
+                      const shouldExpandInPrint = isPrintMode || isExpanded;
+
+                      return (
+                        <div
+                          key={p.id}
+                          className={`badge-print-item transition-all duration-300 ease-out print:break-inside-avoid ${
+                            shouldExpandInPrint ? "w-full" : "w-[calc(50%-0.5rem)]"
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSelectedPilgrimForPreview(isExpanded ? null : p)
+                            }
+                            className="block w-full cursor-pointer text-left print:pointer-events-none"
+                          >
+                            <BadgeArtwork
+                              template={selectedTemplate}
+                              pilgrim={p}
+                              trip={selectedTrip}
+                              guide1Name={guide1Name}
+                              guide1Phone={guide1Phone}
+                              guide2Name={guide2Name}
+                              guide2Phone={guide2Phone}
+                              qrPayload={buildBadgePageUrl(p.uniqueCode)}
+                              compact={isPrintMode ? false : !isExpanded}
+                              className={`badge-artwork-shell w-full transition-all duration-300 ease-out ${
+                                shouldExpandInPrint
+                                  ? "shadow-xl ring-2 ring-black/10"
+                                  : "hover:shadow-md hover:-translate-y-0.5"
+                              }`}
+                            />
+                          </button>
+
+                          {isExpanded && (
+                            <button
+                              type="button"
+                              onClick={() => setInspectingPilgrim(p)}
+                              className="mt-3 w-full bg-slate-900 hover:bg-black text-white text-[11px] font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer print:hidden"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Inspecter le Pass Numérique</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div className="py-14 flex flex-col items-center justify-center text-center gap-4 bg-slate-50/60 rounded-2xl border border-slate-100">
+                  <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center">
+                    <QrCode className="w-7 h-7 text-slate-300" />
+                  </div>
+                  <div className="space-y-1 max-w-xs">
+                    <h3 className="font-bold text-slate-900 text-sm">
+                      En attente de Génération de Cartes
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Sélectionnez un voyage et configurez les contacts d'urgence
+                      pour afficher les badges imprimables.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1019,6 +1079,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
         emergencyGuide1={{ name: guide1Name, phone: guide1Phone }}
         emergencyGuide2={{ name: guide2Name, phone: guide2Phone }}
       />
-    </div>
+    </>
   );
 };
