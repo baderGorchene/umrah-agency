@@ -57,12 +57,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
 
   const handleExportCSV = () => {
     const headers = [
-      "Arabic Name",
-      "Latin Name",
-      "Phone",
-      "Unique Code",
-      "Status",
-      "Passport",
+      "Nom (Arabe)",
+      "Nom (Latin)",
+      "Téléphone",
+      "Code unique",
+      "Statut",
+      "Passeport",
     ];
     const rows = tripPilgrims.map((p) => [
       p.nameArabic,
@@ -199,7 +199,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 className="w-full bg-slate-100 hover:bg-black hover:text-white text-slate-800 text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Imprimer / طباعة</span>
+                <span>{isAr ? 'طباعة' : 'Imprimer'}</span>
               </button>
             </div>
 
@@ -221,7 +221,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 className="w-full bg-slate-100 hover:bg-black hover:text-white text-slate-800 text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Créer / إنشاء</span>
+                <span>{isAr ? 'إنشاء' : 'Créer'}</span>
               </button>
             </div>
 
@@ -243,7 +243,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 className="w-full bg-slate-100 hover:bg-black hover:text-white text-slate-800 text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Créer / إنشاء</span>
+                <span>{isAr ? 'إنشاء' : 'Créer'}</span>
               </button>
             </div>
 
@@ -265,7 +265,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 className="w-full bg-slate-100 hover:bg-black hover:text-white text-slate-800 text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Créer / إنشاء</span>
+                <span>{isAr ? 'إنشاء' : 'Créer'}</span>
               </button>
             </div>
           </div>
@@ -419,7 +419,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                     <th className="p-2 border-r border-slate-200 text-center">
                       Code Unique
                     </th>
-                    <th className="p-2 text-center">التوقيع / Emargement</th>
+                    <th className="p-2 text-center">{isAr ? 'التوقيع' : 'Emargement'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
@@ -536,7 +536,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
 
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  ملاحظات / البيان
+                  {isAr ? 'ملاحظات' : 'Notes'}
                 </label>
                 <textarea
                   value={receiptForm.notes}

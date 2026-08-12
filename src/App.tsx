@@ -135,10 +135,20 @@ export default function App() {
     loadAllData();
   }, []);
 
-  // Sync document direction (RTL/LTR) with selected language
+  // Sync document direction (RTL/LTR) with selected language and update i18next language
   useEffect(() => {
     document.documentElement.setAttribute('dir', lang === 'AR' ? 'rtl' : 'ltr');
     document.documentElement.setAttribute('lang', lang.toLowerCase());
+
+    // sync i18next
+    try {
+      // dynamic import to avoid initialization order issues
+      const i18n = require('./i18n').default;
+      i18n.changeLanguage(lang === 'FR' ? 'fr' : 'ar');
+    } catch (err) {
+      // ignore if i18n not available
+      // console.warn('i18n not initialized yet', err);
+    }
   }, [lang]);
 
   const isRtl = lang === 'AR';

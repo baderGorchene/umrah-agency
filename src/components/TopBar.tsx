@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Bell, Shield, Key } from 'lucide-react';
 import { Language, Pilgrim, Staff, Trip, UserProfile } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface TopBarProps {
   lang: Language;
@@ -56,10 +57,12 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   const hasSearchResults = filteredPilgrims.length > 0 || filteredStaff.length > 0 || filteredTrips.length > 0;
 
+  const { t } = useTranslation();
+
   const roleLabel = {
-    admin: lang === 'FR' ? "Directeur d'Agence" : 'مدير الوكالة',
-    agent: lang === 'FR' ? 'Accompagnateur' : 'مرافق الرحلة',
-    pilgrim: lang === 'FR' ? 'Pèlerin' : 'معتمر',
+    admin: t('roles.admin'),
+    agent: t('roles.agent'),
+    pilgrim: t('roles.pilgrim'),
   }[currentUser?.role || 'admin'];
 
   return (
@@ -74,7 +77,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-            placeholder={lang === 'FR' ? "Recherche rapide pèlerin, voyage..." : "بحث سريع عن معتمر، رحلة..."}
+            placeholder={t('search.placeholder')}
             className="w-full bg-slate-50 border border-slate-200/80 rounded-full pl-9 pr-4 rtl:pl-4 rtl:pr-9 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-slate-400 transition-all text-start"
           />
           {searchQuery && (
@@ -92,13 +95,13 @@ export const TopBar: React.FC<TopBarProps> = ({
           <div className="absolute left-0 right-0 top-11 bg-white border border-slate-100 rounded-xl shadow-xl p-2 z-50 max-h-80 overflow-y-auto">
             {!hasSearchResults ? (
               <p className="text-xs text-slate-400 text-center py-4">
-                {lang === 'FR' ? "Aucun résultat trouvé" : "لا توجد نتائج"}
+              {t('search.no_result')}
               </p>
             ) : (
               <div className="space-y-3 text-xs">
                 {filteredPilgrims.length > 0 && (
                   <div>
-                    <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">Pèlerins</div>
+                    <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">{t('search.pilgrims')}</div>
                     {filteredPilgrims.map(p => (
                       <div 
                         key={p.id}
@@ -123,7 +126,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
                 {filteredStaff.length > 0 && (
                   <div>
-                    <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">Staff</div>
+                    <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">{t('search.personnel')}</div>
                     {filteredStaff.map(s => (
                       <div 
                         key={s.id}
@@ -145,7 +148,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
                 {filteredTrips.length > 0 && (
                   <div>
-                    <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">Voyages</div>
+                    <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">{t('search.trips')}</div>
                     {filteredTrips.map(t => (
                       <div 
                         key={t.id}

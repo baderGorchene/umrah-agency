@@ -1,0 +1,100 @@
+{
+  "menu": {
+    "dashboard": "Tableau de bord",
+    "pilgrims": "Gestion des pèlerins",
+    "staff": "Accompagnateurs",
+    "trips": "Gestion des voyages",
+    "qr_center": "Centre QR",
+    "documents": "Documents de voyage",
+    "news": "Actualités & Publications",
+    "settings": "Configuration Agence"
+  },
+  "roles": {
+    "admin": "Directeur d'Agence",
+    "agent": "Accompagnateur / Personnel",
+    "pilgrim": "Pèlerin / Client"
+  },
+  "buttons": {
+    "print": "Imprimer",
+    "create": "Créer",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "download_csv": "Télécharger CSV",
+    "publish_now": "Publier maintenant"
+  },
+  "news": {
+    "new_publication": "Créer une nouvelle publication",
+    "title": "Titre de la publication",
+    "content": "Contenu de la publication",
+    "choose_image": "Choisir photo d'illustration",
+    "publications_count": "Publications actuelles de l'agence"
+  },
+  "documents": {
+    "documents_title": "Documents de Voyage",
+    "step_select_trip": "Étape 1: Sélectionner le voyage actif",
+    "export_csv": "Exporter Excel / CSV",
+    "csv_headers": [
+      "Nom (Arabe)",
+      "Nom (Latin)",
+      "Téléphone",
+      "Code unique",
+      "Statut",
+      "Passeport"
+    ],
+    "notes": "Notes",
+    "emargement": "Emargement"
+  },
+  "users": {
+    "manage_users": "Gestion des Utilisateurs & Accès",
+    "add_user": "Ajouter un Utilisateur",
+    "no_user": "Aucun utilisateur trouvé.",
+    "create_account": "Créer Compte",
+    "user": "Utilisateur"
+  },
+  "search": {
+    "placeholder": "Recherche rapide pèlerin, voyage...",
+    "no_result": "Aucun résultat trouvé",
+    "pilgrims": "Pèlerins",
+    "personnel": "Personnel",
+    "trips": "Voyages"
+  },
+  "staff": {
+    "title": "Accompagnateurs & Personnel",
+    "description": "Gérer et attribuer des guides spirituels et des chefs de groupe.",
+    "add_button": "Ajouter un accompagnateur",
+    "table": {
+      "role": "Rôle",
+      "whatsapp": "WhatsApp (Tunisie)",
+      "unique_code": "Code Unique",
+      "assigned_trip": "Voyage Assigné",
+      "actions": "Actions",
+      "no_members": "Aucun membre du personnel."
+    },
+    "delete_confirm": "Voulez-vous vraiment supprimer ce membre du personnel ?",
+    "delete_title": "Confirmer la suppression",
+    "create_title": "Ajouter un accompagnateur",
+    "edit_title": "Modifier l'accompagnateur",
+    "form": {
+      "name_ar": "Nom et Prénom (Arabe) *",
+      "whatsapp": "Numéro WhatsApp (Tunisie) *",
+      "role": "Rôle *",
+      "assigned_trip": "Voyage Assigné (Optionnel)"
+    },
+    "avatar": {
+      "change": "Changer",
+      "change_photo_optional": "Changer la photo de profil (Optionnel)",
+      "uploading": "Téléversement..."
+    },
+    "reveal": {
+      "show": "Révéler",
+      "hide": "Masquer"
+    }
+  },
+  "misc": {
+    "version": "Version 1.0 - 01 / 07 / 2026",
+    "scanner": "Numériser un Passeport",
+    "none": "— Aucun —"
+  }
+}
