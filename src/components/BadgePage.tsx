@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react';
+import { useParams } from 'react-router-dom';
 import { Phone, MapPin, Building, ShieldCheck, QrCode as QrIcon, Copy, Check, Printer, User, ArrowLeft } from 'lucide-react';
 import { QRCodeView } from './QRCodeView';
 import { findGeneratedBadgeByCode } from '../services/generatedBadgesService';
