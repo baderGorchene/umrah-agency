@@ -189,6 +189,30 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     }, 800);
   };
 
+  const normalizeBirthDate = (value?: string): string | undefined => {
+    if (!value) return undefined;
+
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+
+    const isoMatch = trimmed.match(/^\d{4}-\d{2}-\d{2}$/);
+    if (isoMatch) return trimmed;
+
+    const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashMatch) {
+      const [, day, month, year] = slashMatch;
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+
+    const dashMatch = trimmed.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+    if (dashMatch) {
+      const [, day, month, year] = dashMatch;
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+
+    return trimmed;
+  };
+
   const handleSavePilgrim = async () => {
     if (!extractedData) return;
 
@@ -215,6 +239,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       nameLatin: fullNameLatin || undefined,
       phone: phoneInput || "98000000",
       passportNumber: extractedData.passportNumber,
+      birthDate: normalizeBirthDate(extractedData.dateOfBirth),
       tripId: selectedTripId,
       tripName: selectedTrip ? selectedTrip.name : "—",
       uniqueCode: `TUN-${Math.floor(100000 + Math.random() * 900000)}`,
