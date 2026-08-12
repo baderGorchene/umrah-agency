@@ -222,13 +222,13 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
   }
 };
 
-const buildBadgePageUrl = (uniqueCode: string): string => {
+export const buildBadgePageUrl = (uniqueCode: string): string => {
   const baseUrl = import.meta.env.BASE_URL || "/";
   const appOrigin = typeof window !== "undefined" ? window.location.origin : "";
   return `${appOrigin}${baseUrl}#/badge/${encodeURIComponent(uniqueCode)}`;
 };
 
-const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
+export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   template,
   pilgrim,
   trip,
@@ -245,138 +245,90 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   const displayTrip = trip?.name || pilgrim?.tripName || "رحلة مخصصة";
   const displayCode = pilgrim?.uniqueCode || "—";
   const avatarInitial = displayName.slice(0, 1).toUpperCase();
-
-  // Row helper — label on the right (Arabic-first), value on the left, matching the reference badge
-  const InfoRow = ({ label, value }: { label: string; value?: string }) => (
-    <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-right">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-        {label}
-      </span>
-      <span className="text-[13px] font-bold text-slate-800">
-        {value || "—"}
-      </span>
-    </div>
-  );
+  const hotelMakkah = trip?.makkahHotel || "الماسـة";
+  const hotelMadinah = trip?.madinahHotel || "الكيان العالمي";
+  const whatsappNumber = guide1Phone || "+216 25 800 884";
 
   return (
     <div
-      className={`relative mx-auto overflow-hidden rounded-[24px] border bg-white text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] ${className}`}
-      style={{ borderColor: visuals.borderColor }}
+      className={`relative mx-auto overflow-hidden rounded-[22px] bg-[#111827] text-white shadow-[0_20px_45px_rgba(15,23,42,0.25)] ${className}`}
+      style={{ border: "1px solid rgba(251,191,36,0.35)" }}
     >
-      {/* Header */}
-      <div
-        className="relative flex flex-col items-center gap-1.5 px-4 py-4 text-white"
-        style={{ background: visuals.headerBg }}
-      >
-        <div
-          className="absolute inset-0 opacity-40"
-          style={{ backgroundImage: visuals.pattern }}
-        />
-        <div className="relative flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-white/15 shadow-sm">
+      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+        <div className="flex items-center gap-2 text-right">
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-black shadow-lg">
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Agency logo" className="h-full w-full object-cover" />
+          </div>
+          <div className="leading-tight">
+            <div className="text-[9px] font-black tracking-[0.18em] text-white/70 uppercase">Mesk Tiba</div>
+            <div className="text-[13px] font-black text-white">مسك طيبة</div>
+          </div>
+        </div>
+
+        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-[#d61f26] text-xl font-black text-white shadow-lg">
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/80 text-[10px]">★</span>
+        </div>
+      </div>
+
+      <div className="px-4 pb-4">
+        <div className="mx-auto mt-1 flex h-[295px] w-full max-w-[290px] items-center justify-center overflow-hidden rounded-[18px] bg-[#f0f4f7] shadow-inner ring-1 ring-slate-200/80">
+          {pilgrim?.avatarUrl ? (
             <img
-              src={`${import.meta.env.BASE_URL}logo.png`}
-              alt="Agency logo"
+              src={pilgrim.avatarUrl}
+              alt={displayName}
               className="h-full w-full object-cover"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = DEFAULT_AVATAR_URL;
+              }}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-slate-200 text-7xl font-bold text-slate-500">
+              {avatarInitial}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 text-center text-[30px] font-black leading-tight text-white">
+          {displayName}
+        </div>
+
+        <div className="mt-3 space-y-2 text-center text-[17px] font-bold leading-relaxed text-white">
+          <div>
+            <span className="text-white/80">فندق مكة المكرمة :</span> {hotelMakkah}
+          </div>
+          <div>
+            <span className="text-white/80">فندق المدينة المنورة :</span> {hotelMadinah}
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-3 text-right text-[15px] font-bold text-white">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1ed760] text-xl shadow-lg">
+            💬
+          </div>
+          <div>
+            <span className="text-white/80">واتساب :</span>{' '}
+            <span dir="ltr" className="inline-block tracking-tight">{whatsappNumber}</span>
+          </div>
+        </div>
+
+        <div className="mt-5 flex items-center justify-end gap-3 rounded-2xl bg-white/5 px-3 py-2 ring-1 ring-white/10 backdrop-blur-sm">
+          <div className="min-w-0 flex-1 text-right text-[10px] font-semibold text-white/75">
+            {displayCode}
+          </div>
+          <div className="rounded-xl bg-white p-2 shadow-md">
+            <QRCodeView
+              payload={
+                qrPayload || {
+                  agency: "مسك طيبة",
+                  uniqueCode: displayCode,
+                  nameArabic: displayName,
+                  tripName: displayTrip,
+                }
+              }
+              size={86}
             />
           </div>
-          <p className="text-sm font-black leading-tight">
-            مسك طيبة للأسفار و السياحة
-          </p>
         </div>
-        <p className="relative text-[10px] font-semibold uppercase tracking-[0.28em] text-white/75">
-          {template.name || "Agence d'Umrah"}
-        </p>
-      </div>
-
-      {/* Body */}
-      <div className="px-4 py-3 text-right">
-        {/* Photo + name + trip */}
-        <div className="flex items-center gap-3 border-b border-slate-100 py-3">
-          <div
-            className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-slate-100 text-lg font-black text-slate-500"
-            style={{ borderColor: visuals.borderColor }}
-          >
-            {pilgrim?.avatarUrl ? (
-              <img
-                src={pilgrim.avatarUrl}
-                alt={displayName}
-                className="h-full w-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = DEFAULT_AVATAR_URL;
-                }}
-              />
-            ) : (
-              <span>{avatarInitial}</span>
-            )}
-          </div>
-          <div className="min-w-0 flex-1 text-right">
-            <h3 className="truncate text-base font-black text-slate-900">
-              {displayName}
-            </h3>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-              Voyage
-            </p>
-            <p className="truncate text-xs font-bold text-slate-600">
-              {displayTrip}
-            </p>
-          </div>
-        </div>
-
-        {!compact && (
-          <>
-            <InfoRow label="Date de naissance" value={pilgrim?.birthDate} />
-            <InfoRow label="La Mecque" value={trip?.makkahHotel} />
-            <InfoRow label="Médine" value={trip?.madinahHotel} />
-            <InfoRow label="Contact d'urgence" value={guide1Name} />
-            <InfoRow label="Tél" value={guide1Phone} />
-            {guide2Name && (
-              <InfoRow label="Accompagnateur" value={guide2Name} />
-            )}
-            <InfoRow label="N° Passeport" value={pilgrim?.passportNumber} />
-
-            {/* QR */}
-            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-right">
-              <div className="flex shrink-0 justify-center rounded-xl border border-slate-200/70 bg-white p-2">
-                <QRCodeView
-                  payload={
-                    qrPayload || {
-                      agency: "مسك طيبة للأسفار و السياحة",
-                      uniqueCode: displayCode,
-                      nameArabic: displayName,
-                      nameLatin: pilgrim?.nameLatin,
-                      passportNumber: pilgrim?.passportNumber,
-                      birthDate: pilgrim?.birthDate,
-                      tripName: displayTrip,
-                      emergencyGuide1: `${guide1Name || "—"} (${guide1Phone || "—"})`,
-                      emergencyGuide2:
-                        guide2Name && guide2Phone
-                          ? `${guide2Name} (${guide2Phone})`
-                          : undefined,
-                    }
-                  }
-                  size={72}
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold text-slate-700">
-                  Scanner pour aide & assistance
-                </p>
-                <p className="mt-0.5 text-[10px] text-slate-400">
-                  Nous vous accompagnons dans votre voyage de foi
-                </p>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div
-        className="border-t border-slate-100 py-2 text-[10px] font-semibold text-slate-500"
-        style={{ color: visuals.highlightColor }}
-      >
-        مسك طيبة للأسفار و السياحة
       </div>
     </div>
   );
