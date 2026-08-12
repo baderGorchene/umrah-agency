@@ -74,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="text-xs font-serif leading-none text-center">مسك<br/>طيبة</span>
           </div>
           <div>
-            <h1 className="font-bold text-slate-900 text-sm leading-tight">مسك طيبة للعمرة</h1>
+            <h1 className="font-bold text-slate-900 text-sm leading-tight">مسك طيبة للاسفار و السياحة</h1>
             <p className="text-xs text-slate-500 font-medium">Umrah Compagnon</p>
           </div>
         </div>

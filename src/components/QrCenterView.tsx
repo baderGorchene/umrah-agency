@@ -273,7 +273,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
               <p className="text-[10px] uppercase tracking-[0.28em] text-white/70">
                 Umrah Compagnon
               </p>
-              <p className="text-sm font-black">مسك طيبة للعمرة</p>
+              <p className="text-sm font-black">مسك طيبة للاسفار و السياحة</p>
             </div>
           </div>
           <div className="rounded-full border border-white/30 bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em]">
@@ -349,7 +349,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
               <QRCodeView
                 payload={
                   qrPayload || {
-                    agency: "مسك طيبة للعمرة",
+                    agency: "مسك طيبة للاسفار و السياحة",
                     uniqueCode: displayCode,
                     nameArabic: displayName,
                     nameLatin: pilgrim?.nameLatin,
@@ -538,7 +538,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
           guide2Name,
           guide2Phone,
           payload: {
-            agency: "مسك طيبة للعمرة",
+            agency: "مسك طيبة للاسفار و السياحة",
             uniqueCode: pilgrim.uniqueCode,
             nameArabic: pilgrim.nameArabic,
             nameLatin: pilgrim.nameLatin,

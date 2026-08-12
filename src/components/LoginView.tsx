@@ -228,7 +228,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           <Lock className="w-3.5 h-3.5 text-amber-400/80" />
           <span>
             {isAr
-              ? 'مسك طيبة للعمرة — النظام السحابي لإدارة وكالات العمرة v2.4'
+              ? 'مسك طيبة للاسفار و السياحة — النظام السحابي لإدارة وكالات العمرة v2.4'
               : "Misk Tiba Umrah — Système SaaS de gestion d'agence v2.4"}
           </span>
         </div>
