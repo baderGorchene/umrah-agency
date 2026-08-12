@@ -41,7 +41,7 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
           <div className="w-12 h-12 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-400 flex items-center justify-center mx-auto font-bold text-sm">
             مسك
           </div>
-          <h2 className="font-extrabold text-lg dir-rtl">مسك طيبة للعمرة</h2>
+          <h2 className="font-extrabold text-lg dir-rtl">مسك طيبة للاسفار و السياحة</h2>
           <p className="text-[11px] text-amber-400 uppercase tracking-widest font-semibold">
             Pass Officiel MOUTAMIR (المعتمر)
           </p>
@@ -89,7 +89,7 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
           <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex flex-col items-center justify-center space-y-2 shadow-2xs">
             <QRCodeView
               payload={{
-                agency: 'مسك طيبة للعمرة',
+                agency: 'مسك طيبة للاسفار و السياحة',
                 uniqueCode: pilgrim.uniqueCode,
                 nameArabic: pilgrim.nameArabic,
                 nameLatin: pilgrim.nameLatin,

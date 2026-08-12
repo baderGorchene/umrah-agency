@@ -45,7 +45,7 @@ export const BadgePage: React.FC = () => {
           : storedRecord.payload;
 
         setBadgeData({
-          agencyName: payload.agency || 'مسك طيبة للعمرة',
+          agencyName: payload.agency || 'مسك طيبة للاسفار و السياحة',
           uniqueCode: storedRecord.uniqueCode,
           nameArabic: storedRecord.pilgrimName || payload.nameArabic || 'معتمر',
           nameLatin: payload.nameLatin || '',
@@ -68,7 +68,7 @@ export const BadgePage: React.FC = () => {
         const pilgrim = await getPilgrimByUniqueCode(searchCode);
         if (pilgrim) {
           setBadgeData({
-            agencyName: 'مسك طيبة للعمرة',
+            agencyName: 'مسك طيبة للاسفار و السياحة',
             uniqueCode: pilgrim.uniqueCode,
             nameArabic: pilgrim.nameArabic,
             nameLatin: pilgrim.nameLatin || '',
@@ -94,7 +94,7 @@ export const BadgePage: React.FC = () => {
       // 3) Fallback to default initial pilgrim
       const defaultPilgrim = initialPilgrims[0];
       setBadgeData({
-        agencyName: 'مسك طيبة للعمرة',
+        agencyName: 'مسك طيبة للاسفار و السياحة',
         uniqueCode: searchCode.toUpperCase(),
         nameArabic: defaultPilgrim.nameArabic,
         nameLatin: defaultPilgrim.nameLatin,
@@ -153,7 +153,7 @@ export const BadgePage: React.FC = () => {
                 <span className="leading-none text-center">مسك<br/>طيبة</span>
               </div>
               <h1 className="text-xl font-black tracking-tight text-slate-950 pt-1">
-                {badgeData?.agencyName || 'مسك طيبة للعمرة'}
+                {badgeData?.agencyName || 'مسك طيبة للاسفار و السياحة'}
               </h1>
               <p className="text-[11px] font-semibold tracking-widest uppercase text-slate-900 opacity-90">
                 Umrah Compagnon — Pass Officiel
@@ -275,7 +275,7 @@ export const BadgePage: React.FC = () => {
 
           {/* Footer Branding */}
           <div className="bg-slate-900 text-slate-400 p-3 text-center text-[10px] font-mono border-t border-slate-800">
-            مسك طيبة للعمرة — Umrah Compagnon v2.4 • Verified Pass
+            مسك طيبة للاسفار و السياحة — Umrah Compagnon v2.4 • Verified Pass
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 import { Pilgrim, Staff, Trip, Post, AgencySettings, AppNotification, BadgeTemplate, DEFAULT_AVATAR_URL } from './types';
 
 export const initialAgencySettings: AgencySettings = {
-  name: "مسك طيبة للعمرة",
+  name: "مسك طيبة للاسفار و السياحة",
   subtitle: "Umrah Compagnon",
   description: "وكالة مسك طيبة للأسفار والعمرة - خدمات متميزة ومرافقة شاملة للمعتمرين من تونس إلى البقاع المقدسة.",
   bannerUrl: "https://images.unsplash.com/photo-1591604466107-ec97de577aff?auto=format&fit=crop&w=1400&q=80", // Madinah Green Dome / Mosque style
