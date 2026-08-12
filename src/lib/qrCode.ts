@@ -12,7 +12,18 @@ export interface QRPayload {
 }
 
 /**
- * Generates a high-resolution Data URL (PNG image) for a given text or JSON payload
+ * Builds a direct public URL for a pilgrim badge without requiring authentication
+ */
+export function buildBadgePublicUrl(uniqueCode: string): string {
+  const origin = typeof window !== 'undefined' && window.location?.origin
+    ? window.location.origin
+    : 'http://localhost:3000';
+  return `${origin}/badge/${encodeURIComponent(uniqueCode)}`;
+}
+
+/**
+ * Generates a high-resolution Data URL (PNG image) for a given text or JSON payload.
+ * Encodes direct public badge URL so scanning with phone camera opens the badge page directly without login.
  */
 export async function generateQRCodeDataUrl(
   textOrPayload: string | QRPayload,
@@ -21,23 +32,16 @@ export async function generateQRCodeDataUrl(
   let content: string;
 
   if (typeof textOrPayload === 'string') {
-    content = textOrPayload;
-  } else if (options.simple) {
-    // Simple QR with just the unique code - much less dense
-    content = textOrPayload.uniqueCode;
+    if (textOrPayload.startsWith('http://') || textOrPayload.startsWith('https://')) {
+      content = textOrPayload;
+    } else if (textOrPayload.startsWith('/')) {
+      const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '';
+      content = `${origin}${textOrPayload}`;
+    } else {
+      content = buildBadgePublicUrl(textOrPayload);
+    }
   } else {
-    // Full payload for advanced scanning
-    content = JSON.stringify({
-      app: 'UmrahCompagnon',
-      agency: textOrPayload.agency,
-      code: textOrPayload.uniqueCode,
-      name: textOrPayload.nameArabic,
-      latin: textOrPayload.nameLatin || '',
-      passport: textOrPayload.passportNumber || '',
-      trip: textOrPayload.tripName,
-      guide1: textOrPayload.emergencyGuide1 || '',
-      guide2: textOrPayload.emergencyGuide2 || '',
-    });
+    content = buildBadgePublicUrl(textOrPayload.uniqueCode);
   }
 
   try {
@@ -48,7 +52,7 @@ export async function generateQRCodeDataUrl(
         dark: options.darkColor || '#000000',
         light: options.lightColor || '#FFFFFF',
       },
-      errorCorrectionLevel: options.simple ? 'L' : 'H',
+      errorCorrectionLevel: 'M',
     });
     return dataUrl;
   } catch (err) {
