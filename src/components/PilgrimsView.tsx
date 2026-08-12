@@ -67,6 +67,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
     nameLatin: "",
     phone: "",
     passportNumber: "",
+    birthDate: "",
     tripId: trips[0]?.id || "",
     emergencyContact: "",
     gender: "F" as "M" | "F",
@@ -126,6 +127,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
       nameLatin: formData.nameLatin,
       phone: formData.phone,
       passportNumber: formData.passportNumber,
+      birthDate: formData.birthDate || undefined,
       tripId: formData.tripId,
       tripName: selectedTrip ? selectedTrip.name : "—",
       uniqueCode: generateUniqueCode(),
@@ -140,6 +142,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
       nameLatin: "",
       phone: "",
       passportNumber: "",
+      birthDate: "",
       tripId: trips[0]?.id || "",
       emergencyContact: "",
       gender: "F",
@@ -479,21 +482,38 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
 
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {isAr ? 'رقم جواز السفر' : 'Numéro Passeport'}
+                    {isAr ? 'تاريخ الميلاد' : 'Date de naissance'}
                   </label>
                   <input
-                    type="text"
-                    value={formData.passportNumber}
+                    type="date"
+                    value={formData.birthDate}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        passportNumber: e.target.value,
+                        birthDate: e.target.value,
                       })
                     }
-                    placeholder="N2891048"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1 text-start">
+                <label className="text-xs font-semibold text-slate-700">
+                  {isAr ? 'رقم جواز السفر' : 'Numéro Passeport'}
+                </label>
+                <input
+                  type="text"
+                  value={formData.passportNumber}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      passportNumber: e.target.value,
+                    })
+                  }
+                  placeholder="N2891048"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                />
               </div>
 
               <div className="space-y-1 text-start">
@@ -625,6 +645,23 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                     setEditingPilgrim({
                       ...editingPilgrim,
                       phone: e.target.value,
+                    })
+                  }
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                />
+              </div>
+
+              <div className="space-y-1 text-start">
+                <label className="text-xs font-semibold text-slate-700">
+                  {isAr ? 'تاريخ الميلاد' : 'Date de naissance'}
+                </label>
+                <input
+                  type="date"
+                  value={editingPilgrim.birthDate || ""}
+                  onChange={(e) =>
+                    setEditingPilgrim({
+                      ...editingPilgrim,
+                      birthDate: e.target.value,
                     })
                   }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"

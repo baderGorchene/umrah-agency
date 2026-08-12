@@ -248,41 +248,57 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   const displayCode = pilgrim?.uniqueCode || "—";
   const avatarInitial = displayName.slice(0, 1).toUpperCase();
 
+  // Row helper — label on the right (Arabic-first), value on the left, matching the reference badge
+  const InfoRow = ({ label, value }: { label: string; value?: string }) => (
+    <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-right">
+      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+        {label}
+      </span>
+      <span className="text-[13px] font-bold text-slate-800">
+        {value || "—"}
+      </span>
+    </div>
+  );
+
   return (
     <div
-      className={`relative mx-auto overflow-hidden rounded-[24px] border text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] ${className}`}
-      style={{
-        borderColor: visuals.borderColor,
-        background: visuals.bodyBg,
-      }}
+      className={`relative mx-auto overflow-hidden rounded-[24px] border bg-white text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] ${className}`}
+      style={{ borderColor: visuals.borderColor }}
     >
+      {/* Header */}
       <div
-        className="relative px-4 py-4 text-white"
+        className="relative flex flex-col items-center gap-1.5 px-4 py-4 text-white"
         style={{ background: visuals.headerBg }}
       >
         <div
           className="absolute inset-0 opacity-40"
           style={{ backgroundImage: visuals.pattern }}
         />
-        <div className="relative flex flex-col items-center justify-center gap-2 text-center">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/15 shadow-sm">
-              <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Agency logo" className="h-full w-full object-cover" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.28em] text-white/70">
-                Umrah Compagnon
-              </p>
-              <p className="text-sm font-black">مسك طيبة للاسفار و السياحة</p>
-            </div>
+        <div className="relative flex items-center gap-2.5">
+          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-white/15 shadow-sm">
+            <img
+              src={`${import.meta.env.BASE_URL}logo.png`}
+              alt="Agency logo"
+              className="h-full w-full object-cover"
+            />
           </div>
-          <div className="rounded-full border border-white/30 bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em]">
-            {template.name}
-          </div>
+          <p className="text-sm font-black leading-tight">
+            مسك طيبة للأسفار و السياحة
+          </p>
         </div>
+        <p className="relative text-[10px] font-semibold uppercase tracking-[0.28em] text-white/75">
+          {template.name || "Agence d'Umrah"}
+        </p>
+      </div>
 
-        <div className="relative mt-4 flex flex-col items-center gap-3 text-center">
-          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-4 border-white/30 bg-white/20 text-2xl font-black shadow-sm">
+      {/* Body */}
+      <div className="px-4 py-3 text-right">
+        {/* Photo + name + trip */}
+        <div className="flex items-center gap-3 border-b border-slate-100 py-3">
+          <div
+            className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-slate-100 text-lg font-black text-slate-500"
+            style={{ borderColor: visuals.borderColor }}
+          >
             {pilgrim?.avatarUrl ? (
               <img
                 src={pilgrim.avatarUrl}
@@ -296,100 +312,73 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
               <span>{avatarInitial}</span>
             )}
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/75">
-              {compact ? "Badge" : "Pilgrim"}
-            </p>
-            <h3 className="text-base font-black leading-tight">
+          <div className="min-w-0 flex-1 text-right">
+            <h3 className="truncate text-base font-black text-slate-900">
               {displayName}
             </h3>
-            {!compact && (
-              <p className="mt-0.5 text-[11px] text-white/80">{displayTrip}</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div
-        className="relative p-4 space-y-3"
-        style={{ background: visuals.bodyBg }}
-      >
-        <div
-          className="flex flex-col items-center justify-center rounded-2xl border px-3 py-2 text-center"
-          style={{
-            background: visuals.detailBg,
-            borderColor: `${visuals.borderColor}33`,
-          }}
-        >
-          <div>
-            <p
-              className="text-[9px] font-semibold uppercase tracking-[0.24em]"
-              style={{ color: visuals.highlightColor }}
-            >
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
               Voyage
             </p>
-            <p
-              className="text-xs font-extrabold"
-              style={{ color: visuals.textColor }}
-            >
+            <p className="truncate text-xs font-bold text-slate-600">
               {displayTrip}
             </p>
-          </div>
-          <div
-            className="mt-2 rounded-full px-2.5 py-1 text-[10px] font-bold"
-            style={{ background: visuals.chipBg, color: visuals.chipTextColor }}
-          >
-            {compact ? "Prévu" : "Pass officiel"}
           </div>
         </div>
 
         {!compact && (
           <>
-            <div className="flex justify-center rounded-[22px] border border-slate-200/70 bg-white p-3">
-              <QRCodeView
-                payload={
-                  qrPayload || {
-                    agency: "مسك طيبة للاسفار و السياحة",
-                    uniqueCode: displayCode,
-                    nameArabic: displayName,
-                    nameLatin: pilgrim?.nameLatin,
-                    passportNumber: pilgrim?.passportNumber,
-                    tripName: displayTrip,
-                    emergencyGuide1: `${guide1Name || "—"} (${guide1Phone || "—"})`,
-                    emergencyGuide2:
-                      guide2Name && guide2Phone
-                        ? `${guide2Name} (${guide2Phone})`
-                        : undefined,
-                  }
-                }
-                size={108}
-              />
-            </div>
+            <InfoRow label="Date de naissance" value={pilgrim?.birthDate} />
+            <InfoRow label="La Mecque" value={trip?.makkahHotel} />
+            <InfoRow label="Médine" value={trip?.madinahHotel} />
+            <InfoRow label="Contact d'urgence" value={guide1Name} />
+            <InfoRow label="Tél" value={guide1Phone} />
+            {guide2Name && (
+              <InfoRow label="Accompagnateur" value={guide2Name} />
+            )}
+            <InfoRow label="N° Passeport" value={pilgrim?.passportNumber} />
 
-            <div className="rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-center text-[11px] text-slate-600">
-              <div className="flex justify-between gap-3">
-                <span className="text-slate-400">Code</span>
-                <span className="font-semibold text-slate-800">
-                  {displayCode}
-                </span>
+            {/* QR */}
+            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-right">
+              <div className="flex shrink-0 justify-center rounded-xl border border-slate-200/70 bg-white p-2">
+                <QRCodeView
+                  payload={
+                    qrPayload || {
+                      agency: "مسك طيبة للأسفار و السياحة",
+                      uniqueCode: displayCode,
+                      nameArabic: displayName,
+                      nameLatin: pilgrim?.nameLatin,
+                      passportNumber: pilgrim?.passportNumber,
+                      birthDate: pilgrim?.birthDate,
+                      tripName: displayTrip,
+                      emergencyGuide1: `${guide1Name || "—"} (${guide1Phone || "—"})`,
+                      emergencyGuide2:
+                        guide2Name && guide2Phone
+                          ? `${guide2Name} (${guide2Phone})`
+                          : undefined,
+                    }
+                  }
+                  size={72}
+                />
               </div>
-              <div className="mt-1 flex justify-between gap-3">
-                <span className="text-slate-400">Urgence</span>
-                <span className="font-semibold text-slate-800">
-                  {guide1Name || "—"}
-                </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-bold text-slate-700">
+                  Scanner pour aide & assistance
+                </p>
+                <p className="mt-0.5 text-[10px] text-slate-400">
+                  Nous vous accompagnons dans votre voyage de foi
+                </p>
               </div>
-              {guide2Name && (
-                <div className="mt-1 flex justify-between gap-3">
-                  <span className="text-slate-400">Accompagnateur</span>
-                  <span className="font-semibold text-slate-800">
-                    {guide2Name}
-                  </span>
-                </div>
-              )}
             </div>
           </>
         )}
+      </div>
+
+      {/* Footer */}
+      <div
+        className="border-t border-slate-100 py-2 text-[10px] font-semibold text-slate-500"
+        style={{ color: visuals.highlightColor }}
+      >
+        مسك طيبة للأسفار و السياحة
       </div>
     </div>
   );
@@ -543,6 +532,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
             nameArabic: pilgrim.nameArabic,
             nameLatin: pilgrim.nameLatin,
             passportNumber: pilgrim.passportNumber,
+            birthDate: pilgrim.birthDate,
             tripName: selectedTrip?.name || pilgrim.tripName,
             templateId: selectedTemplate.id,
             templateVariant: selectedTemplate.variant,
@@ -914,13 +904,17 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                         <div
                           key={p.id}
                           className={`badge-print-item transition-all duration-300 ease-out print:break-inside-avoid ${
-                            shouldExpandInPrint ? "w-full" : "w-[calc(50%-0.5rem)]"
+                            shouldExpandInPrint
+                              ? "w-full"
+                              : "w-[calc(50%-0.5rem)]"
                           }`}
                         >
                           <button
                             type="button"
                             onClick={() =>
-                              setSelectedPilgrimForPreview(isExpanded ? null : p)
+                              setSelectedPilgrimForPreview(
+                                isExpanded ? null : p,
+                              )
                             }
                             className="block w-full cursor-pointer text-left print:pointer-events-none"
                           >
@@ -967,8 +961,8 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                       En attente de Génération de Cartes
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Sélectionnez un voyage et configurez les contacts d'urgence
-                      pour afficher les badges imprimables.
+                      Sélectionnez un voyage et configurez les contacts
+                      d'urgence pour afficher les badges imprimables.
                     </p>
                   </div>
                 </div>

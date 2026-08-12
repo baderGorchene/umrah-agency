@@ -14,6 +14,7 @@ interface ExtendedBadgeData {
   nameArabic: string;
   nameLatin?: string;
   passportNumber?: string;
+  birthDate?: string;
   tripName: string;
   makkahHotel?: string;
   madinahHotel?: string;
@@ -50,6 +51,7 @@ export const BadgePage: React.FC = () => {
           nameArabic: storedRecord.pilgrimName || payload.nameArabic || 'معتمر',
           nameLatin: payload.nameLatin || '',
           passportNumber: payload.passportNumber || 'N2891048',
+          birthDate: payload.birthDate || '',
           tripName: storedRecord.tripName || payload.tripName || 'عمرة المولد',
           guide1Name: storedRecord.guide1Name || 'نادر قويعة',
           guide1Phone: storedRecord.guide1Phone || '25800884',
@@ -73,6 +75,7 @@ export const BadgePage: React.FC = () => {
             nameArabic: pilgrim.nameArabic,
             nameLatin: pilgrim.nameLatin || '',
             passportNumber: pilgrim.passportNumber || 'N2891048',
+            birthDate: pilgrim.birthDate || '',
             tripName: pilgrim.tripName || 'عمرة المولد',
             avatarUrl: pilgrim.avatarUrl || DEFAULT_AVATAR_URL,
             emergencyContact: pilgrim.emergencyContact || '+216 73 481 100',
@@ -99,6 +102,7 @@ export const BadgePage: React.FC = () => {
         nameArabic: defaultPilgrim.nameArabic,
         nameLatin: defaultPilgrim.nameLatin,
         passportNumber: defaultPilgrim.passportNumber,
+        birthDate: defaultPilgrim.birthDate || '',
         tripName: defaultPilgrim.tripName,
         avatarUrl: defaultPilgrim.avatarUrl || DEFAULT_AVATAR_URL,
         guide1Name: 'نادر قويعة (رئيس الحافلة)',
@@ -193,6 +197,11 @@ export const BadgePage: React.FC = () => {
                   {badgeData?.passportNumber && (
                     <span className="bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded-md border border-slate-200 font-mono">
                       جواز: {badgeData.passportNumber}
+                    </span>
+                  )}
+                  {badgeData?.birthDate && (
+                    <span className="bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded-md border border-slate-200 font-mono">
+                      الميلاد: {badgeData.birthDate}
                     </span>
                   )}
                 </div>

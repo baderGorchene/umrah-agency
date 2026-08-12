@@ -6,6 +6,7 @@ export interface QRPayload {
   nameArabic: string;
   nameLatin?: string;
   passportNumber?: string;
+  birthDate?: string;
   tripName: string;
   emergencyGuide1?: string;
   emergencyGuide2?: string;
