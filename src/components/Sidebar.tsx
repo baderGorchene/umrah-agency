@@ -15,6 +15,7 @@ import {
   UserCheck as StaffIcon
 } from 'lucide-react';
 import { Language, UserProfile, UserRole } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface SidebarProps {
   onLogout: () => void;
@@ -29,35 +30,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const userRole: UserRole = currentUser?.role || 'admin';
 
-  const menuItems: { path: string; labelFr: string; labelAr: string; icon: React.ElementType; allowedRoles: UserRole[] }[] = [
-    { path: '/', labelFr: 'Tableau de bord', labelAr: 'لوحة القيادة', icon: LayoutDashboard, allowedRoles: ['admin', 'agent', 'pilgrim'] },
-    { path: '/pilgrims', labelFr: 'Gestion des pèlerins', labelAr: 'إدارة المعتمرين', icon: Users, allowedRoles: ['admin', 'agent'] },
-    { path: '/staff', labelFr: 'Accompagnateurs', labelAr: 'المرافقين والكادر', icon: UserCheck, allowedRoles: ['admin', 'agent'] },
-    { path: '/trips', labelFr: 'Gestion des voyages', labelAr: 'إدارة الرحلات', icon: Plane, allowedRoles: ['admin', 'agent'] },
-    { path: '/qr-center', labelFr: 'Centre QR', labelAr: 'مركز بطاقات QR', icon: QrCode, allowedRoles: ['admin', 'agent', 'pilgrim'] },
-    { path: '/documents', labelFr: 'مستندات الرحلة / Documents', labelAr: 'مستندات الرحلة', icon: FileText, allowedRoles: ['admin', 'agent'] },
-    { path: '/news', labelFr: 'Actualités & Posts', labelAr: 'الأخبار والمنشورات', icon: Newspaper, allowedRoles: ['admin', 'agent', 'pilgrim'] },
-    { path: '/settings', labelFr: 'Configuration Agence', labelAr: 'إعدادات الوكالة', icon: Settings, allowedRoles: ['admin'] },
+  const menuItems: { path: string; labelKey: string; icon: React.ElementType; allowedRoles: UserRole[] }[] = [
+    { path: '/', labelKey: 'menu.dashboard', icon: LayoutDashboard, allowedRoles: ['admin', 'agent', 'pilgrim'] },
+    { path: '/pilgrims', labelKey: 'menu.pilgrims', icon: Users, allowedRoles: ['admin', 'agent'] },
+    { path: '/staff', labelKey: 'menu.staff', icon: UserCheck, allowedRoles: ['admin', 'agent'] },
+    { path: '/trips', labelKey: 'menu.trips', icon: Plane, allowedRoles: ['admin', 'agent'] },
+    { path: '/qr-center', labelKey: 'menu.qr_center', icon: QrCode, allowedRoles: ['admin', 'agent', 'pilgrim'] },
+    { path: '/documents', labelKey: 'menu.documents', icon: FileText, allowedRoles: ['admin', 'agent'] },
+    { path: '/news', labelKey: 'menu.news', icon: Newspaper, allowedRoles: ['admin', 'agent', 'pilgrim'] },
+    { path: '/settings', labelKey: 'menu.settings', icon: Settings, allowedRoles: ['admin'] },
   ];
+
+  const { t } = useTranslation();
 
   const visibleMenuItems = menuItems.filter(item => item.allowedRoles.includes(userRole));
 
   const roleBadgeInfo = {
     admin: {
-      titleFr: "Directeur d'Agence",
-      titleAr: 'مدير الوكالة',
+      titleKey: 'roles.admin',
       bg: 'bg-amber-100 border-amber-300 text-amber-900',
       icon: ShieldCheck,
     },
     agent: {
-      titleFr: 'Accompagnateur / Staff',
-      titleAr: 'مرافق الرحلة',
+      titleKey: 'roles.agent',
       bg: 'bg-blue-100 border-blue-300 text-blue-900',
       icon: StaffIcon,
     },
     pilgrim: {
-      titleFr: 'Moutamire / Client',
-      titleAr: 'معتمر',
+      titleKey: 'roles.pilgrim',
       bg: 'bg-emerald-100 border-emerald-300 text-emerald-900',
       icon: User,
     },
@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <>
                     <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500'}`} />
                     <span className="truncate">
-                      {lang === 'FR' ? item.labelFr : item.labelAr}
+                      {t(item.labelKey)}
                     </span>
                   </>
                 )}
@@ -119,10 +119,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div className="truncate">
               <p className="text-xs font-bold text-slate-900 truncate">
-                {currentUser?.fullName || (lang === 'FR' ? "Utilisateur" : "المستخدم")}
+              {currentUser?.fullName || t('users.user')}
               </p>
               <p className="text-[10px] text-slate-500 font-medium truncate">
-                {lang === 'FR' ? roleBadgeInfo.titleFr : roleBadgeInfo.titleAr}
+              {t(roleBadgeInfo.titleKey)}
               </p>
             </div>
           </div>

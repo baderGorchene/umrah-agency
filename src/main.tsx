@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.tsx';
 import './index.css';
+import './i18n';
 
 // Ensure the app root URL redirects to the app base so BrowserRouter with a basename matches.
 if (typeof window !== 'undefined' && window.location.pathname === '/') {

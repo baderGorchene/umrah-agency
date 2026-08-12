@@ -53,7 +53,7 @@ export const NewsView: React.FC<NewsViewProps> = ({
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          {isAr ? 'مركز الأخبار والمنشورات' : "Centre d'Actualités & Posts"}
+          {isAr ? 'مركز الأخبار والمنشورات' : "Centre d'Actualités & Publications"}
         </h1>
         <p className="text-xs text-slate-500 font-medium">
           {isAr ? 'إدارة ونشر الأخبار والتنبيهات لمجموعاتك ورحلاتك.' : 'Gérez et publiez des actualités et des annonces pour vos groupes et voyages.'}
@@ -67,7 +67,7 @@ export const NewsView: React.FC<NewsViewProps> = ({
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <Newspaper className="w-5 h-5 text-slate-800" />
             <h2 className="font-bold text-slate-900 text-sm">
-              {isAr ? 'إنشاء منشور جديد' : 'Créer un Nouveau Post'}
+            {isAr ? 'إنشاء منشور جديد' : 'Créer une nouvelle publication'}
             </h2>
           </div>
 
@@ -75,7 +75,7 @@ export const NewsView: React.FC<NewsViewProps> = ({
             {/* Title */}
             <div className="space-y-1 text-start">
               <label className="text-xs font-semibold text-slate-700">
-                {isAr ? 'عنوان المنشور *' : 'Titre du Post *'}
+              {isAr ? 'عنوان المنشور *' : 'Titre de la publication *'}
               </label>
               <input
                 type="text"
@@ -90,7 +90,7 @@ export const NewsView: React.FC<NewsViewProps> = ({
             {/* Content Textarea */}
             <div className="space-y-1 text-start">
               <label className="text-xs font-semibold text-slate-700">
-                {isAr ? 'محتوى المنشور *' : 'Contenu du Post *'}
+              {isAr ? 'محتوى المنشور *' : 'Contenu de la publication *'}
               </label>
               <textarea
                 value={content}
@@ -144,7 +144,7 @@ export const NewsView: React.FC<NewsViewProps> = ({
                 onChange={(e) => setTargetTripId(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-black/5 text-start"
               >
-                <option value="">{isAr ? 'جميع الرحلات (منشور عام)' : 'Tous les voyages (Post public)'}</option>
+                <option value="">{isAr ? 'جميع الرحلات (منشور عام)' : 'Tous les voyages (Publication publique)'}</option>
                 {trips.map(t => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
@@ -180,7 +180,7 @@ export const NewsView: React.FC<NewsViewProps> = ({
         <div className="lg:col-span-6 bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <h2 className="font-bold text-slate-900 text-sm">
-              {isAr ? 'منشورات الوكالة الحالية' : "Posts actuels de l'agence"}
+              {isAr ? 'منشورات الوكالة الحالية' : "Publications actuelles de l'agence"}
             </h2>
             <span className="text-xs font-bold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full">
               {posts.length}
@@ -196,7 +196,7 @@ export const NewsView: React.FC<NewsViewProps> = ({
                 {isAr ? 'لا توجد منشورات.' : 'Aucun résultat trouvé.'}
               </p>
               <p className="text-xs text-slate-400">
-                {isAr ? 'قم بنشر أول خبر لمجموعاتك.' : 'Publiez votre premier post pour vos pèlerins.'}
+                {isAr ? 'قم بنشر أول خبر لمجموعاتك.' : 'Publiez votre première publication pour vos pèlerins.'}
               </p>
             </div>
           ) : (
@@ -213,7 +213,7 @@ export const NewsView: React.FC<NewsViewProps> = ({
                     </div>
                     <button
                       onClick={() => onDeletePost(post.id)}
-                      title={isAr ? "حذف المنشور" : "Supprimer le post"}
+                      title={isAr ? "حذف المنشور" : "Supprimer la publication"}
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />

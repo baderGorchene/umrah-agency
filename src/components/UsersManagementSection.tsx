@@ -136,13 +136,13 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = ({ 
       icon: ShieldCheck,
     },
     agent: {
-      titleFr: 'Accompagnateur / Staff',
+      titleFr: 'Accompagnateur / Personnel',
       titleAr: 'مرافق الرحلة',
       bg: 'bg-blue-100 border-blue-300 text-blue-900',
       icon: UserCheck,
     },
     pilgrim: {
-      titleFr: 'Moutamire / Client',
+      titleFr: 'Pèlerin / Client',
       titleAr: 'معتمر',
       bg: 'bg-emerald-100 border-emerald-300 text-emerald-900',
       icon: User,
@@ -377,9 +377,9 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = ({ 
                   onChange={(e) => setRole(e.target.value as UserRole)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-black/5"
                 >
-                  <option value="admin">{isAr ? 'مدير الوكالة (Directeur)' : 'Directeur d\'Agence (Admin)'}</option>
-                  <option value="agent">{isAr ? 'مرافق الرحلة / Staff (Accompagnateur)' : 'Accompagnateur / Staff (Agent)'}</option>
-                  <option value="pilgrim">{isAr ? 'معتمر (Moutamire)' : 'Moutamire / Client (Pèlerin)'}</option>
+                  <option value="admin">{isAr ? 'مدير الوكالة' : "Directeur d'Agence"}</option>
+                  <option value="agent">{isAr ? 'مرافق الرحلة' : 'Accompagnateur'}</option>
+                  <option value="pilgrim">{isAr ? 'معتمر' : 'Pèlerin'}</option>
                 </select>
               </div>
 
