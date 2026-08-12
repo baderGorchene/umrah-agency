@@ -71,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Logo Header */}
         <div className="p-4 border-b border-slate-100 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-black border border-amber-500/40 flex items-center justify-center overflow-hidden shadow-sm shrink-0">
-            <img src="/logo.png" alt="Agency logo" className="w-full h-full object-cover" />
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Agency logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="font-bold text-slate-900 text-sm leading-tight">مسك طيبة للاسفار و السياحة</h1>
