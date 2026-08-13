@@ -50,7 +50,12 @@ interface PassportScannerModalProps {
   trips: Trip[];
   onImportPilgrim: (
     newPilgrim: Omit<Pilgrim, "id">,
-    pendingDocument?: PendingDocument,
+    pendingDocument?: {
+      filePath: string;
+      fileUrl?: string;
+      mimeType?: string;
+      fileName?: string;
+    },
   ) => void;
   onAutoFillForm?: (data: ExtractedPassportData) => void;
 }
