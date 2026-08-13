@@ -143,13 +143,21 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
         }),
       });
 
-      const result = await response.json();
+      const text = await response.text();
+      let result: { success?: boolean; error?: string; data?: ExtractedPassportData } | null = null;
 
-      if (!result.success) {
-        throw new Error(result.error || "Échec de l'extraction OCR.");
+      try {
+        result = text ? JSON.parse(text) : null;
+      } catch {
+        result = null;
       }
 
-      setExtractedData(result.data);
+      if (!response.ok || !result || !result.success) {
+        const message = result?.error || "Le scan OCR n'est pas disponible sur cette plateforme statique. Utilisez l'application serveur ou chargez un passeport de démonstration.";
+        throw new Error(message);
+      }
+
+      setExtractedData(result.data || null);
     } catch (err: any) {
       console.error(err);
       setError(
@@ -179,6 +187,30 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       setExtractedData(demoData);
       setIsAnalyzing(false);
     }, 800);
+  };
+
+  const normalizeBirthDate = (value?: string): string | undefined => {
+    if (!value) return undefined;
+
+    const trimmed = value.trim();
+    if (!trimmed) return undefined;
+
+    const isoMatch = trimmed.match(/^\d{4}-\d{2}-\d{2}$/);
+    if (isoMatch) return trimmed;
+
+    const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (slashMatch) {
+      const [, day, month, year] = slashMatch;
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+
+    const dashMatch = trimmed.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+    if (dashMatch) {
+      const [, day, month, year] = dashMatch;
+      return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+
+    return trimmed;
   };
 
   const handleSavePilgrim = async () => {
@@ -211,7 +243,8 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       nameLatin: fullNameLatin || undefined,
       phone: phoneInput || "98000000",
       passportNumber: extractedData.passportNumber,
-      tripId: safeTripId,
+      birthDate: normalizeBirthDate(extractedData.dateOfBirth),
+      tripId: selectedTripId,
       tripName: selectedTrip ? selectedTrip.name : "—",
       uniqueCode: `TUN-${Math.floor(100000 + Math.random() * 900000)}`,
       status: "مؤكد",

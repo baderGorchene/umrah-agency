@@ -222,107 +222,196 @@ const getTemplateVisuals = (variant: string, accentColor: string) => {
   }
 };
 
-export const buildBadgePageUrl = (uniqueCode: string): string => {
+const buildBadgePageUrl = (uniqueCode: string): string => {
   const baseUrl = import.meta.env.BASE_URL || "/";
-  const normalizedBase = baseUrl.replace(/\/$/, "");
   const appOrigin = typeof window !== "undefined" ? window.location.origin : "";
-  const fullUrl = `${appOrigin}${normalizedBase}/badge/${encodeURIComponent(uniqueCode)}`;
-  return fullUrl.replace(/([^:]\/\/)+/g, "$1");
+  return `${appOrigin}${baseUrl}#/badge/${encodeURIComponent(uniqueCode)}`;
 };
 
-export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
+const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   template,
   pilgrim,
   trip,
   guide1Name,
   guide1Phone,
-  guide2Name,
-  guide2Phone,
   qrPayload,
   compact = false,
   className = "",
 }) => {
   const visuals = getTemplateVisuals(template.variant, template.accentColor);
   const displayName = pilgrim?.nameArabic || pilgrim?.nameLatin || "معتمر";
-  const displayTrip = trip?.name || pilgrim?.tripName || "رحلة مخصصة";
   const displayCode = pilgrim?.uniqueCode || "—";
   const avatarInitial = displayName.slice(0, 1).toUpperCase();
 
-  const hotelMakkah = trip?.makkahHotel || "الماسـة";
-  const hotelMadinah = trip?.madinahHotel || "الكيان العالمي";
-  const whatsappNumber = guide1Phone || "+216 25 800 884";
+  const InfoRow = ({ label, value }: { label: string; value?: string }) => (
+    <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-right">
+      <span className="text-[16px] font-bold text-slate-800">
+        {value || "—"}
+      </span>
+      <span className="text-[16px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+        {label}
+      </span>
+    </div>
+  );
 
   return (
     <div
-      className={`relative mx-auto overflow-hidden rounded-[22px] bg-[#111827] text-white shadow-[0_20px_45px_rgba(15,23,42,0.25)] ${className}`}
-      style={{ border: "1px solid rgba(251,191,36,0.35)" }}
+      className={`relative mx-auto flex overflow-hidden rounded-[24px] border bg-white text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] ${
+        compact ? "w-full max-w-md flex-row items-center gap-4 p-4" : "flex-col"
+      } ${className}`}
+      style={{ borderColor: visuals.borderColor }}
     >
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <div className="flex items-center gap-2 text-right">
-          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-black shadow-lg">
-            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Agency logo" className="h-full w-full object-cover" />
+      {compact ? (
+        // ── وضع مصغّر: صورة صغيرة بدون إطار ──
+        <>
+          <div
+            className="relative shrink-0 basis-[30%] overflow-hidden rounded-2xl"
+            style={{
+              minWidth: "88px",
+              aspectRatio: "1 / 1",
+            }}
+          >
+            {pilgrim?.avatarUrl ? (
+              <img
+                src={pilgrim.avatarUrl}
+                alt={displayName}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = DEFAULT_AVATAR_URL;
+                }}
+              />
+            ) : (
+              <div
+                className="flex h-full w-full items-center justify-center text-3xl font-black text-white"
+                style={{ background: visuals.headerBg }}
+              >
+                {avatarInitial}
+              </div>
+            )}
           </div>
-          <div className="leading-tight">
-            <div className="text-[9px] font-black tracking-[0.18em] text-white/70 uppercase">Mesk Tiba</div>
-            <div className="text-[13px] font-black text-white">مسك طيبة</div>
+
+          <div className="min-w-0 flex-1 text-right">
+            <p className="truncate text-sm font-black text-slate-900">
+              {displayName}
+            </p>
+            <p
+              className="mt-0.5 text-[16px] font-semibold uppercase tracking-[0.16em]"
+              style={{ color: visuals.highlightColor }}
+            >
+              {template.name || "بطاقة تعريف المعتمر"}
+            </p>
           </div>
-        </div>
-
-        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-[#d61f26] text-xl font-black text-white shadow-lg">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/80 text-[10px]">★</span>
-        </div>
-      </div>
-
-      <div className="px-4 pb-4">
-        <div className="mx-auto mt-1 flex h-[295px] w-full max-w-[290px] items-center justify-center overflow-hidden rounded-[18px] bg-[#f0f4f7] shadow-inner ring-1 ring-slate-200/80">
-          {pilgrim?.avatarUrl ? (
-            <img
-              src={pilgrim.avatarUrl}
-              alt={displayName}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = DEFAULT_AVATAR_URL;
-              }}
-            />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center bg-slate-200 text-7xl font-bold text-slate-500">
-              {avatarInitial}
+        </>
+      ) : (
+        // ── وضع كامل ──
+        <>
+          {/* الترويسة */}
+          <div className="relative h-24 w-full flex items-center justify-between bg-black px-6">
+            <div
+              className="flex items-center justify-center"
+              style={{ width: "100px", height: "100%" }}
+            >
+              <img
+                src={`${import.meta.env.BASE_URL}logo.png`}
+                alt="Logo"
+                className="h-20 w-auto"
+              />
             </div>
-          )}
-        </div>
+            <div
+              className="flex items-center justify-center"
+              style={{ width: "70px", height: "100%" }}
+            >
+              <svg
+                width="100"
+                height="67"
+                viewBox="-60 -40 120 80"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="#e70013"
+              >
+                <path d="M-60-40H60v80H-60z" />
+                <circle fill="#fff" r="20" />
+                <circle r="15" />
+                <circle fill="#fff" cx="4" r="12" />
+                <path d="M-5 0l16.281-5.29L1.22 8.56V-8.56L11.28 5.29z" />
+              </svg>
+            </div>
+          </div>
 
-        <div className="mt-4 text-center text-[30px] font-black leading-tight text-white">
-          {displayName}
-        </div>
+          {/* الصورة — صغيرة نسبيًا (٢٠٪) مع إطار ذهبي جميل */}
+          <div className="relative flex w-full shrink-0 justify-center bg-slate-50 px-6 pt-5 pb-3">
+            <div
+              className="relative overflow-hidden rounded-2xl p-[3px] shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+              style={{
+                width: "70%",
+                minWidth: "72px",
+                aspectRatio: "9 / 9",
+                background: `linear-gradient(135deg, ${visuals.highlightColor}, ${visuals.borderColor})`,
+              }}
+            >
+              <div className="relative h-full w-full overflow-hidden rounded-[13px] ring-1 ring-inset ring-white/60">
+                {pilgrim?.avatarUrl ? (
+                  <img
+                    src={pilgrim.avatarUrl}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DEFAULT_AVATAR_URL;
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-slate-100 text-2xl font-black text-slate-400">
+                    {avatarInitial}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-        <div className="mt-3 space-y-2 text-center text-[17px] font-bold leading-relaxed text-white">
-          <div>
-            <span className="text-white/80">فندق مكة المكرمة :</span> {hotelMakkah}
-          </div>
-          <div>
-            <span className="text-white/80">فندق المدينة المنورة :</span> {hotelMadinah}
-          </div>
-        </div>
+          {/* البيانات */}
+          <div className="px-4 py-3 text-right">
+            <InfoRow label="الاسم" value={displayName} />
+            <InfoRow label="فندق مكة المكرمة" value={trip?.makkahHotel} />
+            <InfoRow label="فندق المدينة المنورة" value={trip?.madinahHotel} />
+            <InfoRow label="رئيس المجموعة" value={guide1Name} />
+            <InfoRow label="رقم الهاتف" value={guide1Phone} />
 
-        <div className="mt-4 flex items-center justify-center gap-3 text-right text-[15px] font-bold text-white">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1ed760] text-xl shadow-lg">
-            💬
+            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-right">
+              <div className="flex shrink-0 justify-center rounded-xl border border-slate-200/70 bg-white p-2">
+                <QRCodeView
+                  payload={
+                    qrPayload || {
+                      agency: "مسك طيبة للأسفار و السياحة",
+                      uniqueCode: displayCode,
+                      nameArabic: displayName,
+                      tripName: trip?.name || pilgrim?.tripName || "رحلة مخصصة",
+                      makkahHotel: trip?.makkahHotel,
+                      madinahHotel: trip?.madinahHotel,
+                      emergencyGuide1: `${guide1Name || "—"} (${guide1Phone || "—"})`,
+                    }
+                  }
+                  size={144}
+                />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[16px] font-bold text-slate-700">
+                  امسح الرمز للمساعدة والدعم
+                </p>
+                <p className="mt-0.5 text-[16px] text-slate-400">
+                  نرافقكم في رحلة الإيمان
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <span className="text-white/80">واتساب :</span>{' '}
-            <span dir="ltr" className="inline-block tracking-tight">{whatsappNumber}</span>
-          </div>
-        </div>
 
-        <div className="mt-5 flex items-center justify-end gap-3 rounded-2xl bg-white/5 px-3 py-2 ring-1 ring-white/10 backdrop-blur-sm">
-          <div className="min-w-0 flex-1 text-right text-[10px] font-semibold text-white/75">
-            {displayCode}
+          {/* التذييل */}
+          <div
+            className="border-t border-slate-100 py-2 text-[16px] font-semibold text-slate-500"
+            style={{ color: visuals.highlightColor }}
+          >
+            مسك طيبة للأسفار و السياحة
           </div>
-          <div className="rounded-xl bg-white p-2 shadow-md">
-            <QRCodeView payload={qrPayload || { agency: "مسك طيبة", uniqueCode: displayCode, nameArabic: displayName, tripName: displayTrip }} size={86} />
-          </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 };
@@ -475,6 +564,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
             nameArabic: pilgrim.nameArabic,
             nameLatin: pilgrim.nameLatin,
             passportNumber: pilgrim.passportNumber,
+            birthDate: pilgrim.birthDate,
             tripName: selectedTrip?.name || pilgrim.tripName,
             templateId: selectedTemplate.id,
             templateVariant: selectedTemplate.variant,
@@ -846,13 +936,17 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                         <div
                           key={p.id}
                           className={`badge-print-item transition-all duration-300 ease-out print:break-inside-avoid ${
-                            shouldExpandInPrint ? "w-full" : "w-[calc(50%-0.5rem)]"
+                            shouldExpandInPrint
+                              ? "w-full"
+                              : "w-[calc(50%-0.5rem)]"
                           }`}
                         >
                           <button
                             type="button"
                             onClick={() =>
-                              setSelectedPilgrimForPreview(isExpanded ? null : p)
+                              setSelectedPilgrimForPreview(
+                                isExpanded ? null : p,
+                              )
                             }
                             className="block w-full cursor-pointer text-left print:pointer-events-none"
                           >
@@ -899,8 +993,8 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                       En attente de Génération de Cartes
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Sélectionnez un voyage et configurez les contacts d'urgence
-                      pour afficher les badges imprimables.
+                      Sélectionnez un voyage et configurez les contacts
+                      d'urgence pour afficher les badges imprimables.
                     </p>
                   </div>
                 </div>
