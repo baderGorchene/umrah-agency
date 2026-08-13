@@ -37,6 +37,12 @@ async function startServer() {
         return res.status(400).json({ error: "Aucune image ou PDF fourni (imageBase64 requis)." });
       }
 
+      // Ensure imageBase64 is a string (data URL or base64). If it's not, return a helpful error.
+      if (typeof imageBase64 !== 'string') {
+        console.warn('Received non-string imageBase64 in /api/extract-passport:', typeof imageBase64);
+        return res.status(400).json({ success: false, error: 'Invalid payload: imageBase64 must be a base64 string or data URL. Consider using the client-side OCR (tesseract.js) implemented in the app.' });
+      }
+
       // Clean base64 string if data URL prefix exists
       const cleanBase64 = imageBase64.replace(/^data:[^;]+;base64,/, "");
 
