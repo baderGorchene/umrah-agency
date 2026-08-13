@@ -1,6 +1,6 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { Pilgrim, Trip, DEFAULT_AVATAR_URL } from '../types';
-import { initialPilgrims } from '../mockData';
+import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
+import { initialPilgrims } from "../mockData";
 
 export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
   if (!isSupabaseConfigured()) {
@@ -9,30 +9,34 @@ export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
 
   try {
     const { data, error } = await supabase
-      .from('pilgrims')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("pilgrims")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error || !data) {
-      console.warn('Could not fetch pilgrims from Supabase, returning mock:', error);
+      console.warn(
+        "Could not fetch pilgrims from Supabase, returning mock:",
+        error,
+      );
       return initialPilgrims;
     }
 
     const tripsMap = new Map(trips.map((t) => [t.id, t.name]));
 
     return data.map((p) => {
-      const isUnsplash = p.avatar_url && p.avatar_url.includes('unsplash.com');
-      const avatarUrl = !p.avatar_url || isUnsplash ? DEFAULT_AVATAR_URL : p.avatar_url;
+      const isUnsplash = p.avatar_url && p.avatar_url.includes("unsplash.com");
+      const avatarUrl =
+        !p.avatar_url || isUnsplash ? DEFAULT_AVATAR_URL : p.avatar_url;
 
       return {
         id: p.id,
         nameArabic: p.name_arabic,
         nameLatin: p.name_latin,
         phone: p.phone,
-        tripId: p.trip_id || '',
-        tripName: p.trip_id ? tripsMap.get(p.trip_id) || '—' : '—',
+        tripId: p.trip_id || "",
+        tripName: p.trip_id ? tripsMap.get(p.trip_id) || "—" : "—",
         uniqueCode: p.unique_code,
-        status: p.status || 'في الانتظار',
+        status: p.status || "في الانتظار",
         passportNumber: p.passport_number,
         avatarUrl: avatarUrl,
         emergencyContact: p.emergency_contact,
@@ -41,19 +45,25 @@ export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
       };
     });
   } catch (err) {
-    console.error('Error fetching pilgrims from Supabase:', err);
+    console.error("Error fetching pilgrims from Supabase:", err);
     return initialPilgrims;
   }
 };
 
-export const createPilgrim = async (pilgrimData: Omit<Pilgrim, 'id'>, trips: Trip[] = []): Promise<Pilgrim | null> => {
+export const createPilgrim = async (
+  pilgrimData: Omit<Pilgrim, "id">,
+  trips: Trip[] = [],
+): Promise<Pilgrim | null> => {
   if (!isSupabaseConfigured()) {
     return { ...pilgrimData, id: `pilgrim-${Date.now()}` };
   }
 
   try {
-    // Ensure trip_id is either a valid UUID or null to avoid DB errors when frontend provides mock IDs like 'trip-1'
-    const isValidUUID = (s: any) => typeof s === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(s);
+    const isValidUUID = (s: any) =>
+      typeof s === "string" &&
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+        s,
+      );
     const tripId = isValidUUID(pilgrimData.tripId) ? pilgrimData.tripId : null;
 
     const payload = {
@@ -70,8 +80,13 @@ export const createPilgrim = async (pilgrimData: Omit<Pilgrim, 'id'>, trips: Tri
       birth_date: pilgrimData.birthDate,
     };
 
-    const { data, error } = await supabase.from('pilgrims').insert([payload]).select().single();
-    if (error || !data) throw error;
+    const { data, error } = await supabase
+      .from("pilgrims")
+      .insert([payload])
+      .select()
+      .single();
+    if (error) throw error;
+    if (!data) return null;
 
     const tripsMap = new Map(trips.map((t) => [t.id, t.name]));
 
@@ -80,8 +95,8 @@ export const createPilgrim = async (pilgrimData: Omit<Pilgrim, 'id'>, trips: Tri
       nameArabic: data.name_arabic,
       nameLatin: data.name_latin,
       phone: data.phone,
-      tripId: data.trip_id || '',
-      tripName: data.trip_id ? tripsMap.get(data.trip_id) || '—' : '—',
+      tripId: data.trip_id || "",
+      tripName: data.trip_id ? tripsMap.get(data.trip_id) || "—" : "—",
       uniqueCode: data.unique_code,
       status: data.status,
       passportNumber: data.passport_number,
@@ -91,7 +106,7 @@ export const createPilgrim = async (pilgrimData: Omit<Pilgrim, 'id'>, trips: Tri
       birthDate: data.birth_date,
     };
   } catch (err) {
-    console.error('Error creating pilgrim in Supabase:', err);
+    console.error("Error creating pilgrim in Supabase:", err);
     return null;
   }
 };
@@ -100,8 +115,16 @@ export const updatePilgrim = async (pilgrim: Pilgrim): Promise<boolean> => {
   if (!isSupabaseConfigured()) return true;
 
   try {
+    // 1. Validate UUID check to prevent PostgreSQL syntax error
+    const isValidUUID = (s: any) =>
+      typeof s === "string" &&
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+        s,
+      );
+    const tripId = isValidUUID(pilgrim.tripId) ? pilgrim.tripId : null;
+
     const payload = {
-      trip_id: pilgrim.tripId || null,
+      trip_id: tripId, // 👈 Ensures valid UUID or null
       name_arabic: pilgrim.nameArabic,
       name_latin: pilgrim.nameLatin,
       phone: pilgrim.phone,
@@ -114,11 +137,14 @@ export const updatePilgrim = async (pilgrim: Pilgrim): Promise<boolean> => {
       updated_at: new Date().toISOString(),
     };
 
-    const { error } = await supabase.from('pilgrims').update(payload).eq('id', pilgrim.id);
+    const { error } = await supabase
+      .from("pilgrims")
+      .update(payload)
+      .eq("id", pilgrim.id);
     if (error) throw error;
     return true;
   } catch (err) {
-    console.error('Error updating pilgrim in Supabase:', err);
+    console.error("Error updating pilgrim in Supabase:", err);
     return false;
   }
 };
@@ -127,41 +153,49 @@ export const deletePilgrim = async (id: string): Promise<boolean> => {
   if (!isSupabaseConfigured()) return true;
 
   try {
-    const { error } = await supabase.from('pilgrims').delete().eq('id', id);
+    const { error } = await supabase.from("pilgrims").delete().eq("id", id);
     if (error) throw error;
     return true;
   } catch (err) {
-    console.error('Error deleting pilgrim from Supabase:', err);
+    console.error("Error deleting pilgrim from Supabase:", err);
     return false;
   }
 };
 
-export const getPilgrimByUniqueCode = async (uniqueCode: string): Promise<Pilgrim | null> => {
+export const getPilgrimByUniqueCode = async (
+  uniqueCode: string,
+): Promise<Pilgrim | null> => {
   const normCode = uniqueCode.trim().toUpperCase();
 
   if (isSupabaseConfigured()) {
     try {
       const { data, error } = await supabase
-        .from('pilgrims')
-        .select('*')
-        .ilike('unique_code', normCode)
+        .from("pilgrims")
+        .select("*")
+        .ilike("unique_code", normCode)
         .limit(1)
         .maybeSingle();
 
       if (data) {
         const tripName = data.trip_id
-          ? (await supabase.from('trips').select('name').eq('id', data.trip_id).single()).data?.name
-          : '—';
+          ? (
+              await supabase
+                .from("trips")
+                .select("name")
+                .eq("id", data.trip_id)
+                .single()
+            ).data?.name
+          : "—";
 
         return {
           id: data.id,
           nameArabic: data.name_arabic,
           nameLatin: data.name_latin,
           phone: data.phone,
-          tripId: data.trip_id || '',
-          tripName: tripName || '—',
+          tripId: data.trip_id || "",
+          tripName: tripName || "—",
           uniqueCode: data.unique_code,
-          status: data.status || 'مؤكد',
+          status: data.status || "مؤكد",
           passportNumber: data.passport_number,
           avatarUrl: data.avatar_url,
           emergencyContact: data.emergency_contact,
@@ -170,13 +204,13 @@ export const getPilgrimByUniqueCode = async (uniqueCode: string): Promise<Pilgri
         };
       }
     } catch (err) {
-      console.warn('Error fetching pilgrim by unique code from Supabase:', err);
+      console.warn("Error fetching pilgrim by unique code from Supabase:", err);
     }
   }
 
   // Fallback to local mock pilgrims if offline or not found in DB
   const foundLocal = initialPilgrims.find(
-    (p) => p.uniqueCode.toUpperCase() === normCode || p.id === uniqueCode
+    (p) => p.uniqueCode.toUpperCase() === normCode || p.id === uniqueCode,
   );
 
   if (foundLocal) {
