@@ -17,11 +17,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
-import {
-  uploadPassportToStorage,
-  saveDocumentRecord,
-} from "../services/documentsService";
-import Tesseract from "tesseract.js";
+import { uploadPassportToStorage } from "../services/documentsService";
 
 export interface ExtractedPassportData {
   passportNumber: string;
@@ -59,50 +55,6 @@ interface PassportScannerModalProps {
   onAutoFillForm?: (data: ExtractedPassportData) => void;
 }
 
-// Sample Tunisian Passports for instant demo/testing
-const DEMO_PASSPORTS = [
-  {
-    name: "Passeport 1 - Mohamed Ali Trabelsi",
-    data: {
-      passportNumber: "N3920184",
-      surnameLatin: "TRABELSI",
-      givenNamesLatin: "MOHAMED ALI",
-      fullNameArabic: "محمد علي الطرابلسي",
-      cinNumber: "09481920",
-      nationality: "TUNISIENNE",
-      dateOfBirth: "12/04/1978",
-      placeOfBirth: "SFAX - تونس",
-      sex: "M",
-      issueDate: "15/02/2021",
-      expiryDate: "14/02/2026",
-      issuingAuthority: "TUNIS",
-      mrz1: "P<TUNTRABELSI<<MOHAMED<ALI<<<<<<<<<<<<<<<<<<",
-      mrz2: "N3920184<3TUN7804128M260214209481920<<<<<<32",
-      confidenceScore: 98,
-    },
-  },
-  {
-    name: "Passeport 2 - Fatma Bent Hassen",
-    data: {
-      passportNumber: "N1094827",
-      surnameLatin: "BEN HASSEN",
-      givenNamesLatin: "FATMA",
-      fullNameArabic: "فاطمة بنت بن حسن",
-      cinNumber: "08830192",
-      nationality: "TUNISIENNE",
-      dateOfBirth: "25/11/1982",
-      placeOfBirth: "SOUSSE - سوسة",
-      sex: "F",
-      issueDate: "03/09/2022",
-      expiryDate: "02/09/2027",
-      issuingAuthority: "SOUSSE",
-      mrz1: "P<TUNBEN<HASSEN<<FATMA<<<<<<<<<<<<<<<<<<<<<",
-      mrz2: "N1094827<8TUN8211254F270902608830192<<<<<<40",
-      confidenceScore: 96,
-    },
-  },
-];
-
 export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   isOpen,
   onClose,
@@ -121,7 +73,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   );
   const [phoneInput, setPhoneInput] = useState<string>("98123456");
 
-  const [currentStep, setCurrentStep] = useState<number>(1); // 1: extract/upload, 2: crop/upload, 3: assign/save
+  const [currentStep, setCurrentStep] = useState<number>(1); // 1: upload/extract, 2: crop/upload, 3: assign/save
   const [pendingDocument, setPendingDocument] =
     useState<PendingDocument | null>(null);
   const [uploadFailed, setUploadFailed] = useState(false);
@@ -144,18 +96,34 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     };
   }, [previewUrl]);
 
+  const resetScanState = () => {
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setExtractedData(null);
+    setCurrentStep(1);
+    setPendingDocument(null);
+    setUploadFailed(false);
+    setError(null);
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+  };
+
   const handleFileChange = (file: File) => {
+    const isImage = file.type.startsWith("image/");
+    const isPdf = file.type === "application/pdf";
+    if (!isImage && !isPdf) {
+      setError("Formats acceptés: JPG, PNG, WEBP, PDF.");
+      return;
+    }
+
     setSelectedFile(file);
     setError(null);
     setExtractedData(null);
     setCrop(undefined);
     setCompletedCrop(undefined);
-
-    if (file.type.startsWith("image/")) {
-      setPreviewUrl(URL.createObjectURL(file));
-    } else if (file.type === "application/pdf") {
-      setPreviewUrl(null); // PDF preview flag
-    }
+    // PDFs have no inline <img> preview; the file itself is still sent to
+    // the extraction API as base64.
+    setPreviewUrl(isImage ? URL.createObjectURL(file) : null);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -165,12 +133,21 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     }
   };
 
-  const handleFileSelected = (file?: File) => {
+  // Used in steps 2/3 to swap in a different photo without discarding the
+  // already-extracted passport data. Replacing the photo invalidates any
+  // previously uploaded document, so we clear that too.
+  const handleReplaceImage = (file?: File) => {
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Seules les images (JPG, PNG, WEBP) sont acceptées.");
+      return;
+    }
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
     setCrop(undefined);
     setCompletedCrop(undefined);
+    setPendingDocument(null);
+    setUploadFailed(false);
   };
 
   // --- Cropping (react-image-crop) ---
@@ -241,6 +218,9 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
 
         setSelectedFile(croppedFile);
         setPreviewUrl(URL.createObjectURL(croppedFile));
+        // The crop invalidates any already-uploaded document.
+        setPendingDocument(null);
+        setUploadFailed(false);
       }
     } catch (err) {
       console.error("performCrop error", err);
@@ -300,10 +280,22 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     }
   };
 
-  // Update handler to pass file directly to OCR
   const handleUploadAndAnalyze = () => {
     if (!selectedFile) return;
-    processExtraction(selectedFile);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const resultStr = e.target?.result as string;
+      if (!resultStr) {
+        setError("Impossible de lire le fichier sélectionné.");
+        return;
+      }
+      processExtraction(resultStr, selectedFile.type || "image/jpeg");
+    };
+    reader.onerror = () => {
+      setError("Impossible de lire le fichier sélectionné.");
+    };
+    reader.readAsDataURL(selectedFile);
   };
 
   const normalizeBirthDate = (value?: string): string | undefined => {
@@ -489,9 +481,9 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                 Lecture automatique sécurisée
               </p>
               <p className="text-[11px] text-slate-500">
-                Importez une photo claire ou un fichier PDF du passeport
-                tunisien. L'IA extrait automatiquement le numéro, le nom en
-                arabe/latin, la CIN et les dates.
+                Importez une photo claire du passeport tunisien, bien cadrée sur
+                les deux lignes MRZ en bas de la page. L'OCR en extrait
+                automatiquement le numéro, le nom, la nationalité et les dates.
               </p>
             </div>
           </div>
@@ -512,7 +504,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  accept="image/jpeg,image/png,image/webp"
                   className="hidden"
                   onChange={(e) =>
                     e.target.files?.[0] && handleFileChange(e.target.files[0])
@@ -527,10 +519,10 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                   <p className="text-xs font-bold text-slate-800">
                     {selectedFile
                       ? selectedFile.name
-                      : "Glissez-déposez la photo ou le PDF du passeport"}
+                      : "Glissez-déposez la photo du passeport"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Formats acceptés: JPG, PNG, WEBP, PDF (Max 10Mo)
+                    Formats acceptés: JPG, PNG, WEBP (Max 10Mo)
                   </p>
                 </div>
 
@@ -564,7 +556,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                   {isAnalyzing ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Analyse IA en cours (Gemini)...</span>
+                      <span>Analyse OCR en cours...</span>
                     </>
                   ) : (
                     <>
@@ -628,7 +620,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                       ref={fileInputRef}
                       onChange={(e) =>
                         e.target.files?.[0] &&
-                        handleFileSelected(e.target.files[0])
+                        handleReplaceImage(e.target.files[0])
                       }
                     />
                   </div>
@@ -640,12 +632,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
 
                   <div className="flex gap-2 mt-3">
                     <button
-                      onClick={() => {
-                        setExtractedData(null);
-                        setSelectedFile(null);
-                        setPreviewUrl(null);
-                        setCurrentStep(1);
-                      }}
+                      onClick={resetScanState}
                       className="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold"
                     >
                       Retour
@@ -705,12 +692,12 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                   <CheckCircle2 className="w-4 h-4" />
                   <span>
                     Données extraites avec succès (
-                    {extractedData.confidenceScore || 95}% de précision)
+                    {extractedData.confidenceScore ?? 70}% de confiance OCR)
                   </span>
                 </div>
 
                 <button
-                  onClick={() => setExtractedData(null)}
+                  onClick={resetScanState}
                   className="text-xs text-slate-500 hover:text-black font-semibold underline flex items-center gap-1"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
@@ -768,7 +755,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                       ref={fileInputRef}
                       onChange={(e) =>
                         e.target.files?.[0] &&
-                        handleFileSelected(e.target.files[0])
+                        handleReplaceImage(e.target.files[0])
                       }
                     />
                   </div>
