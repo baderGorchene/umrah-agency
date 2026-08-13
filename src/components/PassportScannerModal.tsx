@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import Cropper from 'react-easy-crop';
 import {
   FileText,
   Upload,
@@ -113,19 +114,18 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   );
   const [phoneInput, setPhoneInput] = useState<string>("98123456");
 
-  // Cropping states
+  // Cropping states (react-easy-crop)
   const [isCropOpen, setIsCropOpen] = useState(false);
-  const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(
-    null,
-  );
-  const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
   const cropImgRef = useRef<HTMLImageElement | null>(null);
+  const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState<number>(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
 
   const [currentStep, setCurrentStep] = useState<number>(1); // 1: extract/upload, 2: crop/upload, 3: assign/save
   const [pendingDocument, setPendingDocument] = useState<{ filePath: string; fileUrl?: string; mimeType?: string; fileName?: string } | null>(null);
   const [uploadFailed, setUploadFailed] = useState(false);
-  const [lastCrop, setLastCrop] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(null);
   const [lastCroppedFile, setLastCroppedFile] = useState<File | null>(null);
+  const [lastCroppedArea, setLastCroppedArea] = useState<any>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -175,32 +175,76 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     setPreviewUrl(URL.createObjectURL(file));
   };
 
-  const handleCropMouseDown = (e: React.MouseEvent) => {
-    const img = cropImgRef.current;
-    if (!img) return;
-    const container = img.parentElement as HTMLElement | null;
-    const rect = container ? container.getBoundingClientRect() : img.getBoundingClientRect();
-    // store coordinates relative to the container (so the selection rectangle can be positioned directly)
-    setCropStart({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    setCropEnd(null);
+  // legacy mouse handlers removed in favor of react-easy-crop
+  // react-easy-crop helpers
+  const createImage = (url: string): Promise<HTMLImageElement> => {
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      image.addEventListener('load', () => resolve(image));
+      image.addEventListener('error', (e) => reject(e));
+      image.setAttribute('crossOrigin', 'anonymous');
+      image.src = url;
+    });
   };
 
-  const handleCropMouseMove = (e: React.MouseEvent) => {
-    if (!cropStart) return;
-    const img = cropImgRef.current;
-    if (!img) return;
-    const container = img.parentElement as HTMLElement | null;
-    const rect = container ? container.getBoundingClientRect() : img.getBoundingClientRect();
-    setCropEnd({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<Blob | null> => {
+    const image = await createImage(imageSrc);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, pixelCrop.width);
+    canvas.height = Math.max(1, pixelCrop.height);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    ctx.drawImage(
+      image,
+      pixelCrop.x,
+      pixelCrop.y,
+      pixelCrop.width,
+      pixelCrop.height,
+      0,
+      0,
+      pixelCrop.width,
+      pixelCrop.height
+    );
+
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        resolve(blob);
+      }, 'image/jpeg', 0.95);
+    });
   };
 
-  const handleCropMouseUp = (e: React.MouseEvent) => {
-    if (!cropStart) return;
-    const img = cropImgRef.current;
-    if (!img) return;
-    const container = img.parentElement as HTMLElement | null;
-    const rect = container ? container.getBoundingClientRect() : img.getBoundingClientRect();
-    setCropEnd({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  const performEasyCrop = async () => {
+    if (!previewUrl || !croppedAreaPixels) {
+      setIsCropOpen(false);
+      return;
+    }
+
+    try {
+      const blob = await getCroppedImg(previewUrl, croppedAreaPixels);
+      if (blob) {
+        const croppedFile = new File([blob], `cropped_${selectedFile?.name || 'image.jpg'}`, { type: 'image/jpeg' });
+
+        // Revoke previous URL
+        if (previewUrl && previewUrl.startsWith('blob:')) {
+          try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+        }
+
+        const newPreviewUrl = URL.createObjectURL(croppedFile);
+        setSelectedFile(croppedFile);
+        setLastCroppedFile(croppedFile);
+        setPreviewUrl(newPreviewUrl);
+        setLastCroppedArea(croppedAreaPixels);
+      }
+    } catch (err) {
+      console.error('performEasyCrop error', err);
+      setError('Recadrage échoué');
+    }
+
+    setIsCropOpen(false);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
   };
 
   const performCrop = async () => {
@@ -710,7 +754,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                           Annuler
                         </button>
                         <button
-                          onClick={performCrop}
+                          onClick={performEasyCrop}
                           className="px-3 py-1.5 rounded bg-amber-500 text-white font-bold"
                         >
                           Appliquer
@@ -838,7 +882,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                           Annuler
                         </button>
                         <button
-                          onClick={performCrop}
+                          onClick={performEasyCrop}
                           className="px-3 py-1.5 rounded bg-amber-500 text-white font-bold"
                         >
                           Appliquer
