@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
 import { uploadPassportToStorage } from "../services/documentsService";
+import { GoogleGenAI, Type } from "@google/genai";
 
 export interface ExtractedPassportData {
   passportNumber: string;
@@ -241,42 +242,74 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     setIsAnalyzing(true);
     setError(null);
 
-    // Get API base URL from environment or fallback to production backend domain
-    const API_BASE_URL =
-      import.meta.env.VITE_API_URL || "https://your-backend-api.onrender.com";
-
     try {
-      const response = await fetch(`${API_BASE_URL}/api/extract-passport`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageBase64: base64Data,
-          mimeType: mimeType,
-        }),
+      // Read API key from Vite environment variables (.env file)
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error("Clé API Gemini introuvable dans VITE_GEMINI_API_KEY.");
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "");
+
+      const prompt = `
+Vous êtes un expert OCR spécialisé dans la lecture et l'extraction de données à partir de passeports tunisiens (Passeport de la République Tunisienne / الجمهورية التونسية - جواز سفر).
+Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni et extrait toutes les informations clés dans le format JSON strict requis.
+
+Attention particulière pour les passeports tunisiens:
+- Le nom et le prénom apparaissent en français (latin) et en arabe.
+- Le numéro de passeport tunisien commence généralement par un préfixe (ex: N, P, etc.) suivi de chiffres (ex: N2891048 ou 0881234).
+- Extrais la bande MRZ (Machine Readable Zone) si disponible au bas de la page.
+- Identifie le numéro de carte d'identité nationale (CIN) si mentionné.
+- Extrais le sexe (M ou F), la date de naissance, la date d'émission et la date d'expiration.
+`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash-lite",
+        contents: [
+          { inlineData: { mimeType, data: cleanBase64 } },
+          { text: prompt },
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              passportNumber: { type: Type.STRING },
+              surnameLatin: { type: Type.STRING },
+              givenNamesLatin: { type: Type.STRING },
+              fullNameArabic: { type: Type.STRING },
+              cinNumber: { type: Type.STRING },
+              nationality: { type: Type.STRING },
+              dateOfBirth: { type: Type.STRING },
+              placeOfBirth: { type: Type.STRING },
+              sex: { type: Type.STRING },
+              issueDate: { type: Type.STRING },
+              expiryDate: { type: Type.STRING },
+              issuingAuthority: { type: Type.STRING },
+              mrz1: { type: Type.STRING },
+              mrz2: { type: Type.STRING },
+              confidenceScore: { type: Type.NUMBER },
+            },
+            required: [
+              "passportNumber",
+              "surnameLatin",
+              "givenNamesLatin",
+              "fullNameArabic",
+              "dateOfBirth",
+              "expiryDate",
+            ],
+          },
+        },
       });
 
-      const text = await response.text();
-      let result: {
-        success?: boolean;
-        error?: string;
-        data?: ExtractedPassportData;
-      } | null = null;
+      const data = JSON.parse(response.text || "{}");
 
-      try {
-        result = text ? JSON.parse(text) : null;
-      } catch {
-        result = null;
-      }
-
-      if (!response.ok || !result || !result.success) {
-        throw new Error(result?.error || "Échec de l'analyse du passeport.");
-      }
-
-      setExtractedData(result.data || null);
-      onAutoFillForm?.(result.data as ExtractedPassportData);
+      setExtractedData(data);
+      onAutoFillForm?.(data);
       setCurrentStep(2);
     } catch (err: any) {
-      console.error(err);
+      console.error("Erreur OCR:", err);
       setError(err.message || "Échec de l'analyse du passeport.");
     } finally {
       setIsAnalyzing(false);
