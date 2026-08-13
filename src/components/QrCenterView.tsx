@@ -234,19 +234,15 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   trip,
   guide1Name,
   guide1Phone,
-  guide2Name,
-  guide2Phone,
   qrPayload,
   compact = false,
   className = "",
 }) => {
   const visuals = getTemplateVisuals(template.variant, template.accentColor);
   const displayName = pilgrim?.nameArabic || pilgrim?.nameLatin || "معتمر";
-  const displayTrip = trip?.name || pilgrim?.tripName || "رحلة مخصصة";
   const displayCode = pilgrim?.uniqueCode || "—";
   const avatarInitial = displayName.slice(0, 1).toUpperCase();
 
-  // Row helper — label on the right (Arabic-first), value on the left, matching the reference badge
   const InfoRow = ({ label, value }: { label: string; value?: string }) => (
     <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-right">
       <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
@@ -260,42 +256,20 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
 
   return (
     <div
-      className={`relative mx-auto overflow-hidden rounded-[24px] border bg-white text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] ${className}`}
+      className={`relative mx-auto flex overflow-hidden rounded-[24px] border bg-white text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] ${
+        compact ? "w-full max-w-md flex-row items-center gap-4 p-4" : "flex-col"
+      } ${className}`}
       style={{ borderColor: visuals.borderColor }}
     >
-      {/* Header */}
-      <div
-        className="relative flex flex-col items-center gap-1.5 px-4 py-4 text-white"
-        style={{ background: visuals.headerBg }}
-      >
-        <div
-          className="absolute inset-0 opacity-40"
-          style={{ backgroundImage: visuals.pattern }}
-        />
-        <div className="relative flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-white/15 shadow-sm">
-            <img
-              src={`${import.meta.env.BASE_URL}logo.png`}
-              alt="Agency logo"
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <p className="text-sm font-black leading-tight">
-            مسك طيبة للأسفار و السياحة
-          </p>
-        </div>
-        <p className="relative text-[10px] font-semibold uppercase tracking-[0.28em] text-white/75">
-          {template.name || "Agence d'Umrah"}
-        </p>
-      </div>
-
-      {/* Body */}
-      <div className="px-4 py-3 text-right">
-        {/* Photo + name + trip */}
-        <div className="flex items-center gap-3 border-b border-slate-100 py-3">
+      {compact ? (
+        // ── وضع مصغّر: صورة صغيرة بدون إطار ──
+        <>
           <div
-            className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 bg-slate-100 text-lg font-black text-slate-500"
-            style={{ borderColor: visuals.borderColor }}
+            className="relative shrink-0 basis-[30%] overflow-hidden rounded-2xl"
+            style={{
+              minWidth: "88px",
+              aspectRatio: "1 / 1",
+            }}
           >
             {pilgrim?.avatarUrl ? (
               <img
@@ -307,35 +281,94 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
                 }}
               />
             ) : (
-              <span>{avatarInitial}</span>
+              <div
+                className="flex h-full w-full items-center justify-center text-3xl font-black text-white"
+                style={{ background: visuals.headerBg }}
+              >
+                {avatarInitial}
+              </div>
             )}
           </div>
+
           <div className="min-w-0 flex-1 text-right">
-            <h3 className="truncate text-base font-black text-slate-900">
+            <p className="truncate text-sm font-black text-slate-900">
               {displayName}
-            </h3>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-              Voyage
             </p>
-            <p className="truncate text-xs font-bold text-slate-600">
-              {displayTrip}
+            <p
+              className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
+              style={{ color: visuals.highlightColor }}
+            >
+              {template.name || "بطاقة تعريف المعتمر"}
             </p>
           </div>
-        </div>
+        </>
+      ) : (
+        // ── وضع كامل ──
+        <>
+          {/* الترويسة */}
+          <div
+            className="relative flex flex-col items-center gap-1.5 px-4 py-4 text-white"
+            style={{ background: visuals.headerBg }}
+          >
+            <div
+              className="absolute inset-0 opacity-40"
+              style={{ backgroundImage: visuals.pattern }}
+            />
+            <div className="relative flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-white/15 shadow-sm">
+                <img
+                  src={`${import.meta.env.BASE_URL}logo.png`}
+                  alt="شعار الوكالة"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+              <p className="text-sm font-black leading-tight">
+                مسك طيبة للأسفار و السياحة
+              </p>
+            </div>
+            <p className="relative text-[10px] font-semibold uppercase tracking-[0.28em] text-white/75">
+              {template.name || "بطاقة تعريف المعتمر"}
+            </p>
+          </div>
 
-        {!compact && (
-          <>
-            <InfoRow label="Date de naissance" value={pilgrim?.birthDate} />
-            <InfoRow label="La Mecque" value={trip?.makkahHotel} />
-            <InfoRow label="Médine" value={trip?.madinahHotel} />
-            <InfoRow label="Contact d'urgence" value={guide1Name} />
-            <InfoRow label="Tél" value={guide1Phone} />
-            {guide2Name && (
-              <InfoRow label="Accompagnateur" value={guide2Name} />
-            )}
-            <InfoRow label="N° Passeport" value={pilgrim?.passportNumber} />
+          {/* الصورة — صغيرة نسبيًا (٢٠٪) مع إطار ذهبي جميل */}
+          <div className="relative flex w-full shrink-0 justify-center bg-slate-50 px-6 pt-5 pb-3">
+            <div
+              className="relative overflow-hidden rounded-2xl p-[3px] shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
+              style={{
+                width: "80%",
+                minWidth: "72px",
+                aspectRatio: "9 / 9",
+                background: `linear-gradient(135deg, ${visuals.highlightColor}, ${visuals.borderColor})`,
+              }}
+            >
+              <div className="relative h-full w-full overflow-hidden rounded-[13px] ring-1 ring-inset ring-white/60">
+                {pilgrim?.avatarUrl ? (
+                  <img
+                    src={pilgrim.avatarUrl}
+                    alt={displayName}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = DEFAULT_AVATAR_URL;
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-slate-100 text-2xl font-black text-slate-400">
+                    {avatarInitial}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
-            {/* QR */}
+          {/* البيانات */}
+          <div className="px-4 py-3 text-right">
+            <InfoRow label="الاسم" value={displayName} />
+            <InfoRow label="فندق مكة المكرمة" value={trip?.makkahHotel} />
+            <InfoRow label="فندق المدينة المنورة" value={trip?.madinahHotel} />
+            <InfoRow label="رئيس المجموعة" value={guide1Name} />
+            <InfoRow label="رقم الهاتف" value={guide1Phone} />
+
             <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-right">
               <div className="flex shrink-0 justify-center rounded-xl border border-slate-200/70 bg-white p-2">
                 <QRCodeView
@@ -344,15 +377,10 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
                       agency: "مسك طيبة للأسفار و السياحة",
                       uniqueCode: displayCode,
                       nameArabic: displayName,
-                      nameLatin: pilgrim?.nameLatin,
-                      passportNumber: pilgrim?.passportNumber,
-                      birthDate: pilgrim?.birthDate,
-                      tripName: displayTrip,
+                      tripName: trip?.name || pilgrim?.tripName || "رحلة مخصصة",
+                      makkahHotel: trip?.makkahHotel,
+                      madinahHotel: trip?.madinahHotel,
                       emergencyGuide1: `${guide1Name || "—"} (${guide1Phone || "—"})`,
-                      emergencyGuide2:
-                        guide2Name && guide2Phone
-                          ? `${guide2Name} (${guide2Phone})`
-                          : undefined,
                     }
                   }
                   size={72}
@@ -360,24 +388,24 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[11px] font-bold text-slate-700">
-                  Scanner pour aide & assistance
+                  امسح الرمز للمساعدة والدعم
                 </p>
                 <p className="mt-0.5 text-[10px] text-slate-400">
-                  Nous vous accompagnons dans votre voyage de foi
+                  نرافقكم في رحلة الإيمان
                 </p>
               </div>
             </div>
-          </>
-        )}
-      </div>
+          </div>
 
-      {/* Footer */}
-      <div
-        className="border-t border-slate-100 py-2 text-[10px] font-semibold text-slate-500"
-        style={{ color: visuals.highlightColor }}
-      >
-        مسك طيبة للأسفار و السياحة
-      </div>
+          {/* التذييل */}
+          <div
+            className="border-t border-slate-100 py-2 text-[10px] font-semibold text-slate-500"
+            style={{ color: visuals.highlightColor }}
+          >
+            مسك طيبة للأسفار و السياحة
+          </div>
+        </>
+      )}
     </div>
   );
 };

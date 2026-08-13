@@ -1,4 +1,4 @@
-import QRCode from 'qrcode';
+import QRCode from "qrcode";
 
 export interface QRPayload {
   agency: string;
@@ -8,18 +8,22 @@ export interface QRPayload {
   passportNumber?: string;
   birthDate?: string;
   tripName: string;
+  makkahHotel?: string;
+  madinahHotel?: string;
   emergencyGuide1?: string;
   emergencyGuide2?: string;
+  groupLeader?: string;
 }
 
 /**
  * Builds a direct public URL for a pilgrim badge without requiring authentication
  */
 export function buildBadgePublicUrl(uniqueCode: string): string {
-  const origin = typeof window !== 'undefined' && window.location?.origin
-    ? window.location.origin
-    : 'http://localhost:3000';
-  const basePath = import.meta.env.BASE_URL || '/';
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : "http://localhost:3000";
+  const basePath = import.meta.env.BASE_URL || "/";
   return `${origin}${basePath}#/badge/${encodeURIComponent(uniqueCode)}`;
 }
 
@@ -29,15 +33,27 @@ export function buildBadgePublicUrl(uniqueCode: string): string {
  */
 export async function generateQRCodeDataUrl(
   textOrPayload: string | QRPayload,
-  options: { width?: number; margin?: number; darkColor?: string; lightColor?: string; simple?: boolean } = {}
+  options: {
+    width?: number;
+    margin?: number;
+    darkColor?: string;
+    lightColor?: string;
+    simple?: boolean;
+  } = {},
 ): Promise<string> {
   let content: string;
 
-  if (typeof textOrPayload === 'string') {
-    if (textOrPayload.startsWith('http://') || textOrPayload.startsWith('https://')) {
+  if (typeof textOrPayload === "string") {
+    if (
+      textOrPayload.startsWith("http://") ||
+      textOrPayload.startsWith("https://")
+    ) {
       content = textOrPayload;
-    } else if (textOrPayload.startsWith('/')) {
-      const origin = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '';
+    } else if (textOrPayload.startsWith("/")) {
+      const origin =
+        typeof window !== "undefined" && window.location?.origin
+          ? window.location.origin
+          : "";
       content = `${origin}${textOrPayload}`;
     } else {
       content = buildBadgePublicUrl(textOrPayload);
@@ -51,14 +67,14 @@ export async function generateQRCodeDataUrl(
       width: options.width || 300,
       margin: options.margin ?? 1,
       color: {
-        dark: options.darkColor || '#000000',
-        light: options.lightColor || '#FFFFFF',
+        dark: options.darkColor || "#000000",
+        light: options.lightColor || "#FFFFFF",
       },
-      errorCorrectionLevel: 'M',
+      errorCorrectionLevel: "M",
     });
     return dataUrl;
   } catch (err) {
-    console.error('Failed to generate QR Code:', err);
-    return '';
+    console.error("Failed to generate QR Code:", err);
+    return "";
   }
 }
