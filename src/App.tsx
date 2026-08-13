@@ -1,46 +1,85 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { Sidebar } from './components/Sidebar';
-import { TopBar } from './components/TopBar';
-import { LoginView } from './components/LoginView';
-import { DashboardView } from './components/DashboardView';
-import { PilgrimsView } from './components/PilgrimsView';
-import { StaffView } from './components/StaffView';
-import { TripsView } from './components/TripsView';
-import { QrCenterView } from './components/QrCenterView';
-import { BadgePage } from './components/BadgePage';
-import { DocumentsView } from './components/DocumentsView';
-import { NewsView } from './components/NewsView';
-import { SettingsView } from './components/SettingsView';
-import { SecurityModal } from './components/SecurityModal';
-import { NotificationDrawer } from './components/NotificationDrawer';
+import React, { useState, useEffect } from "react";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
+import { Sidebar } from "./components/Sidebar";
+import { TopBar } from "./components/TopBar";
+import { LoginView } from "./components/LoginView";
+import { DashboardView } from "./components/DashboardView";
+import { PilgrimsView } from "./components/PilgrimsView";
+import { StaffView } from "./components/StaffView";
+import { TripsView } from "./components/TripsView";
+import { QrCenterView } from "./components/QrCenterView";
+import { BadgePage } from "./components/BadgePage";
+import { DocumentsView } from "./components/DocumentsView";
+import { NewsView } from "./components/NewsView";
+import { SettingsView } from "./components/SettingsView";
+import { SecurityModal } from "./components/SecurityModal";
+import { NotificationDrawer } from "./components/NotificationDrawer";
 
-import { 
-  initialAgencySettings, 
-  initialPilgrims, 
-  initialStaff, 
-  initialTrips, 
-  initialPosts, 
-  initialNotifications 
-} from './mockData';
+import {
+  initialAgencySettings,
+  initialPilgrims,
+  initialStaff,
+  initialTrips,
+  initialPosts,
+  initialNotifications,
+} from "./mockData";
 
-import { getAgencySettings, updateAgencySettings } from './services/agencyService';
-import { getTrips, createTrip, updateTrip } from './services/tripsService';
-import { getPilgrims, createPilgrim, updatePilgrim, deletePilgrim } from './services/pilgrimsService';
-import { getStaff, createStaff, updateStaff, deleteStaff } from './services/staffService';
-import { getPosts, createPost, deletePost } from './services/postsService';
-import { getNotifications, createNotification, markAllNotificationsAsRead, clearAllNotifications } from './services/notificationsService';
-import { logoutUser, fetchUserProfile } from './services/authService';
-import { supabase, isSupabaseConfigured } from './lib/supabase';
-import { saveDocumentRecord } from './services/documentsService';
+import {
+  getAgencySettings,
+  updateAgencySettings,
+} from "./services/agencyService";
+import {
+  getTrips,
+  createTrip,
+  updateTrip,
+  deleteTrip,
+} from "./services/tripsService";
+import {
+  getPilgrims,
+  createPilgrim,
+  updatePilgrim,
+  deletePilgrim,
+} from "./services/pilgrimsService";
+import {
+  getStaff,
+  createStaff,
+  updateStaff,
+  deleteStaff,
+} from "./services/staffService";
+import { getPosts, createPost, deletePost } from "./services/postsService";
+import {
+  getNotifications,
+  createNotification,
+  markAllNotificationsAsRead,
+  clearAllNotifications,
+} from "./services/notificationsService";
+import { logoutUser, fetchUserProfile } from "./services/authService";
+import { supabase, isSupabaseConfigured } from "./lib/supabase";
+import { saveDocumentRecord } from "./services/documentsService";
 
-import { Language, Pilgrim, Staff, Trip, Post, AgencySettings, AppNotification, UserProfile, UserRole } from './types';
+import {
+  Language,
+  Pilgrim,
+  Staff,
+  Trip,
+  Post,
+  AgencySettings,
+  AppNotification,
+  UserProfile,
+  UserRole,
+} from "./types";
 
 const DEFAULT_ADMIN_USER: UserProfile = {
-  id: 'admin-default',
-  email: 'misktibajammel@gmail.com',
-  fullName: 'محمد علي — مدير الوكالة',
-  role: 'admin',
+  id: "admin-default",
+  email: "misktibajammel@gmail.com",
+  fullName: "محمد علي — مدير الوكالة",
+  role: "admin",
 };
 
 export default function App() {
@@ -48,28 +87,36 @@ export default function App() {
   const location = useLocation();
 
   // Auth State
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(DEFAULT_ADMIN_USER);
-  const [jwtToken, setJwtToken] = useState<string | null>('session-token');
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(
+    DEFAULT_ADMIN_USER,
+  );
+  const [jwtToken, setJwtToken] = useState<string | null>("session-token");
   const [isLoggedIn, setIsLoggedIn] = useState(true);
 
-  const [lang, setLang] = useState<Language>('FR');
+  const [lang, setLang] = useState<Language>("FR");
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   // Core Dynamic Data States
-  const [agencySettings, setAgencySettings] = useState<AgencySettings>(initialAgencySettings);
+  const [agencySettings, setAgencySettings] = useState<AgencySettings>(
+    initialAgencySettings,
+  );
   const [pilgrims, setPilgrims] = useState<Pilgrim[]>(initialPilgrims);
   const [staff, setStaff] = useState<Staff[]>(initialStaff);
   const [trips, setTrips] = useState<Trip[]>(initialTrips);
   const [posts, setPosts] = useState<Post[]>(initialPosts);
-  const [notifications, setNotifications] = useState<AppNotification[]>(initialNotifications);
+  const [notifications, setNotifications] =
+    useState<AppNotification[]>(initialNotifications);
 
   // Modals & Drawers
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
-  const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
+  const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] =
+    useState(false);
   const [isAddPilgrimModalOpen, setIsAddPilgrimModalOpen] = useState(false);
   const [isAddStaffModalOpen, setIsAddStaffModalOpen] = useState(false);
   const [isAddTripModalOpen, setIsAddTripModalOpen] = useState(false);
-  const [selectedTripForQr, setSelectedTripForQr] = useState<string | undefined>(undefined);
+  const [selectedTripForQr, setSelectedTripForQr] = useState<
+    string | undefined
+  >(undefined);
 
   // Supabase Auth State Listener
   useEffect(() => {
@@ -80,19 +127,26 @@ export default function App() {
       if (session?.user) {
         setJwtToken(session.access_token);
         setIsLoggedIn(true);
-        fetchUserProfile(session.user.id, session.user.email || '').then(profile => {
-          if (profile) setCurrentUser(profile);
-        });
+        fetchUserProfile(session.user.id, session.user.email || "").then(
+          (profile) => {
+            if (profile) setCurrentUser(profile);
+          },
+        );
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         setJwtToken(session.access_token);
         setIsLoggedIn(true);
-        const profile = await fetchUserProfile(session.user.id, session.user.email || '');
+        const profile = await fetchUserProfile(
+          session.user.id,
+          session.user.email || "",
+        );
         if (profile) setCurrentUser(profile);
-      } else if (_event === 'SIGNED_OUT') {
+      } else if (_event === "SIGNED_OUT") {
         setIsLoggedIn(false);
         setCurrentUser(null);
         setJwtToken(null);
@@ -115,19 +169,20 @@ export default function App() {
         const fetchedTrips = await getTrips();
         setTrips(fetchedTrips);
 
-        const [fetchedPilgrims, fetchedStaff, fetchedPosts, fetchedNotifs] = await Promise.all([
-          getPilgrims(fetchedTrips),
-          getStaff(fetchedTrips),
-          getPosts(fetchedTrips),
-          getNotifications(),
-        ]);
+        const [fetchedPilgrims, fetchedStaff, fetchedPosts, fetchedNotifs] =
+          await Promise.all([
+            getPilgrims(fetchedTrips),
+            getStaff(fetchedTrips),
+            getPosts(fetchedTrips),
+            getNotifications(),
+          ]);
 
         setPilgrims(fetchedPilgrims);
         setStaff(fetchedStaff);
         setPosts(fetchedPosts);
         setNotifications(fetchedNotifs);
       } catch (err) {
-        console.error('Error loading Supabase data into App state:', err);
+        console.error("Error loading Supabase data into App state:", err);
       } finally {
         setIsLoadingData(false);
       }
@@ -138,25 +193,25 @@ export default function App() {
 
   // Sync document direction (RTL/LTR) with selected language and update i18next language
   useEffect(() => {
-    document.documentElement.setAttribute('dir', lang === 'AR' ? 'rtl' : 'ltr');
-    document.documentElement.setAttribute('lang', lang.toLowerCase());
+    document.documentElement.setAttribute("dir", lang === "AR" ? "rtl" : "ltr");
+    document.documentElement.setAttribute("lang", lang.toLowerCase());
 
     // sync i18next
     try {
       // dynamic import to avoid initialization order issues
-      const i18n = require('./i18n').default;
-      i18n.changeLanguage(lang === 'FR' ? 'fr' : 'ar');
+      const i18n = require("./i18n").default;
+      i18n.changeLanguage(lang === "FR" ? "fr" : "ar");
     } catch (err) {
       // ignore if i18n not available
       // console.warn('i18n not initialized yet', err);
     }
   }, [lang]);
 
-  const isRtl = lang === 'AR';
-  const userRole: UserRole = currentUser?.role || 'admin';
+  const isRtl = lang === "AR";
+  const userRole: UserRole = currentUser?.role || "admin";
 
   // Unread notifications count
-  const unreadNotifsCount = notifications.filter(n => !n.read).length;
+  const unreadNotifsCount = notifications.filter((n) => !n.read).length;
 
   // Handlers for Auth
   const handleLoginSuccess = (user: UserProfile, token: string | null) => {
@@ -179,120 +234,156 @@ export default function App() {
   };
 
   // Handlers for Pilgrims
-  const handleAddPilgrim = async (newPilgrimData: Omit<Pilgrim, 'id'>, pendingDocument?: { filePath: string; fileUrl?: string; mimeType?: string; fileName?: string }) => {
+  const handleAddPilgrim = async (
+    newPilgrimData: Omit<Pilgrim, "id">,
+    pendingDocument?: {
+      filePath: string;
+      fileUrl?: string;
+      mimeType?: string;
+      fileName?: string;
+    },
+  ) => {
     const created = await createPilgrim(newPilgrimData, trips);
     if (created) {
-      setPilgrims(prev => [created, ...prev]);
+      setPilgrims((prev) => [created, ...prev]);
 
       // If a document was provided (passport scan), save it linked to the created pilgrim
       if (pendingDocument) {
         try {
           const doc = await saveDocumentRecord({
             pilgrimId: created.id,
-            fileName: pendingDocument.fileName || pendingDocument.filePath.split('/').pop() || 'passport',
+            fileName:
+              pendingDocument.fileName ||
+              pendingDocument.filePath.split("/").pop() ||
+              "passport",
             filePath: pendingDocument.filePath,
             fileUrl: pendingDocument.fileUrl,
             mimeType: pendingDocument.mimeType,
           });
           // Optionally you could attach doc to the pilgrim locally or emit a notification
         } catch (err) {
-          console.warn('Failed to save pending document for pilgrim', err);
+          console.warn("Failed to save pending document for pilgrim", err);
         }
       }
 
       // Update trip pilgrim count locally
-      setTrips(prev => prev.map(t => t.id === created.tripId ? { ...t, pilgrimCount: (t.pilgrimCount || 0) + 1 } : t));
+      setTrips((prev) =>
+        prev.map((t) =>
+          t.id === created.tripId
+            ? { ...t, pilgrimCount: (t.pilgrimCount || 0) + 1 }
+            : t,
+        ),
+      );
 
       // Add Notification
       const notifData = {
-        title: lang === 'FR' ? 'Nouveau Pèlerin' : 'معتمر جديد',
-        message: lang === 'FR'
-          ? `Le pèlerin ${created.nameArabic} a été ajouté (${created.uniqueCode})`
-          : `تمت إضافة المعتمر ${created.nameArabic} وتوليد الكود ${created.uniqueCode}`,
+        title: lang === "FR" ? "Nouveau Pèlerin" : "معتمر جديد",
+        message:
+          lang === "FR"
+            ? `Le pèlerin ${created.nameArabic} a été ajouté (${created.uniqueCode})`
+            : `تمت إضافة المعتمر ${created.nameArabic} وتوليد الكود ${created.uniqueCode}`,
         read: false,
-        type: 'trip' as const,
+        type: "trip" as const,
       };
       const createdNotif = await createNotification(notifData);
       if (createdNotif) {
-        setNotifications(prev => [createdNotif, ...prev]);
+        setNotifications((prev) => [createdNotif, ...prev]);
       }
     }
   };
 
   const handleEditPilgrim = async (updated: Pilgrim) => {
-    setPilgrims(prev => prev.map(p => p.id === updated.id ? updated : p));
+    setPilgrims((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
     await updatePilgrim(updated);
   };
 
   const handleDeletePilgrim = async (id: string) => {
-    setPilgrims(prev => prev.filter(p => p.id !== id));
+    setPilgrims((prev) => prev.filter((p) => p.id !== id));
     await deletePilgrim(id);
   };
 
   // Handlers for Staff
-  const handleAddStaff = async (newStaffData: Omit<Staff, 'id'>) => {
+  const handleAddStaff = async (newStaffData: Omit<Staff, "id">) => {
     const created = await createStaff(newStaffData, trips);
     if (created) {
-      setStaff(prev => [created, ...prev]);
+      setStaff((prev) => [created, ...prev]);
     }
   };
 
   const handleEditStaff = async (updated: Staff) => {
-    setStaff(prev => prev.map(s => s.id === updated.id ? updated : s));
+    setStaff((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
     await updateStaff(updated);
   };
 
   const handleDeleteStaff = async (id: string) => {
-    setStaff(prev => prev.filter(s => s.id !== id));
+    setStaff((prev) => prev.filter((s) => s.id !== id));
     await deleteStaff(id);
   };
 
   // Handlers for Trips
-  const handleAddTrip = async (newTripData: Omit<Trip, 'id'>) => {
+  const handleAddTrip = async (newTripData: Omit<Trip, "id">) => {
     const created = await createTrip(newTripData);
     if (created) {
-      setTrips(prev => [created, ...prev]);
+      setTrips((prev) => [created, ...prev]);
     }
   };
 
   const handleEditTrip = async (updated: Trip) => {
-    setTrips(prev => prev.map(t => t.id === updated.id ? updated : t));
+    setTrips((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     await updateTrip(updated);
   };
 
+  const handleDeleteTrip = async (id: string) => {
+    // Optimistic UI update: remove immediately from state
+    setTrips((prev) => prev.filter((t) => t.id !== id));
+
+    // Call backend API / Firebase / database service
+    try {
+      await deleteTrip(id); // Ensure deleteTrip is imported/defined in your services
+    } catch (error) {
+      console.error("Failed to delete trip:", error);
+      // Optional: re-fetch or restore previous state on error
+    }
+  };
   // Handlers for Posts
-  const handleAddPost = async (newPostData: Omit<Post, 'id' | 'createdAt'>) => {
+  const handleAddPost = async (newPostData: Omit<Post, "id" | "createdAt">) => {
     const created = await createPost(newPostData, trips);
     if (created) {
-      setPosts(prev => [created, ...prev]);
+      setPosts((prev) => [created, ...prev]);
 
       if (created.notifyPush) {
         const notif = await createNotification({
-          title: lang === 'FR' ? 'Nouvelle publication de l\'agence' : 'منشور جديد من الوكالة',
+          title:
+            lang === "FR"
+              ? "Nouvelle publication de l'agence"
+              : "منشور جديد من الوكالة",
           message: created.title,
           read: false,
-          type: 'info',
+          type: "info",
         });
         if (notif) {
-          setNotifications(prev => [notif, ...prev]);
+          setNotifications((prev) => [notif, ...prev]);
         }
       }
     }
   };
 
   const handleDeletePost = async (id: string) => {
-    setPosts(prev => prev.filter(p => p.id !== id));
+    setPosts((prev) => prev.filter((p) => p.id !== id));
     await deletePost(id);
   };
 
   // Search result jump
-  const handleSelectSearchResult = (type: 'pilgrim' | 'staff' | 'trip', id: string) => {
-    if (type === 'pilgrim') navigate('/pilgrims');
-    else if (type === 'staff') navigate('/staff');
-    else if (type === 'trip') navigate('/trips');
+  const handleSelectSearchResult = (
+    type: "pilgrim" | "staff" | "trip",
+    id: string,
+  ) => {
+    if (type === "pilgrim") navigate("/pilgrims");
+    else if (type === "staff") navigate("/staff");
+    else if (type === "trip") navigate("/trips");
   };
 
-  const isBadgeRoute = location.pathname.startsWith('/badge');
+  const isBadgeRoute = location.pathname.startsWith("/badge");
 
   // Render the badge page as a standalone responsive page without the app shell
   if (isBadgeRoute) {
@@ -304,28 +395,28 @@ export default function App() {
       <LoginView
         onLoginSuccess={handleLoginSuccess}
         lang={lang}
-        onLanguageToggle={() => setLang(prev => prev === 'FR' ? 'AR' : 'FR')}
+        onLanguageToggle={() =>
+          setLang((prev) => (prev === "FR" ? "AR" : "FR"))
+        }
       />
     );
   }
 
   return (
-    <div 
-      dir={isRtl ? 'rtl' : 'ltr'}
+    <div
+      dir={isRtl ? "rtl" : "ltr"}
       className="min-h-screen bg-slate-50 text-slate-900 flex font-sans antialiased selection:bg-black selection:text-white"
     >
       {/* App Shell Sidebar */}
-      <Sidebar
-        onLogout={handleLogout}
-        lang={lang}
-        currentUser={currentUser}
-      />
+      <Sidebar onLogout={handleLogout} lang={lang} currentUser={currentUser} />
 
       {/* Main Container */}
       <div className="flex-1 flex flex-col min-w-0">
         <TopBar
           lang={lang}
-          onLanguageToggle={() => setLang(prev => prev === 'FR' ? 'AR' : 'FR')}
+          onLanguageToggle={() =>
+            setLang((prev) => (prev === "FR" ? "AR" : "FR"))
+          }
           onOpenSecurityModal={() => setIsSecurityModalOpen(true)}
           onOpenNotifications={() => setIsNotificationDrawerOpen(true)}
           unreadNotifsCount={unreadNotifsCount}
@@ -348,15 +439,15 @@ export default function App() {
                   staff={staff}
                   trips={trips}
                   onOpenAddPilgrimModal={() => {
-                    navigate('/pilgrims');
+                    navigate("/pilgrims");
                     setIsAddPilgrimModalOpen(true);
                   }}
                   onOpenAddStaffModal={() => {
-                    navigate('/staff');
+                    navigate("/staff");
                     setIsAddStaffModalOpen(true);
                   }}
                   onOpenAddTripModal={() => {
-                    navigate('/trips');
+                    navigate("/trips");
                     setIsAddTripModalOpen(true);
                   }}
                 />
@@ -367,7 +458,7 @@ export default function App() {
             <Route
               path="/pilgrims"
               element={
-                ['admin', 'agent'].includes(userRole) ? (
+                ["admin", "agent"].includes(userRole) ? (
                   <PilgrimsView
                     lang={lang}
                     pilgrims={pilgrims}
@@ -388,7 +479,7 @@ export default function App() {
             <Route
               path="/staff"
               element={
-                ['admin', 'agent'].includes(userRole) ? (
+                ["admin", "agent"].includes(userRole) ? (
                   <StaffView
                     lang={lang}
                     staffList={staff}
@@ -409,7 +500,7 @@ export default function App() {
             <Route
               path="/trips"
               element={
-                ['admin', 'agent'].includes(userRole) ? (
+                ["admin", "agent"].includes(userRole) ? (
                   <TripsView
                     lang={lang}
                     trips={trips}
@@ -421,6 +512,7 @@ export default function App() {
                     }}
                     isAddModalOpen={isAddTripModalOpen}
                     setIsAddModalOpen={setIsAddTripModalOpen}
+                    onDeleteTrip={handleDeleteTrip}
                   />
                 ) : (
                   <Navigate to="/" replace />
@@ -442,16 +534,13 @@ export default function App() {
               }
             />
 
-            <Route
-              path="/badge/:code"
-              element={<BadgePage />}
-            />
+            <Route path="/badge/:code" element={<BadgePage />} />
 
             {/* Documents View: Admin & Agent */}
             <Route
               path="/documents"
               element={
-                ['admin', 'agent'].includes(userRole) ? (
+                ["admin", "agent"].includes(userRole) ? (
                   <DocumentsView
                     lang={lang}
                     trips={trips}
@@ -484,7 +573,7 @@ export default function App() {
             <Route
               path="/settings"
               element={
-                userRole === 'admin' ? (
+                userRole === "admin" ? (
                   <SettingsView
                     lang={lang}
                     settings={agencySettings}
@@ -514,7 +603,7 @@ export default function App() {
         onClose={() => setIsNotificationDrawerOpen(false)}
         notifications={notifications}
         onMarkAllAsRead={async () => {
-          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+          setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
           await markAllNotificationsAsRead();
         }}
         onClearAll={async () => {

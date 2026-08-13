@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { Trip } from "../types";
 import { initialTrips } from "../mockData";
+
 export const getTrips = async (): Promise<Trip[]> => {
   if (!isSupabaseConfigured()) {
     return initialTrips;
@@ -123,6 +124,20 @@ export const updateTrip = async (trip: Trip): Promise<boolean> => {
     return true;
   } catch (err) {
     console.error("Error updating trip in Supabase:", err);
+    return false;
+  }
+};
+
+export const deleteTrip = async (id: string): Promise<boolean> => {
+  if (!isSupabaseConfigured()) return true;
+
+  try {
+    const { error } = await supabase.from("trips").delete().eq("id", id);
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error("Error deleting trip from Supabase:", err);
     return false;
   }
 };
