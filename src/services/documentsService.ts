@@ -29,34 +29,29 @@ export const uploadPassportToStorage = async (
   }
 
   try {
-    // Convert file to base64 Data URL
-    const toBase64 = (f: File | Blob) =>
-      new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(f as Blob);
+    const cleanFileName = `${Date.now()}_${fileName.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    const storagePath = pilgrimId ? `${pilgrimId}/${cleanFileName}` : `scans/${cleanFileName}`;
+
+    const { data, error } = await supabase.storage
+      .from('passports')
+      .upload(storagePath, file, {
+        cacheControl: '3600',
+        upsert: true,
       });
 
-    const fileBase64 = await toBase64(file);
-
-    // Call Supabase Edge Function to perform server-side upload using service role key
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-    const funcUrl = `${supabaseUrl}/functions/v1/upload_passport`;
-
-    const resp = await fetch(funcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileBase64, fileName, pilgrimId, mimeType: (file as File).type || 'image/jpeg' }),
-    });
-
-    const json = await resp.json();
-    if (!resp.ok || !json?.ok) {
-      console.error('Server-side upload failed', json);
+    if (error || !data) {
+      console.error('Error uploading passport scan to Supabase storage:', error);
       return null;
     }
 
-    return { filePath: json.filePath, fileUrl: json.fileUrl };
+    const { data: publicUrlData } = supabase.storage
+      .from('passports')
+      .getPublicUrl(storagePath);
+
+    return {
+      filePath: data.path,
+      fileUrl: publicUrlData?.publicUrl || '',
+    };
   } catch (err) {
     console.error('Storage upload exception:', err);
     return null;
