@@ -1,14 +1,13 @@
-import React, { useState, useRef } from 'react';
-import { Plus, Eye, EyeOff, Edit, Trash2, UserCheck, PhoneCall, Camera, Upload } from 'lucide-react';
-import { Language, Staff, Trip, DEFAULT_AVATAR_URL } from '../types';
-import { useTranslation } from 'react-i18next';
-import { uploadAvatarToStorage } from '../services/documentsService';
+import React, { useState, useRef } from "react";
+import { Plus, Eye, EyeOff, Edit, Trash2, Camera, Upload } from "lucide-react";
+import { Language, Staff, Trip, DEFAULT_AVATAR_URL } from "../types";
+import { uploadAvatarToStorage } from "../services/documentsService";
 
 interface StaffViewProps {
   lang: Language;
   staffList: Staff[];
   trips: Trip[];
-  onAddStaff: (newStaff: Omit<Staff, 'id'>) => void;
+  onAddStaff: (newStaff: Omit<Staff, "id">) => void;
   onEditStaff: (updated: Staff) => void;
   onDeleteStaff: (id: string) => void;
   isAddModalOpen: boolean;
@@ -23,11 +22,12 @@ export const StaffView: React.FC<StaffViewProps> = ({
   onEditStaff,
   onDeleteStaff,
   isAddModalOpen,
-  setIsAddModalOpen
+  setIsAddModalOpen,
 }) => {
-  const isAr = lang === 'AR';
-  const { t } = useTranslation();
-  const [revealedCodes, setRevealedCodes] = useState<Record<string, boolean>>({});
+  const isAr = lang === "AR";
+  const [revealedCodes, setRevealedCodes] = useState<Record<string, boolean>>(
+    {},
+  );
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [deletingStaffId, setDeletingStaffId] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -36,20 +36,21 @@ export const StaffView: React.FC<StaffViewProps> = ({
   const editAvatarInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
-    nameArabic: '',
-    nameLatin: '',
-    phone: '',
-    whatsapp: '',
-    role: 'Chef de Bus' as Staff['role'],
-    tripId: '',
+    nameArabic: "",
+    nameLatin: "",
+    phone: "",
+    whatsapp: "",
+    role: "Chef de Bus" as Staff["role"],
+    tripId: "",
     avatarUrl: DEFAULT_AVATAR_URL,
   });
 
   const handleAvatarUpload = async (file: File, isEdit: boolean = false) => {
     setIsUploadingAvatar(true);
     try {
-      const entityId = isEdit && editingStaff ? editingStaff.id : `staff_${Date.now()}`;
-      const url = await uploadAvatarToStorage(file, entityId, 'staff');
+      const entityId =
+        isEdit && editingStaff ? editingStaff.id : `staff_${Date.now()}`;
+      const url = await uploadAvatarToStorage(file, entityId, "staff");
       if (url) {
         if (isEdit && editingStaff) {
           const updated = { ...editingStaff, avatarUrl: url };
@@ -60,19 +61,19 @@ export const StaffView: React.FC<StaffViewProps> = ({
         }
       }
     } catch (err) {
-      console.error('Error uploading staff avatar:', err);
+      console.error("Error uploading staff avatar:", err);
     } finally {
       setIsUploadingAvatar(false);
     }
   };
 
   const toggleRevealCode = (id: string) => {
-    setRevealedCodes(prev => ({ ...prev, [id]: !prev[id] }));
+    setRevealedCodes((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const generateUniqueCode = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let res = '';
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let res = "";
     for (let i = 0; i < 8; i++) {
       res += chars.charAt(Math.floor(Math.random() * chars.length));
     }
@@ -83,28 +84,30 @@ export const StaffView: React.FC<StaffViewProps> = ({
     e.preventDefault();
     if (!formData.nameArabic.trim()) return;
 
-    const selectedTrip = trips.find(t => t.id === formData.tripId);
+    const selectedTrip = trips.find((t) => t.id === formData.tripId);
 
     onAddStaff({
       nameArabic: formData.nameArabic,
       nameLatin: formData.nameLatin,
       phone: formData.phone || formData.whatsapp,
-      whatsapp: formData.whatsapp.startsWith('+') ? formData.whatsapp : `+216${formData.whatsapp}`,
+      whatsapp: formData.whatsapp.startsWith("+")
+        ? formData.whatsapp
+        : `+216${formData.whatsapp}`,
       role: formData.role,
       uniqueCode: generateUniqueCode(),
       tripId: formData.tripId,
-      tripName: selectedTrip ? selectedTrip.name : '—',
+      tripName: selectedTrip ? selectedTrip.name : "—",
       avatarUrl: formData.avatarUrl || DEFAULT_AVATAR_URL,
     });
 
     setIsAddModalOpen(false);
     setFormData({
-      nameArabic: '',
-      nameLatin: '',
-      phone: '',
-      whatsapp: '',
-      role: 'Chef de Bus',
-      tripId: '',
+      nameArabic: "",
+      nameLatin: "",
+      phone: "",
+      whatsapp: "",
+      role: "Chef de Bus",
+      tripId: "",
       avatarUrl: DEFAULT_AVATAR_URL,
     });
   };
@@ -112,10 +115,14 @@ export const StaffView: React.FC<StaffViewProps> = ({
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStaff) return;
-    const selectedTrip = trips.find(t => t.id === editingStaff.tripId);
+    const selectedTrip = trips.find((t) => t.id === editingStaff.tripId);
     onEditStaff({
       ...editingStaff,
-      tripName: selectedTrip ? selectedTrip.name : (editingStaff.tripId ? editingStaff.tripName : '—')
+      tripName: selectedTrip
+        ? selectedTrip.name
+        : editingStaff.tripId
+          ? editingStaff.tripName
+          : "—",
     });
     setEditingStaff(null);
   };
@@ -126,10 +133,12 @@ export const StaffView: React.FC<StaffViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {t('staff.title')}
+            {isAr ? "المرافقون والكادر" : "Accompagnateurs & Personnel"}
           </h1>
           <p className="text-xs text-slate-500 font-medium">
-            {t('staff.description')}
+            {isAr
+              ? "إدارة وتوزيع المرافقين والمرشدين على الرحلات"
+              : "Gérer et attribuer des guides spirituels et des chefs de groupe."}
           </p>
         </div>
         <button
@@ -137,7 +146,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
           className="bg-black hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer text-xs"
         >
           <Plus className="w-4 h-4" />
-          <span>{t('staff.add_button')}</span>
+          <span>{isAr ? "إضافة مرافق" : "Ajouter un accompagnateur"}</span>
         </button>
       </div>
 
@@ -147,30 +156,47 @@ export const StaffView: React.FC<StaffViewProps> = ({
           <table className="w-full border-collapse text-start">
             <thead>
               <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-start">
-                <th className="py-3.5 px-6 text-start">{t('staff.table.role')}</th>
-                <th className="py-3.5 px-6 text-start">{t('staff.table.whatsapp')}</th>
-                <th className="py-3.5 px-6 text-start">{t('staff.table.role')}</th>
-                <th className="py-3.5 px-6 text-center">{t('staff.table.unique_code')}</th>
-                <th className="py-3.5 px-6 text-start">{t('staff.table.assigned_trip')}</th>
-                <th className="py-3.5 px-6 text-end">{t('staff.table.actions')}</th>
+                <th className="py-3.5 px-6 text-start">
+                  {isAr ? "الاسم" : "Nom"}
+                </th>
+                <th className="py-3.5 px-6 text-start">
+                  {isAr ? "واتساب (تونس)" : "WhatsApp (Tunisie)"}
+                </th>
+                <th className="py-3.5 px-6 text-start">
+                  {isAr ? "الصفة / الدور" : "Rôle"}
+                </th>
+                <th className="py-3.5 px-6 text-center">
+                  {isAr ? "الرمز الرقمي" : "Code Unique"}
+                </th>
+                <th className="py-3.5 px-6 text-start">
+                  {isAr ? "الرحلة المعينة" : "Voyage Assigné"}
+                </th>
+                <th className="py-3.5 px-6 text-end">
+                  {isAr ? "الإجراءات" : "Actions"}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {staffList.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
-                  {isAr ? t('staff.table.no_members') : t('staff.table.no_members')}
+                    {isAr
+                      ? "لا يوجد مرافقون حالياً."
+                      : "Aucun membre du personnel."}
                   </td>
                 </tr>
               ) : (
                 staffList.map((s) => {
                   const isRevealed = revealedCodes[s.id];
-                  const codeDisplay = isRevealed 
-                    ? s.uniqueCode 
-                    : s.uniqueCode.slice(0, 4) + '••••';
+                  const codeDisplay = isRevealed
+                    ? s.uniqueCode
+                    : s.uniqueCode.slice(0, 4) + "••••";
 
                   return (
-                    <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr
+                      key={s.id}
+                      className="hover:bg-slate-50/50 transition-colors"
+                    >
                       {/* Avatar + Name */}
                       <td className="py-4 px-6 text-start">
                         <div className="flex items-center gap-3">
@@ -180,13 +206,20 @@ export const StaffView: React.FC<StaffViewProps> = ({
                               alt={s.nameArabic}
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = DEFAULT_AVATAR_URL;
+                                (e.target as HTMLImageElement).src =
+                                  DEFAULT_AVATAR_URL;
                               }}
                             />
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 text-sm text-start">{s.nameArabic}</p>
-                            {s.nameLatin && <p className="text-[11px] text-slate-400 text-start">{s.nameLatin}</p>}
+                            <p className="font-bold text-slate-900 text-sm text-start">
+                              {s.nameArabic}
+                            </p>
+                            {s.nameLatin && (
+                              <p className="text-[11px] text-slate-400 text-start">
+                                {s.nameLatin}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -209,17 +242,29 @@ export const StaffView: React.FC<StaffViewProps> = ({
                           <span>{codeDisplay}</span>
                           <button
                             onClick={() => toggleRevealCode(s.id)}
-                            title={isRevealed ? t('staff.reveal.hide') : t('staff.reveal.show') }
+                            title={
+                              isRevealed
+                                ? isAr
+                                  ? "إخفاء"
+                                  : "Masquer"
+                                : isAr
+                                  ? "إظهار"
+                                  : "Révéler"
+                            }
                             className="text-slate-400 hover:text-slate-700 p-0.5"
                           >
-                            {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                            {isRevealed ? (
+                              <EyeOff className="w-3.5 h-3.5" />
+                            ) : (
+                              <Eye className="w-3.5 h-3.5" />
+                            )}
                           </button>
                         </div>
                       </td>
 
                       {/* Voyage Assigné */}
                       <td className="py-4 px-6 font-semibold text-slate-800 text-start">
-                        {s.tripName || '—'}
+                        {s.tripName || "—"}
                       </td>
 
                       {/* Actions */}
@@ -227,14 +272,14 @@ export const StaffView: React.FC<StaffViewProps> = ({
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => setEditingStaff(s)}
-                            title={t('buttons.edit') }
+                            title={isAr ? "تعديل" : "Modifier"}
                             className="p-1.5 text-slate-400 hover:text-black hover:bg-slate-100 rounded-lg transition-all"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setDeletingStaffId(s.id)}
-                            title={t('buttons.delete') }
+                            title={isAr ? "حذف" : "Supprimer"}
                             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -255,8 +300,15 @@ export const StaffView: React.FC<StaffViewProps> = ({
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 className="font-bold text-slate-900 text-base">{t('staff.create_title')}</h2>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 font-bold">✕</button>
+              <h2 className="font-bold text-slate-900 text-base">
+                {isAr ? "إضافة مرافق جديد" : "Ajouter un accompagnateur"}
+              </h2>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-slate-400 font-bold cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">
@@ -277,7 +329,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
                     className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold flex-col gap-0.5"
                   >
                     <Camera className="w-4 h-4" />
-                    <span>{t('staff.avatar.change')}</span>
+                    <span>{isAr ? "تغيير" : "Changer"}</span>
                   </button>
                 </div>
                 <input
@@ -299,18 +351,28 @@ export const StaffView: React.FC<StaffViewProps> = ({
                   <Upload className="w-3.5 h-3.5" />
                   <span>
                     {isUploadingAvatar
-                      ? t('staff.avatar.uploading')
-                      : t('staff.avatar.change_photo_optional')}
+                      ? isAr
+                        ? "جاري التحميل..."
+                        : "Téléversement..."
+                      : isAr
+                        ? "تغيير الصورة الشخصية (اختياري)"
+                        : "Changer la photo de profil (Optionnel)"}
                   </span>
                 </button>
               </div>
 
               <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-700">{t('staff.form.name_ar')}</label>
+                <label className="text-xs font-semibold text-slate-700">
+                  {isAr
+                    ? "الاسم واللقب (بالعربية) *"
+                    : "Nom et Prénom (Arabe) *"}
+                </label>
                 <input
                   type="text"
                   value={formData.nameArabic}
-                  onChange={(e) => setFormData({ ...formData, nameArabic: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, nameArabic: e.target.value })
+                  }
                   placeholder="مثال: نادر قويعة"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
                   required
@@ -318,11 +380,17 @@ export const StaffView: React.FC<StaffViewProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">{t('staff.form.whatsapp')}</label>
+                <label className="text-xs font-semibold text-slate-700">
+                  {isAr
+                    ? "رقم الواتساب (تونس) *"
+                    : "Numéro WhatsApp (Tunisie) *"}
+                </label>
                 <input
                   type="text"
                   value={formData.whatsapp}
-                  onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, whatsapp: e.target.value })
+                  }
                   placeholder="+21625800884"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                   required
@@ -330,29 +398,48 @@ export const StaffView: React.FC<StaffViewProps> = ({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">{t('staff.form.role')}</label>
+                <label className="text-xs font-semibold text-slate-700">
+                  {isAr ? "الصفة / الدور *" : "Rôle *"}
+                </label>
                 <select
                   value={formData.role}
-                  onChange={(e) => setFormData({ ...formData, role: e.target.value as Staff['role'] })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      role: e.target.value as Staff["role"],
+                    })
+                  }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
                   <option value="Chef de Bus">Chef de Bus</option>
-                  <option value="Coordonnateur Administratif">Coordonnateur Administratif</option>
+                  <option value="Coordonnateur Administratif">
+                    Coordonnateur Administratif
+                  </option>
                   <option value="Guide Spirituel">Guide Spirituel</option>
-                  <option value="Responsable Médical">Responsable Médical</option>
+                  <option value="Responsable Médical">
+                    Responsable Médical
+                  </option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">{t('staff.form.assigned_trip')}</label>
+                <label className="text-xs font-semibold text-slate-700">
+                  {isAr
+                    ? "الرحلة المعينة (اختياري)"
+                    : "Voyage Assigné (Optionnel)"}
+                </label>
                 <select
                   value={formData.tripId}
-                  onChange={(e) => setFormData({ ...formData, tripId: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tripId: e.target.value })
+                  }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="">{t('misc.none')}</option>
-                  {trips.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                  <option value="">{isAr ? "— لا يوجد —" : "— Aucun —"}</option>
+                  {trips.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -361,15 +448,15 @@ export const StaffView: React.FC<StaffViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
-                  {t('buttons.cancel')}
+                  {isAr ? "إلغاء" : "Annuler"}
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 cursor-pointer"
                 >
-                  {t('buttons.save')}
+                  {isAr ? "حفظ" : "Enregistrer"}
                 </button>
               </div>
             </form>
@@ -382,8 +469,15 @@ export const StaffView: React.FC<StaffViewProps> = ({
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <h2 className="font-bold text-slate-900 text-base">{t('staff.edit_title')}</h2>
-              <button onClick={() => setEditingStaff(null)} className="text-slate-400 font-bold">✕</button>
+              <h2 className="font-bold text-slate-900 text-base">
+                {isAr ? "تعديل بيانات المرافق" : "Modifier l'accompagnateur"}
+              </h2>
+              <button
+                onClick={() => setEditingStaff(null)}
+                className="text-slate-400 font-bold cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleEditSubmit} className="space-y-4">
@@ -404,7 +498,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
                     className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold flex-col gap-0.5"
                   >
                     <Camera className="w-4 h-4" />
-                    <span>{t('staff.avatar.change')}</span>
+                    <span>{isAr ? "تغيير" : "Changer"}</span>
                   </button>
                 </div>
                 <input
@@ -426,45 +520,78 @@ export const StaffView: React.FC<StaffViewProps> = ({
                   <Upload className="w-3.5 h-3.5" />
                   <span>
                     {isUploadingAvatar
-                      ? t('staff.avatar.uploading')
-                      : t('staff.avatar.change_photo_optional')}
+                      ? isAr
+                        ? "جاري التحميل..."
+                        : "Téléversement..."
+                      : isAr
+                        ? "تغيير الصورة الشخصية (اختياري)"
+                        : "Changer la photo de profil (Optionnel)"}
                   </span>
                 </button>
               </div>
+
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">{t('staff.form.name_ar')}</label>
+                <label className="text-xs font-semibold text-slate-700">
+                  {isAr
+                    ? "الاسم واللقب (بالعربية) *"
+                    : "Nom et Prénom (Arabe) *"}
+                </label>
                 <input
                   type="text"
                   value={editingStaff.nameArabic}
-                  onChange={(e) => setEditingStaff({ ...editingStaff, nameArabic: e.target.value })}
+                  onChange={(e) =>
+                    setEditingStaff({
+                      ...editingStaff,
+                      nameArabic: e.target.value,
+                    })
+                  }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">{t('staff.form.role')}</label>
+                <label className="text-xs font-semibold text-slate-700">
+                  {isAr ? "الصفة / الدور *" : "Rôle *"}
+                </label>
                 <select
                   value={editingStaff.role}
-                  onChange={(e) => setEditingStaff({ ...editingStaff, role: e.target.value as Staff['role'] })}
+                  onChange={(e) =>
+                    setEditingStaff({
+                      ...editingStaff,
+                      role: e.target.value as Staff["role"],
+                    })
+                  }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
                   <option value="Chef de Bus">Chef de Bus</option>
-                  <option value="Coordonnateur Administratif">Coordonnateur Administratif</option>
+                  <option value="Coordonnateur Administratif">
+                    Coordonnateur Administratif
+                  </option>
                   <option value="Guide Spirituel">Guide Spirituel</option>
-                  <option value="Responsable Médical">Responsable Médical</option>
+                  <option value="Responsable Médical">
+                    Responsable Médical
+                  </option>
                 </select>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">{t('staff.form.assigned_trip')}</label>
+                <label className="text-xs font-semibold text-slate-700">
+                  {isAr
+                    ? "الرحلة المعينة (اختياري)"
+                    : "Voyage Assigné (Optionnel)"}
+                </label>
                 <select
-                  value={editingStaff.tripId || ''}
-                  onChange={(e) => setEditingStaff({ ...editingStaff, tripId: e.target.value })}
+                  value={editingStaff.tripId || ""}
+                  onChange={(e) =>
+                    setEditingStaff({ ...editingStaff, tripId: e.target.value })
+                  }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="">{t('misc.none')}</option>
-                  {trips.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                  <option value="">{isAr ? "— لا يوجد —" : "— Aucun —"}</option>
+                  {trips.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -473,15 +600,15 @@ export const StaffView: React.FC<StaffViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setEditingStaff(null)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
-                  {t('buttons.cancel')}
+                  {isAr ? "إلغاء" : "Annuler"}
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 cursor-pointer"
                 >
-                  {t('buttons.save')}
+                  {isAr ? "حفظ" : "Enregistrer"}
                 </button>
               </div>
             </form>
@@ -493,23 +620,29 @@ export const StaffView: React.FC<StaffViewProps> = ({
       {deletingStaffId && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white border border-slate-100 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
-            <h3 className="font-bold text-slate-900 text-sm">{t('staff.delete_title')}</h3>
-            <p className="text-xs text-slate-600">{t('staff.delete_confirm')}</p>
+            <h3 className="font-bold text-slate-900 text-sm">
+              {isAr ? "تأكيد الحذف" : "Confirmer la suppression"}
+            </h3>
+            <p className="text-xs text-slate-600">
+              {isAr
+                ? "هل أنت تأكد من ترغب في حذف هذا المرافق؟"
+                : "Voulez-vous vraiment supprimer ce membre du personnel ?"}
+            </p>
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setDeletingStaffId(null)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
-                {t('buttons.cancel')}
+                {isAr ? "إلغاء" : "Annuler"}
               </button>
               <button
                 onClick={() => {
                   onDeleteStaff(deletingStaffId);
                   setDeletingStaffId(null);
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700 cursor-pointer"
               >
-                {t('buttons.delete')}
+                {isAr ? "حذف" : "Supprimer"}
               </button>
             </div>
           </div>
