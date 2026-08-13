@@ -39,7 +39,15 @@ interface PassportScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   trips: Trip[];
-  onImportPilgrim: (newPilgrim: Omit<Pilgrim, "id">, pendingDocument?: { filePath: string; fileUrl?: string; mimeType?: string; fileName?: string }) => void;
+  onImportPilgrim: (
+    newPilgrim: Omit<Pilgrim, "id">,
+    pendingDocument?: {
+      filePath: string;
+      fileUrl?: string;
+      mimeType?: string;
+      fileName?: string;
+    },
+  ) => void;
   onAutoFillForm?: (data: ExtractedPassportData) => void;
 }
 
@@ -107,12 +115,19 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
 
   // Cropping states
   const [isCropOpen, setIsCropOpen] = useState(false);
-  const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(null);
+  const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(
+    null,
+  );
   const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
   const cropImgRef = useRef<HTMLImageElement | null>(null);
 
   const [currentStep, setCurrentStep] = useState<number>(1); // 1: extract/upload, 2: crop/upload, 3: assign/save
-  const [pendingDocument, setPendingDocument] = useState<{ filePath: string; fileUrl?: string; mimeType?: string; fileName?: string } | null>(null);
+  const [pendingDocument, setPendingDocument] = useState<{
+    filePath: string;
+    fileUrl?: string;
+    mimeType?: string;
+    fileName?: string;
+  } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,8 +135,12 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
 
   const handleFileChange = (file: File) => {
     // revoke previous preview URL if any
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      try { URL.revokeObjectURL(previewUrl); } catch (e) { /* ignore */ }
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      try {
+        URL.revokeObjectURL(previewUrl);
+      } catch (e) {
+        /* ignore */
+      }
     }
 
     setSelectedFile(file);
@@ -149,8 +168,10 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   const handleFileSelected = (file?: File) => {
     if (!file) return;
     // revoke old preview
-    if (previewUrl && previewUrl.startsWith('blob:')) {
-      try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+    if (previewUrl && previewUrl.startsWith("blob:")) {
+      try {
+        URL.revokeObjectURL(previewUrl);
+      } catch (e) {}
     }
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
@@ -207,10 +228,10 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     const sourceWidth = Math.round(sw * scaleX);
     const sourceHeight = Math.round(sh * scaleY);
 
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, sourceWidth);
     canvas.height = Math.max(1, sourceHeight);
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) {
       setIsCropOpen(false);
       return;
@@ -226,7 +247,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       0,
       0,
       sourceWidth,
-      sourceHeight
+      sourceHeight,
     );
 
     canvas.toBlob(
@@ -234,13 +255,15 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
         if (blob) {
           const croppedFile = new File(
             [blob],
-            `cropped_${selectedFile?.name || 'image.jpg'}`,
-            { type: 'image/jpeg' }
+            `cropped_${selectedFile?.name || "image.jpg"}`,
+            { type: "image/jpeg" },
           );
 
           // Revoke previous URL
-          if (previewUrl && previewUrl.startsWith('blob:')) {
-            try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+          if (previewUrl && previewUrl.startsWith("blob:")) {
+            try {
+              URL.revokeObjectURL(previewUrl);
+            } catch (e) {}
           }
 
           const newPreviewUrl = URL.createObjectURL(croppedFile);
@@ -251,8 +274,8 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
         setCropStart(null);
         setCropEnd(null);
       },
-      'image/jpeg',
-      0.95
+      "image/jpeg",
+      0.95,
     );
   };
 
@@ -271,7 +294,11 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       });
 
       const text = await response.text();
-      let result: { success?: boolean; error?: string; data?: ExtractedPassportData } | null = null;
+      let result: {
+        success?: boolean;
+        error?: string;
+        data?: ExtractedPassportData;
+      } | null = null;
 
       try {
         result = text ? JSON.parse(text) : null;
@@ -280,7 +307,9 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       }
 
       if (!response.ok || !result || !result.success) {
-        const message = result?.error || "Le scan OCR n'est pas disponible sur cette plateforme statique. Utilisez l'application serveur ou chargez un passeport de démonstration.";
+        const message =
+          result?.error ||
+          "Le scan OCR n'est pas disponible sur cette plateforme statique. Utilisez l'application serveur ou chargez un passeport de démonstration.";
         throw new Error(message);
       }
 
@@ -306,16 +335,6 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       processExtraction(resultStr, selectedFile.type || "image/jpeg");
     };
     reader.readAsDataURL(selectedFile);
-  };
-
-  const handleUseDemoPassport = (demoData: ExtractedPassportData) => {
-    setIsAnalyzing(true);
-    setError(null);
-    setTimeout(() => {
-      setExtractedData(demoData);
-      setIsAnalyzing(false);
-      setCurrentStep(2);
-    }, 800);
   };
 
   const normalizeBirthDate = (value?: string): string | undefined => {
@@ -349,9 +368,13 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     const fullNameLatin =
       `${extractedData.givenNamesLatin || ""} ${extractedData.surnameLatin || ""}`.trim();
 
-    // Ensure tripId is either a valid UUID or null to avoid sending mock/demo ids like 'trip-1' to the backend
-    const isValidUUID = (s: any) => typeof s === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(s);
-    const safeTripId = isValidUUID(selectedTripId) ? selectedTripId : null;
+    // Ensure tripId is either a valid UUID or empty string to avoid sending mock/demo ids like 'trip-1' to the backend
+    const isValidUUID = (s: any) =>
+      typeof s === "string" &&
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+        s,
+      );
+    const safeTripId = isValidUUID(selectedTripId) ? selectedTripId : "";
 
     const newPilgrim = {
       nameArabic: extractedData.fullNameArabic || fullNameLatin || "معتمر جديد",
@@ -415,27 +438,6 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                 tunisien. L'IA extrait automatiquement le numéro, le nom en
                 arabe/latin, la CIN et les dates.
               </p>
-            </div>
-
-            {/* Demo buttons */}
-            <div className="shrink-0 flex items-center gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                Démo :
-              </span>
-              <button
-                type="button"
-                onClick={() => handleUseDemoPassport(DEMO_PASSPORTS[0].data)}
-                className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-black text-[11px] font-bold text-slate-800 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
-              >
-                <span>🇹🇳 Exemple 1</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleUseDemoPassport(DEMO_PASSPORTS[1].data)}
-                className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-black text-[11px] font-bold text-slate-800 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
-              >
-                <span>🇹🇳 Exemple 2</span>
-              </button>
             </div>
           </div>
 
@@ -527,14 +529,20 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Données extraites — Étape 2: Image (recadrer / remplacer)</span>
+                  <span>
+                    Données extraites — Étape 2: Image (recadrer / remplacer)
+                  </span>
                 </div>
               </div>
 
               <div className="flex items-start gap-4">
                 <div className="w-36 h-36 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center">
                   {previewUrl ? (
-                    <img src={previewUrl} alt="preview" className="w-full h-full object-contain" />
+                    <img
+                      src={previewUrl}
+                      alt="preview"
+                      className="w-full h-full object-contain"
+                    />
                   ) : (
                     <div className="text-xs text-slate-400">Aucun aperçu</div>
                   )}
@@ -564,17 +572,30 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                       accept="image/*"
                       className="hidden"
                       ref={fileInputRef}
-                      onChange={(e) => e.target.files?.[0] && handleFileSelected(e.target.files[0])}
+                      onChange={(e) =>
+                        e.target.files?.[0] &&
+                        handleFileSelected(e.target.files[0])
+                      }
                     />
                   </div>
 
-                  <p className="text-xs text-slate-500">Vous pouvez recadrer manuellement l'image du passeport ou télécharger une image différente à utiliser comme photo.</p>
+                  <p className="text-xs text-slate-500">
+                    Vous pouvez recadrer manuellement l'image du passeport ou
+                    télécharger une image différente à utiliser comme photo.
+                  </p>
 
                   <div className="flex gap-2 mt-3">
                     <button
-                      onClick={() => { setExtractedData(null); setSelectedFile(null); setPreviewUrl(null); setCurrentStep(1); }}
+                      onClick={() => {
+                        setExtractedData(null);
+                        setSelectedFile(null);
+                        setPreviewUrl(null);
+                        setCurrentStep(1);
+                      }}
                       className="px-3 py-1.5 rounded-lg bg-slate-100"
-                    >Retour</button>
+                    >
+                      Retour
+                    </button>
 
                     <button
                       onClick={async () => {
@@ -585,22 +606,37 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                           let uploadedFileUrl: string | undefined;
                           let uploadedFilePath: string | undefined;
                           if (selectedFile) {
-                            const uploadRes = await uploadPassportToStorage(selectedFile, selectedFile.name);
-                            if (!uploadRes) throw new Error('Échec du téléversement');
+                            const uploadRes = await uploadPassportToStorage(
+                              selectedFile,
+                              selectedFile.name,
+                            );
+                            if (!uploadRes)
+                              throw new Error("Échec du téléversement");
                             uploadedFileUrl = uploadRes.fileUrl;
                             uploadedFilePath = uploadRes.filePath;
                           }
-                          setPendingDocument(uploadedFilePath ? { filePath: uploadedFilePath, fileUrl: uploadedFileUrl, mimeType: selectedFile?.type, fileName: selectedFile?.name } : null);
+                          setPendingDocument(
+                            uploadedFilePath
+                              ? {
+                                  filePath: uploadedFilePath,
+                                  fileUrl: uploadedFileUrl,
+                                  mimeType: selectedFile?.type,
+                                  fileName: selectedFile?.name,
+                                }
+                              : null,
+                          );
                           setCurrentStep(3);
                         } catch (err: any) {
                           console.error(err);
-                          setError(err.message || 'Upload failed');
+                          setError(err.message || "Upload failed");
                         } finally {
                           setIsAnalyzing(false);
                         }
                       }}
                       className="px-3 py-1.5 rounded-lg bg-amber-500 text-white font-bold"
-                    >Suivant: Affecter au voyage</button>
+                    >
+                      Suivant: Affecter au voyage
+                    </button>
                   </div>
                 </div>
               </div>
@@ -612,13 +648,27 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-bold text-sm">Recadrage manuel</h4>
                       <div className="flex gap-2">
-                        <button onClick={() => { setIsCropOpen(false); setCropStart(null); setCropEnd(null); }} className="px-3 py-1.5 rounded bg-slate-100">Annuler</button>
-                        <button onClick={performCrop} className="px-3 py-1.5 rounded bg-amber-500 text-white font-bold">Appliquer</button>
+                        <button
+                          onClick={() => {
+                            setIsCropOpen(false);
+                            setCropStart(null);
+                            setCropEnd(null);
+                          }}
+                          className="px-3 py-1.5 rounded bg-slate-100"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          onClick={performCrop}
+                          className="px-3 py-1.5 rounded bg-amber-500 text-white font-bold"
+                        >
+                          Appliquer
+                        </button>
                       </div>
                     </div>
                     <div className="relative w-full h-96 border border-slate-200 overflow-auto">
                       <img
-                        ref={el => (cropImgRef.current = el)}
+                        ref={(el) => (cropImgRef.current = el)}
                         src={previewUrl}
                         alt="to-crop"
                         className="max-w-full max-h-full m-auto block"
@@ -628,21 +678,22 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                       />
                       {/* selection rectangle */}
                       {cropStart && cropEnd && (
-                        <div style={{
-                          position: 'absolute',
-                          left: Math.min(cropStart.x, cropEnd.x),
-                          top: Math.min(cropStart.y, cropEnd.y),
-                          width: Math.abs(cropEnd.x - cropStart.x),
-                          height: Math.abs(cropEnd.y - cropStart.y),
-                          border: '2px dashed #F59E0B',
-                          pointerEvents: 'none'
-                        }} />
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: Math.min(cropStart.x, cropEnd.x),
+                            top: Math.min(cropStart.y, cropEnd.y),
+                            width: Math.abs(cropEnd.x - cropStart.x),
+                            height: Math.abs(cropEnd.y - cropStart.y),
+                            border: "2px dashed #F59E0B",
+                            pointerEvents: "none",
+                          }}
+                        />
                       )}
                     </div>
                   </div>
                 </div>
               )}
-
             </div>
           )}
 
@@ -656,7 +707,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                     {extractedData.confidenceScore || 95}% de précision)
                   </span>
                 </div>
- 
+
                 <button
                   onClick={() => setExtractedData(null)}
                   className="text-xs text-slate-500 hover:text-black font-semibold underline flex items-center gap-1"
@@ -670,7 +721,11 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
               <div className="flex items-start gap-4">
                 <div className="w-36 h-36 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center">
                   {previewUrl ? (
-                    <img src={previewUrl} alt="preview" className="w-full h-full object-contain" />
+                    <img
+                      src={previewUrl}
+                      alt="preview"
+                      className="w-full h-full object-contain"
+                    />
                   ) : (
                     <div className="text-xs text-slate-400">Aucun aperçu</div>
                   )}
@@ -700,11 +755,17 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                       accept="image/*"
                       className="hidden"
                       ref={fileInputRef}
-                      onChange={(e) => e.target.files?.[0] && handleFileSelected(e.target.files[0])}
+                      onChange={(e) =>
+                        e.target.files?.[0] &&
+                        handleFileSelected(e.target.files[0])
+                      }
                     />
                   </div>
 
-                  <p className="text-xs text-slate-500">Vous pouvez recadrer manuellement l'image du passeport ou télécharger une image différente à utiliser comme photo.</p>
+                  <p className="text-xs text-slate-500">
+                    Vous pouvez recadrer manuellement l'image du passeport ou
+                    télécharger une image différente à utiliser comme photo.
+                  </p>
                 </div>
               </div>
 
@@ -715,13 +776,27 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="font-bold text-sm">Recadrage manuel</h4>
                       <div className="flex gap-2">
-                        <button onClick={() => { setIsCropOpen(false); setCropStart(null); setCropEnd(null); }} className="px-3 py-1.5 rounded bg-slate-100">Annuler</button>
-                        <button onClick={performCrop} className="px-3 py-1.5 rounded bg-amber-500 text-white font-bold">Appliquer</button>
+                        <button
+                          onClick={() => {
+                            setIsCropOpen(false);
+                            setCropStart(null);
+                            setCropEnd(null);
+                          }}
+                          className="px-3 py-1.5 rounded bg-slate-100"
+                        >
+                          Annuler
+                        </button>
+                        <button
+                          onClick={performCrop}
+                          className="px-3 py-1.5 rounded bg-amber-500 text-white font-bold"
+                        >
+                          Appliquer
+                        </button>
                       </div>
                     </div>
                     <div className="relative w-full h-96 border border-slate-200 overflow-auto">
                       <img
-                        ref={el => (cropImgRef.current = el)}
+                        ref={(el) => (cropImgRef.current = el)}
                         src={previewUrl}
                         alt="to-crop"
                         className="max-w-full max-h-full m-auto block"
@@ -731,15 +806,17 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                       />
                       {/* selection rectangle */}
                       {cropStart && cropEnd && (
-                        <div style={{
-                          position: 'absolute',
-                          left: Math.min(cropStart.x, cropEnd.x),
-                          top: Math.min(cropStart.y, cropEnd.y),
-                          width: Math.abs(cropEnd.x - cropStart.x),
-                          height: Math.abs(cropEnd.y - cropStart.y),
-                          border: '2px dashed #F59E0B',
-                          pointerEvents: 'none'
-                        }} />
+                        <div
+                          style={{
+                            position: "absolute",
+                            left: Math.min(cropStart.x, cropEnd.x),
+                            top: Math.min(cropStart.y, cropEnd.y),
+                            width: Math.abs(cropEnd.x - cropStart.x),
+                            height: Math.abs(cropEnd.y - cropStart.y),
+                            border: "2px dashed #F59E0B",
+                            pointerEvents: "none",
+                          }}
+                        />
                       )}
                     </div>
                   </div>
