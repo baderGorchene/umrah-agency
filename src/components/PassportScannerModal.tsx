@@ -1,14 +1,18 @@
 import React, { useState, useRef, useEffect } from "react";
-import Cropper from 'react-easy-crop';
+import ReactCrop, {
+  centerCrop,
+  makeAspectCrop,
+  type Crop,
+  type PixelCrop,
+} from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 import {
-  FileText,
   Upload,
   Sparkles,
   CheckCircle2,
   AlertCircle,
   RefreshCw,
   UserCheck,
-  ArrowRight,
   X,
   ShieldCheck,
 } from "lucide-react";
@@ -17,7 +21,7 @@ import {
   uploadPassportToStorage,
   saveDocumentRecord,
 } from "../services/documentsService";
-import Tesseract from 'tesseract.js';
+import Tesseract from "tesseract.js";
 
 export interface ExtractedPassportData {
   passportNumber: string;
@@ -37,18 +41,20 @@ export interface ExtractedPassportData {
   confidenceScore?: number;
 }
 
+interface PendingDocument {
+  filePath: string;
+  fileUrl?: string;
+  mimeType?: string;
+  fileName?: string;
+}
+
 interface PassportScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   trips: Trip[];
   onImportPilgrim: (
     newPilgrim: Omit<Pilgrim, "id">,
-    pendingDocument?: {
-      filePath: string;
-      fileUrl?: string;
-      mimeType?: string;
-      fileName?: string;
-    },
+    pendingDocument?: PendingDocument,
   ) => void;
   onAutoFillForm?: (data: ExtractedPassportData) => void;
 }
@@ -116,28 +122,37 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   const [phoneInput, setPhoneInput] = useState<string>("98123456");
 
   const [currentStep, setCurrentStep] = useState<number>(1); // 1: extract/upload, 2: crop/upload, 3: assign/save
-  const [pendingDocument, setPendingDocument] = useState<{ filePath: string; fileUrl?: string; mimeType?: string; fileName?: string } | null>(null);
+  const [pendingDocument, setPendingDocument] =
+    useState<PendingDocument | null>(null);
   const [uploadFailed, setUploadFailed] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLImageElement | null>(null);
+
+  // Revoke the previous blob URL whenever it changes, and on unmount.
+  // Centralizing this here means callers never have to remember to do it
+  // themselves (a source of leaked blob URLs in the old implementation).
+  useEffect(() => {
+    return () => {
+      if (previewUrl && previewUrl.startsWith("blob:")) {
+        try {
+          URL.revokeObjectURL(previewUrl);
+        } catch (e) {
+          /* ignore */
+        }
+      }
+    };
+  }, [previewUrl]);
 
   const handleFileChange = (file: File) => {
-    // revoke previous preview URL if any
-    if (previewUrl && previewUrl.startsWith("blob:")) {
-      try {
-        URL.revokeObjectURL(previewUrl);
-      } catch (e) {
-        /* ignore */
-      }
-    }
-
     setSelectedFile(file);
     setError(null);
     setExtractedData(null);
+    setCrop(undefined);
+    setCompletedCrop(undefined);
 
     if (file.type.startsWith("image/")) {
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+      setPreviewUrl(URL.createObjectURL(file));
     } else if (file.type === "application/pdf") {
       setPreviewUrl(null); // PDF preview flag
     }
@@ -150,251 +165,146 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     }
   };
 
-  // Cropping helpers
-  const openFilePicker = () => fileInputRef.current?.click();
-
   const handleFileSelected = (file?: File) => {
     if (!file) return;
-    // revoke old preview
-    if (previewUrl && previewUrl.startsWith("blob:")) {
-      try {
-        URL.revokeObjectURL(previewUrl);
-      } catch (e) {}
-    }
     setSelectedFile(file);
     setPreviewUrl(URL.createObjectURL(file));
+    setCrop(undefined);
+    setCompletedCrop(undefined);
   };
 
+  // --- Cropping (react-image-crop) ---
   const [isCropOpen, setIsCropOpen] = useState(false);
-  const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState<number>(1);
-  const [cropScale, setCropScale] = useState<number>(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
-  const [lastCroppedFile, setLastCroppedFile] = useState<File | null>(null);
-  const [lastCroppedArea, setLastCroppedArea] = useState<any>(null);
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
 
-  // react-easy-crop helpers
-  const createImage = (url: string): Promise<HTMLImageElement> => {
-    return new Promise((resolve, reject) => {
-      const image = new Image();
-      image.addEventListener('load', () => resolve(image));
-      image.addEventListener('error', (e) => reject(e));
-      image.setAttribute('crossOrigin', 'anonymous');
-      image.src = url;
-    });
-  };
-
-  const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<Blob | null> => {
-    const image = await createImage(imageSrc);
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, pixelCrop.width);
-    canvas.height = Math.max(1, pixelCrop.height);
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-
-    ctx.drawImage(
-      image,
-      pixelCrop.x,
-      pixelCrop.y,
-      pixelCrop.width,
-      pixelCrop.height,
-      0,
-      0,
-      pixelCrop.width,
-      pixelCrop.height
+  const onCropImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    const initialCrop = centerCrop(
+      makeAspectCrop({ unit: "%", width: 80 }, 3 / 4, width, height),
+      width,
+      height,
     );
-
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
-        resolve(blob);
-      }, 'image/jpeg', 0.95);
-    });
+    setCrop(initialCrop);
   };
 
-  const performEasyCrop = async () => {
-    if (!previewUrl || !croppedAreaPixels) {
+  const performCrop = async () => {
+    const image = imgRef.current;
+    if (
+      !image ||
+      !completedCrop ||
+      !completedCrop.width ||
+      !completedCrop.height
+    ) {
       setIsCropOpen(false);
       return;
     }
 
     try {
-      const blob = await getCroppedImg(previewUrl, croppedAreaPixels);
+      const scaleX = image.naturalWidth / image.width;
+      const scaleY = image.naturalHeight / image.height;
+      const pixelCrop = {
+        x: completedCrop.x * scaleX,
+        y: completedCrop.y * scaleY,
+        width: completedCrop.width * scaleX,
+        height: completedCrop.height * scaleY,
+      };
+
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(pixelCrop.width));
+      canvas.height = Math.max(1, Math.round(pixelCrop.height));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas context indisponible");
+
+      ctx.drawImage(
+        image,
+        pixelCrop.x,
+        pixelCrop.y,
+        pixelCrop.width,
+        pixelCrop.height,
+        0,
+        0,
+        pixelCrop.width,
+        pixelCrop.height,
+      );
+
+      const blob: Blob | null = await new Promise((resolve) =>
+        canvas.toBlob((b) => resolve(b), "image/jpeg", 0.95),
+      );
+
       if (blob) {
-        const croppedFile = new File([blob], `cropped_${selectedFile?.name || 'image.jpg'}`, { type: 'image/jpeg' });
+        const croppedFile = new File(
+          [blob],
+          `cropped_${selectedFile?.name || "image.jpg"}`,
+          { type: "image/jpeg" },
+        );
 
-        // Revoke previous URL
-        if (previewUrl && previewUrl.startsWith('blob:')) {
-          try { URL.revokeObjectURL(previewUrl); } catch (e) {}
-        }
-
-        const newPreviewUrl = URL.createObjectURL(croppedFile);
         setSelectedFile(croppedFile);
-        setLastCroppedFile(croppedFile);
-        setPreviewUrl(newPreviewUrl);
-        setLastCroppedArea(croppedAreaPixels);
+        setPreviewUrl(URL.createObjectURL(croppedFile));
       }
     } catch (err) {
-      console.error('performEasyCrop error', err);
-      setError('Recadrage échoué');
+      console.error("performCrop error", err);
+      setError("Recadrage échoué");
     }
 
     setIsCropOpen(false);
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setCroppedAreaPixels(null);
+    setCrop(undefined);
+    setCompletedCrop(undefined);
   };
 
+  const processExtraction = async (base64Data: string, mimeType: string) => {
+    setIsAnalyzing(true);
+    setError(null);
 
-const parseMRZ = (mrzLines: string[]): Partial<ExtractedPassportData> => {
-  // Very small MRZ parser for 2-line passport MRZ
-  try {
-    const line1 = mrzLines[0] || "";
-    const line2 = mrzLines[1] || "";
-    // line1: P<COUNTRYSURNAME<<GIVEN<NAMES<<<<<<
-    // line2: passportNo<check><country><dob><check><sex><expiry><check><personalNo<check>
-    const res: Partial<ExtractedPassportData> = {};
-    if (line1.startsWith('P')) {
-      const namePart = line1.slice(5).replace(/<+$/g, '');
-      const [surname, ...given] = namePart.split('<<');
-      res.surnameLatin = (surname || '').replace(/</g, ' ').trim();
-      res.givenNamesLatin = (given.join('<<') || '').replace(/</g, ' ').trim();
+    try {
+      const response = await fetch("/api/extract-passport", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageBase64: base64Data,
+          mimeType: mimeType,
+        }),
+      });
+
+      const text = await response.text();
+      let result: {
+        success?: boolean;
+        error?: string;
+        data?: ExtractedPassportData;
+      } | null = null;
+
+      try {
+        result = text ? JSON.parse(text) : null;
+      } catch {
+        result = null;
+      }
+
+      if (!response.ok || !result || !result.success) {
+        const message =
+          result?.error ||
+          "Le scan OCR n'est pas disponible sur cette plateforme statique. Utilisez l'application serveur ou chargez un passeport de démonstration.";
+        throw new Error(message);
+      }
+
+      setExtractedData(result.data || null);
+      onAutoFillForm?.(result.data as ExtractedPassportData);
+      setCurrentStep(2);
+    } catch (err: any) {
+      console.error(err);
+      setError(
+        err.message ||
+          "Impossible de lire le passeport. Assurez-vous que l'image est claire.",
+      );
+    } finally {
+      setIsAnalyzing(false);
     }
+  };
 
-    // passport number
-    const passportNoMatch = line2.match(/([A-Z0-9<]{1,9})/);
-    if (passportNoMatch) {
-      res.passportNumber = passportNoMatch[1].replace(/</g, '').trim();
-    }
-
-    // date of birth YYMMDD at pos 13-18 in MRZ (0-based heuristic)
-    if (line2.length >= 18) {
-      const dobRaw = line2.slice(13, 19); // YYMMDD
-      const yy = dobRaw.slice(0, 2);
-      const mm = dobRaw.slice(2, 4);
-      const dd = dobRaw.slice(4, 6);
-      // assume 19xx/20xx heuristic
-      const year = Number(yy) > 30 ? `19${yy}` : `20${yy}`;
-      res.dateOfBirth = `${year}-${mm}-${dd}`;
-    }
-
-    // sex at pos 20
-    if (line2.length >= 21) {
-      const sex = line2[20];
-      res.sex = sex === 'M' ? 'M' : sex === 'F' ? 'F' : sex;
-    }
-
-    return res;
-  } catch (e) {
-    return {};
-  }
-};
-
-const extractFromText = (text: string): Partial<ExtractedPassportData> => {
-  const data: Partial<ExtractedPassportData> = {};
-  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
-
-  // Try to detect MRZ (lines containing '<' and length >= 30)
-  const mrzCandidates = lines.filter((l) => l.includes('<'));
-  if (mrzCandidates.length >= 2) {
-    // pick last two lines with '<'
-    const lastTwo = mrzCandidates.slice(-2);
-    return { ...data, ...parseMRZ(lastTwo) };
-  }
-
-  // Fallback: passport number patterns like N1234567 or letter+digits
-  const passportMatch = text.match(/([A-Z]\d{6,9}|\bN\d{6,9}\b|\b[A-Z0-9]{6,9}\b)/);
-  if (passportMatch) {
-    data.passportNumber = passportMatch[0];
-  }
-
-  // Attempt to find date patterns
-  const dobMatch = text.match(/(\d{2}[\/\-]\d{2}[\/\-]\d{4})|(\d{4}-\d{2}-\d{2})/);
-  if (dobMatch) {
-    const m = dobMatch[0];
-    // normalize dd/mm/yyyy to yyyy-mm-dd
-    const d1 = m.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
-    if (d1) {
-      data.dateOfBirth = `${d1[3]}-${d1[2]}-${d1[1]}`;
-    } else if (/^\d{4}-\d{2}-\d{2}$/.test(m)) {
-      data.dateOfBirth = m;
-    }
-  }
-
-  // Very naive name extraction: lines with uppercase words
-  const nameLine = lines.find((l) => /[A-Z]{2,}/.test(l) && l.split(' ').length <= 4);
-  if (nameLine && !data.surnameLatin) {
-    const parts = nameLine.split(' ');
-    data.surnameLatin = parts.slice(-1).join(' ');
-    data.givenNamesLatin = parts.slice(0, -1).join(' ');
-  }
-
-  return data;
-};
-
-const processExtraction = async (file: File) => {
-  setIsAnalyzing(true);
-  setError(null);
-
-  try {
-    // Use Tesseract.js client-side OCR. Languages: English + Arabic (if available) to improve results
-    const lang = 'eng+ara';
-    const { data } = await Tesseract.recognize(file, lang, {
-      logger: (m) => {
-        // optional: update progress if desired
-        // console.log('Tesseract', m);
-      },
-    });
-
-    const rawText = data?.text || '';
-
-    // Try MRZ-based parsing or fallback regex parsing
-    let parsed: Partial<ExtractedPassportData> = extractFromText(rawText);
-
-    // If MRZ not found, also inspect rawText for MRZ-like blocks (lines with '<')
-    const rawLines = rawText.split('\n').map((l) => l.trim()).filter(Boolean);
-    const mrzLines = rawLines.filter((l) => l.includes('<') && l.length >= 30);
-    if (mrzLines.length >= 2) {
-      parsed = { ...parsed, ...parseMRZ(mrzLines.slice(-2)) };
-    }
-
-    // Build final extracted data object
-    const finalData: ExtractedPassportData = {
-      passportNumber: parsed.passportNumber || '',
-      surnameLatin: parsed.surnameLatin || '',
-      givenNamesLatin: parsed.givenNamesLatin || '',
-      fullNameArabic: parsed.fullNameArabic || '',
-      cinNumber: parsed.cinNumber || undefined,
-      nationality: parsed.nationality || undefined,
-      dateOfBirth: parsed.dateOfBirth || undefined,
-      placeOfBirth: parsed.placeOfBirth || undefined,
-      sex: (parsed.sex as any) || undefined,
-      issueDate: parsed.issueDate || undefined,
-      expiryDate: parsed.expiryDate || undefined,
-      issuingAuthority: parsed.issuingAuthority || undefined,
-      mrz1: mrzLines[0] || undefined,
-      mrz2: mrzLines[1] || undefined,
-      confidenceScore: Math.round((data?.confidence || 75) as number),
-    };
-
-    setExtractedData(finalData);
-    setCurrentStep(2);
-  } catch (err: any) {
-    console.error('OCR error', err);
-    setError(
-      err?.message ||
-        'Impossible de lire le passeport avec OCR local. Assurez-vous que l\'image est nette.',
-    );
-  } finally {
-    setIsAnalyzing(false);
-  }
-};
-
-// Update handler to pass file directly to OCR
-const handleUploadAndAnalyze = () => {
-  if (!selectedFile) return;
-  processExtraction(selectedFile);
-};
-
+  // Update handler to pass file directly to OCR
+  const handleUploadAndAnalyze = () => {
+    if (!selectedFile) return;
+    processExtraction(selectedFile);
+  };
 
   const normalizeBirthDate = (value?: string): string | undefined => {
     if (!value) return undefined;
@@ -418,6 +328,37 @@ const handleUploadAndAnalyze = () => {
     }
 
     return trimmed;
+  };
+
+  const uploadCurrentFile = async (): Promise<boolean> => {
+    setIsAnalyzing(true);
+    setError(null);
+    setUploadFailed(false);
+    try {
+      if (selectedFile) {
+        const uploadRes = await uploadPassportToStorage(
+          selectedFile,
+          selectedFile.name,
+        );
+        if (!uploadRes) throw new Error("Échec du téléversement");
+        setPendingDocument({
+          filePath: uploadRes.filePath,
+          fileUrl: uploadRes.fileUrl,
+          mimeType: selectedFile.type,
+          fileName: selectedFile.name,
+        });
+      } else {
+        setPendingDocument(null);
+      }
+      return true;
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Échec du téléversement");
+      setUploadFailed(true);
+      return false;
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleSavePilgrim = async () => {
@@ -444,9 +385,11 @@ const handleUploadAndAnalyze = () => {
       tripId: safeTripId,
       tripName: selectedTrip ? selectedTrip.name : "—",
       uniqueCode: `TUN-${Math.floor(100000 + Math.random() * 900000)}`,
-      status: 'مؤكد' as Pilgrim['status'],
+      status: "مؤكد" as Pilgrim["status"],
       emergencyContact: `Tél CIN: ${extractedData.cinNumber || "Non spécifié"}`,
-      avatarUrl: DEFAULT_AVATAR_URL,
+      // Use the passport photo that was actually uploaded/cropped instead of
+      // silently falling back to the placeholder every time.
+      avatarUrl: pendingDocument?.fileUrl || DEFAULT_AVATAR_URL,
     };
 
     onImportPilgrim(newPilgrim, pendingDocument || undefined);
@@ -455,6 +398,57 @@ const handleUploadAndAnalyze = () => {
   };
 
   if (!isOpen) return null;
+
+  const renderCropModal = () => {
+    if (!isCropOpen || !previewUrl) return null;
+    return (
+      <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-6">
+        <div className="bg-white rounded-xl p-4 max-w-3xl w-full">
+          <div className="flex items-center justify-between mb-2">
+            <h4 className="font-bold text-sm">Recadrage manuel</h4>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setIsCropOpen(false);
+                  setCrop(undefined);
+                  setCompletedCrop(undefined);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={performCrop}
+                className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
+              >
+                Appliquer
+              </button>
+            </div>
+          </div>
+          <div className="relative w-full max-h-[70vh] border border-slate-200 overflow-auto bg-black flex items-center justify-center">
+            <ReactCrop
+              crop={crop}
+              aspect={3 / 4}
+              onChange={(_, percentCrop) => setCrop(percentCrop)}
+              onComplete={(pixelCrop) => setCompletedCrop(pixelCrop)}
+            >
+              <img
+                ref={imgRef}
+                src={previewUrl}
+                alt="À recadrer"
+                onLoad={onCropImageLoad}
+                className="max-h-[65vh] w-auto"
+              />
+            </ReactCrop>
+          </div>
+          <p className="text-[11px] text-slate-500 mt-2">
+            Faites glisser les coins pour ajuster le cadrage, puis cliquez sur «
+            Appliquer ».
+          </p>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -487,7 +481,7 @@ const handleUploadAndAnalyze = () => {
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          {/* Top Instructions & Demo Quick Action */}
+          {/* Top Instructions */}
           <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="text-xs text-slate-700 space-y-0.5">
               <p className="font-bold flex items-center gap-1.5 text-slate-900">
@@ -583,10 +577,9 @@ const handleUploadAndAnalyze = () => {
             </div>
           )}
 
-          {/* Results View */}
+          {/* Results View - Step 2: preview & crop / replace image */}
           {extractedData && currentStep === 2 && (
             <div className="space-y-5 animate-in fade-in duration-300">
-              {/* STEP 2: Preview & manual crop / upload */}
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
                   <CheckCircle2 className="w-4 h-4" />
@@ -613,7 +606,7 @@ const handleUploadAndAnalyze = () => {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => { if (lastCroppedArea) { setCrop({ x: lastCroppedArea.x || 0, y: lastCroppedArea.y || 0 }); setZoom(1); } setIsCropOpen(true); }}
+                      onClick={() => setIsCropOpen(true)}
                       disabled={!previewUrl}
                       className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-all"
                     >
@@ -661,33 +654,19 @@ const handleUploadAndAnalyze = () => {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={async () => {
-                          // upload and proceed to step 3
-                          setIsAnalyzing(true);
-                          setError(null);
-                          setUploadFailed(false);
-                          try {
-                            let uploadedFileUrl: string | undefined;
-                            let uploadedFilePath: string | undefined;
-                            const fileToUpload = lastCroppedFile ?? selectedFile;
-                            if (fileToUpload) {
-                              const uploadRes = await uploadPassportToStorage(fileToUpload, fileToUpload.name);
-                              if (!uploadRes) throw new Error('Échec du téléversement');
-                              uploadedFileUrl = uploadRes.fileUrl;
-                              uploadedFilePath = uploadRes.filePath;
-                            }
-                            setPendingDocument(uploadedFilePath ? { filePath: uploadedFilePath, fileUrl: uploadedFileUrl, mimeType: (lastCroppedFile?.type ?? selectedFile?.type), fileName: (lastCroppedFile?.name ?? selectedFile?.name) } : null);
-                          } catch (err: any) {
-                            console.error(err);
-                            setError(err.message || 'Upload failed');
-                            setUploadFailed(true);
-                          } finally {
-                            setIsAnalyzing(false);
-                            // always advance to assignment step; upload failures are handled by showing a warning and a fallback option in step 3
-                            setCurrentStep(3);
-                          }
+                          await uploadCurrentFile();
+                          // Always advance to assignment step; upload
+                          // failures are surfaced via the warning banner
+                          // and the fallback "continue without upload" option.
+                          setCurrentStep(3);
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold"
-                      >Suivant: Affecter au voyage</button>
+                        disabled={isAnalyzing}
+                        className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold disabled:opacity-50"
+                      >
+                        {isAnalyzing
+                          ? "Téléversement..."
+                          : "Suivant: Affecter au voyage"}
+                      </button>
 
                       {uploadFailed && (
                         <button
@@ -698,84 +677,27 @@ const handleUploadAndAnalyze = () => {
                             setCurrentStep(3);
                           }}
                           className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-700"
-                        >Continuer sans téléversement</button>
+                        >
+                          Continuer sans téléversement
+                        </button>
                       )}
                     </div>
                   </div>
+
+                  {error && currentStep === 2 && (
+                    <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2 mt-2">
+                      <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Cropping Overlay */}
-              {isCropOpen && previewUrl && (
-                <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-6">
-                  <div className="bg-white rounded-xl p-4 max-w-3xl w-full">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-bold text-sm">Recadrage manuel</h4>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setIsCropOpen(false);
-                            setCrop({ x: 0, y: 0 });
-                            setZoom(1); setCroppedAreaPixels(null);
-                          }}
-                          className="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold"
-                        >
-                          Annuler
-                        </button>
-                        <button
-                          onClick={performEasyCrop}
-                          className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
-                        >
-                          Appliquer
-                        </button>
-                      </div>
-                    </div>
-                    <div className="relative w-full h-96 border border-slate-200 overflow-hidden">
-                      <div className="relative w-full h-full bg-black">
-                        <Cropper
-                          image={previewUrl as string}
-                          crop={crop}
-                          zoom={zoom}
-                          aspect={3 / 4}
-                          cropSize={{ width: Math.round(240 * cropScale), height: Math.round(320 * cropScale) }}
-                          onCropChange={setCrop}
-                          onZoomChange={setZoom}
-                          onCropComplete={(_croppedArea, croppedAreaPixels) => setCroppedAreaPixels(croppedAreaPixels)}
-                        />
-                      </div>
-                      <div className="mt-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-slate-400">Zoom</label>
-                          <input
-                            type="range"
-                            min={1}
-                            max={3}
-                            step={0.1}
-                            value={zoom}
-                            onChange={(e) => setZoom(Number((e.target as HTMLInputElement).value))}
-                            className="w-full"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-slate-400">Taille du recadrage</label>
-                          <input
-                            type="range"
-                            min={0.6}
-                            max={1.6}
-                            step={0.05}
-                            value={cropScale}
-                            onChange={(e) => setCropScale(Number((e.target as HTMLInputElement).value))}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {renderCropModal()}
             </div>
           )}
 
+          {/* Step 3: review extracted data, assign to trip, save */}
           {extractedData && currentStep === 3 && (
             <div className="space-y-5 animate-in fade-in duration-300">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -796,6 +718,16 @@ const handleUploadAndAnalyze = () => {
                 </button>
               </div>
 
+              {uploadFailed && (
+                <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>
+                    Le téléversement de l'image a échoué. Le pèlerin sera
+                    enregistré avec la photo par défaut.
+                  </span>
+                </div>
+              )}
+
               {/* Image Preview & Manual Crop / Upload Actions */}
               <div className="flex items-start gap-4">
                 <div className="w-36 h-36 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center">
@@ -814,7 +746,7 @@ const handleUploadAndAnalyze = () => {
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => { if (lastCroppedArea) { setCrop({ x: lastCroppedArea.x || 0, y: lastCroppedArea.y || 0 }); setZoom(1); } setIsCropOpen(true); }}
+                      onClick={() => setIsCropOpen(true)}
                       disabled={!previewUrl}
                       className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-all"
                     >
@@ -844,78 +776,29 @@ const handleUploadAndAnalyze = () => {
                   <p className="text-xs text-slate-500">
                     Vous pouvez recadrer manuellement l'image du passeport ou
                     télécharger une image différente à utiliser comme photo.
+                    {pendingDocument
+                      ? " Cette image sera enregistrée comme photo du pèlerin."
+                      : ""}
                   </p>
+
+                  {(previewUrl || selectedFile) &&
+                    !pendingDocument &&
+                    !uploadFailed && (
+                      <button
+                        type="button"
+                        onClick={() => uploadCurrentFile()}
+                        disabled={isAnalyzing}
+                        className="self-start px-3 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 disabled:opacity-50"
+                      >
+                        {isAnalyzing
+                          ? "Téléversement..."
+                          : "Téléverser cette image"}
+                      </button>
+                    )}
                 </div>
               </div>
 
-              {/* Cropping Overlay */}
-              {isCropOpen && previewUrl && (
-                <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-6">
-                  <div className="bg-white rounded-xl p-4 max-w-3xl w-full">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-bold text-sm">Recadrage manuel</h4>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setIsCropOpen(false);
-                            setCrop({ x: 0, y: 0 });
-                            setZoom(1); setCroppedAreaPixels(null);
-                          }}
-                          className="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold"
-                        >
-                          Annuler
-                        </button>
-                        <button
-                          onClick={performEasyCrop}
-                          className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
-                        >
-                          Appliquer
-                        </button>
-                      </div>
-                    </div>
-                    <div className="relative w-full h-96 border border-slate-200 overflow-hidden">
-                      <div className="relative w-full h-full bg-black">
-                        <Cropper
-                          image={previewUrl as string}
-                          crop={crop}
-                          zoom={zoom}
-                          aspect={3 / 4}
-                          cropSize={{ width: Math.round(240 * cropScale), height: Math.round(320 * cropScale) }}
-                          onCropChange={setCrop}
-                          onZoomChange={setZoom}
-                          onCropComplete={(_croppedArea, croppedAreaPixels) => setCroppedAreaPixels(croppedAreaPixels)}
-                        />
-                      </div>
-                      <div className="mt-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-slate-400">Zoom</label>
-                          <input
-                            type="range"
-                            min={1}
-                            max={3}
-                            step={0.1}
-                            value={zoom}
-                            onChange={(e) => setZoom(Number((e.target as HTMLInputElement).value))}
-                            className="w-full"
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-slate-400">Taille du recadrage</label>
-                          <input
-                            type="range"
-                            min={0.6}
-                            max={1.6}
-                            step={0.05}
-                            value={cropScale}
-                            onChange={(e) => setCropScale(Number((e.target as HTMLInputElement).value))}
-                            className="w-full"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {renderCropModal()}
 
               {/* Form Grid for Editing Extracted Data */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
