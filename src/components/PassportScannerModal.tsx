@@ -122,12 +122,8 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   const cropImgRef = useRef<HTMLImageElement | null>(null);
 
   const [currentStep, setCurrentStep] = useState<number>(1); // 1: extract/upload, 2: crop/upload, 3: assign/save
-  const [pendingDocument, setPendingDocument] = useState<{
-    filePath: string;
-    fileUrl?: string;
-    mimeType?: string;
-    fileName?: string;
-  } | null>(null);
+  const [pendingDocument, setPendingDocument] = useState<{ filePath: string; fileUrl?: string; mimeType?: string; fileName?: string } | null>(null);
+  const [uploadFailed, setUploadFailed] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -180,7 +176,9 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   const handleCropMouseDown = (e: React.MouseEvent) => {
     const img = cropImgRef.current;
     if (!img) return;
-    const rect = img.getBoundingClientRect();
+    const container = img.parentElement as HTMLElement | null;
+    const rect = container ? container.getBoundingClientRect() : img.getBoundingClientRect();
+    // store coordinates relative to the container (so the selection rectangle can be positioned directly)
     setCropStart({ x: e.clientX - rect.left, y: e.clientY - rect.top });
     setCropEnd(null);
   };
@@ -189,7 +187,8 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     if (!cropStart) return;
     const img = cropImgRef.current;
     if (!img) return;
-    const rect = img.getBoundingClientRect();
+    const container = img.parentElement as HTMLElement | null;
+    const rect = container ? container.getBoundingClientRect() : img.getBoundingClientRect();
     setCropEnd({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
@@ -197,7 +196,8 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     if (!cropStart) return;
     const img = cropImgRef.current;
     if (!img) return;
-    const rect = img.getBoundingClientRect();
+    const container = img.parentElement as HTMLElement | null;
+    const rect = container ? container.getBoundingClientRect() : img.getBoundingClientRect();
     setCropEnd({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
@@ -207,12 +207,30 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       return;
     }
     const img = cropImgRef.current;
-    const sx = Math.min(cropStart.x, cropEnd.x);
-    const sy = Math.min(cropStart.y, cropEnd.y);
-    const sw = Math.abs(cropEnd.x - cropStart.x);
-    const sh = Math.abs(cropEnd.y - cropStart.y);
 
-    if (sw <= 0 || sh <= 0) {
+    // container-relative coords (stored in cropStart/cropEnd)
+    const container = img.parentElement as HTMLElement | null;
+    const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 } as DOMRect;
+    const imgRect = img.getBoundingClientRect();
+
+    // image offset within container
+    const imgOffsetX = imgRect.left - containerRect.left;
+    const imgOffsetY = imgRect.top - containerRect.top;
+
+    // selection relative to container -> convert to image-displayed coordinates
+    const sxDisplayed = Math.min(cropStart.x, cropEnd.x) - imgOffsetX;
+    const syDisplayed = Math.min(cropStart.y, cropEnd.y) - imgOffsetY;
+    const swDisplayed = Math.abs(cropEnd.x - cropStart.x);
+    const shDisplayed = Math.abs(cropEnd.y - cropStart.y);
+
+    // clamp selection to image displayed bounds
+    const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+    const sxClamped = clamp(sxDisplayed, 0, img.clientWidth);
+    const syClamped = clamp(syDisplayed, 0, img.clientHeight);
+    const swClamped = clamp(swDisplayed, 0, img.clientWidth - sxClamped);
+    const shClamped = clamp(shDisplayed, 0, img.clientHeight - syClamped);
+
+    if (swClamped <= 0 || shClamped <= 0) {
       setIsCropOpen(false);
       setCropStart(null);
       setCropEnd(null);
@@ -223,10 +241,10 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     const scaleX = img.naturalWidth / img.clientWidth;
     const scaleY = img.naturalHeight / img.clientHeight;
 
-    const sourceX = Math.round(sx * scaleX);
-    const sourceY = Math.round(sy * scaleY);
-    const sourceWidth = Math.round(sw * scaleX);
-    const sourceHeight = Math.round(sh * scaleY);
+    const sourceX = Math.round(sxClamped * scaleX);
+    const sourceY = Math.round(syClamped * scaleY);
+    const sourceWidth = Math.round(swClamped * scaleX);
+    const sourceHeight = Math.round(shClamped * scaleY);
 
     const canvas = document.createElement("canvas");
     canvas.width = Math.max(1, sourceWidth);
@@ -504,7 +522,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                   type="button"
                   disabled={!selectedFile || isAnalyzing}
                   onClick={handleUploadAndAnalyze}
-                  className="bg-black hover:bg-slate-900 disabled:opacity-50 text-white font-bold px-6 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-2 text-xs cursor-pointer"
+                  className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold px-6 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-2 text-xs cursor-pointer"
                 >
                   {isAnalyzing ? (
                     <>
@@ -597,46 +615,47 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                       Retour
                     </button>
 
-                    <button
-                      onClick={async () => {
-                        // upload and proceed to step 3
-                        setIsAnalyzing(true);
-                        setError(null);
-                        try {
-                          let uploadedFileUrl: string | undefined;
-                          let uploadedFilePath: string | undefined;
-                          if (selectedFile) {
-                            const uploadRes = await uploadPassportToStorage(
-                              selectedFile,
-                              selectedFile.name,
-                            );
-                            if (!uploadRes)
-                              throw new Error("Échec du téléversement");
-                            uploadedFileUrl = uploadRes.fileUrl;
-                            uploadedFilePath = uploadRes.filePath;
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={async () => {
+                          // upload and proceed to step 3
+                          setIsAnalyzing(true);
+                          setError(null);
+                          setUploadFailed(false);
+                          try {
+                            let uploadedFileUrl: string | undefined;
+                            let uploadedFilePath: string | undefined;
+                            if (selectedFile) {
+                              const uploadRes = await uploadPassportToStorage(selectedFile, selectedFile.name);
+                              if (!uploadRes) throw new Error('Échec du téléversement');
+                              uploadedFileUrl = uploadRes.fileUrl;
+                              uploadedFilePath = uploadRes.filePath;
+                            }
+                            setPendingDocument(uploadedFilePath ? { filePath: uploadedFilePath, fileUrl: uploadedFileUrl, mimeType: selectedFile?.type, fileName: selectedFile?.name } : null);
+                            setCurrentStep(3);
+                          } catch (err: any) {
+                            console.error(err);
+                            setError(err.message || 'Upload failed');
+                            setUploadFailed(true);
+                          } finally {
+                            setIsAnalyzing(false);
                           }
-                          setPendingDocument(
-                            uploadedFilePath
-                              ? {
-                                  filePath: uploadedFilePath,
-                                  fileUrl: uploadedFileUrl,
-                                  mimeType: selectedFile?.type,
-                                  fileName: selectedFile?.name,
-                                }
-                              : null,
-                          );
-                          setCurrentStep(3);
-                        } catch (err: any) {
-                          console.error(err);
-                          setError(err.message || "Upload failed");
-                        } finally {
-                          setIsAnalyzing(false);
-                        }
-                      }}
-                      className="px-3 py-1.5 rounded-lg bg-amber-500 text-white font-bold"
-                    >
-                      Suivant: Affecter au voyage
-                    </button>
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-amber-500 text-white font-bold"
+                      >Suivant: Affecter au voyage</button>
+
+                      {uploadFailed && (
+                        <button
+                          onClick={() => {
+                            // proceed without upload (fallback)
+                            setPendingDocument(null);
+                            setUploadFailed(false);
+                            setCurrentStep(3);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-[11px] font-bold"
+                        >Continuer sans téléversement</button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
