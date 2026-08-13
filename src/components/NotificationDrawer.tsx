@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { Language, AppNotification } from '../types';
 
@@ -19,11 +19,31 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   onMarkAllAsRead,
   onClearAll
 }) => {
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
   const isAr = lang === 'AR';
 
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-2xs z-50 flex justify-end rtl:justify-start">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 bg-black/30 backdrop-blur-2xs z-50 flex justify-end rtl:justify-start"
+    >
       <div className="w-full max-w-sm bg-white h-full shadow-2xl flex flex-col justify-between animate-in slide-in-from-right rtl:slide-in-from-left duration-200">
         {/* Top Header */}
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
@@ -40,7 +60,13 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
             >
               {isAr ? 'مسح الكل' : 'Tout effacer'}
             </button>
-            <button onClick={onClose} className="text-slate-400 font-bold p-1 hover:text-slate-600">✕</button>
+            <button
+              onClick={onClose}
+              aria-label={isAr ? "إغلاق" : "Fermer"}
+              className="text-slate-400 font-bold p-1 hover:text-slate-600"
+            >
+              ✕
+            </button>
           </div>
         </div>
 
