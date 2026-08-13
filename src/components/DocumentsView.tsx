@@ -23,7 +23,10 @@ interface DocumentsViewProps {
   pilgrims: Pilgrim[];
   staff: Staff[];
   agencySettings: AgencySettings;
-  onAddPilgrim?: (newPilgrim: Omit<Pilgrim, "id">) => void;
+  onAddPilgrim?: (
+    newPilgrim: Omit<Pilgrim, "id">,
+    pendingDocument?: { filePath: string; fileUrl?: string; mimeType?: string; fileName?: string }
+  ) => void;
 }
 
 export const DocumentsView: React.FC<DocumentsViewProps> = ({
@@ -572,9 +575,9 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
         isOpen={isPassportScannerOpen}
         onClose={() => setIsPassportScannerOpen(false)}
         trips={trips}
-        onImportPilgrim={(newPilgrim) => {
+        onImportPilgrim={(newPilgrim, pendingDocument) => {
           if (onAddPilgrim) {
-            onAddPilgrim(newPilgrim);
+            onAddPilgrim(newPilgrim, pendingDocument);
           }
         }}
       />

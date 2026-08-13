@@ -25,7 +25,10 @@ interface PilgrimsViewProps {
   lang: Language;
   pilgrims: Pilgrim[];
   trips: Trip[];
-  onAddPilgrim: (newPilgrim: Omit<Pilgrim, "id">) => void;
+  onAddPilgrim: (
+    newPilgrim: Omit<Pilgrim, "id">,
+    pendingDocument?: { filePath: string; fileUrl?: string; mimeType?: string; fileName?: string }
+  ) => void;
   onEditPilgrim: (updated: Pilgrim) => void;
   onDeletePilgrim: (id: string) => void;
   isAddModalOpen: boolean;
