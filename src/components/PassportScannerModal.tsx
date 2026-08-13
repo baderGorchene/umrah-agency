@@ -120,8 +120,6 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
-
   const handleFileChange = (file: File) => {
     // revoke previous preview URL if any
     if (previewUrl && previewUrl.startsWith("blob:")) {
@@ -359,6 +357,8 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
 
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto">
