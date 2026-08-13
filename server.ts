@@ -14,11 +14,7 @@ async function startServer() {
   // 2. Configure CORS middleware (Place BEFORE any routes)
   app.use(
     cors({
-      origin: [
-        "https://badergorchene.github.io",
-        "http://localhost:5173",
-        "http://localhost:3000",
-      ],
+      origin: true, // Dynamically mirrors request origin
       methods: ["GET", "POST", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
       credentials: true,
