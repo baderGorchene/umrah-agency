@@ -73,25 +73,6 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   );
   const [phoneInput, setPhoneInput] = useState<string>("98123456");
 
-  // Detect likely static hosting (GitHub Pages, file://, etc.) so OCR
-  // button can be hidden and a clearer instruction shown instead.
-  const [isStaticHost, setIsStaticHost] = useState<boolean>(false);
-  useEffect(() => {
-    try {
-      if (typeof window !== "undefined" && window.location) {
-        const host = window.location.hostname || "";
-        const protocol = window.location.protocol || "";
-        const likelyStatic =
-          host.endsWith("github.io") ||
-          host === "badergorchene.github.io" ||
-          protocol === "file:";
-        setIsStaticHost(likelyStatic);
-      }
-    } catch (e) {
-      setIsStaticHost(false);
-    }
-  }, []);
-
   const [currentStep, setCurrentStep] = useState<number>(1); // 1: upload/extract, 2: crop/upload, 3: assign/save
   const [pendingDocument, setPendingDocument] =
     useState<PendingDocument | null>(null);
@@ -279,10 +260,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       }
 
       if (!response.ok || !result || !result.success) {
-        const message =
-          result?.error ||
-          "Le scan OCR n'est pas disponible sur cette plateforme statique. Utilisez l'application serveur ou chargez un passeport de démonstration.";
-        throw new Error(message);
+        throw new Error(result?.error || "Échec de l'analyse du passeport.");
       }
 
       setExtractedData(result.data || null);
@@ -290,10 +268,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       setCurrentStep(2);
     } catch (err: any) {
       console.error(err);
-      setError(
-        err.message ||
-          "Impossible de lire le passeport. Assurez-vous que l'image est claire.",
-      );
+      setError(err.message || "Échec de l'analyse du passeport.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -500,9 +475,9 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                 Lecture automatique sécurisée
               </p>
               <p className="text-[11px] text-slate-500">
-                Importez une photo claire du passeport tunisien, bien cadrée sur
-                les deux lignes MRZ en bas de la page. L'OCR en extrait
-                automatiquement le numéro, le nom, la nationalité et les dates.
+                Importez une photo claire ou un fichier PDF du passeport
+                tunisien. L'IA extrait automatiquement le numéro, le nom en
+                arabe/latin, la CIN et les dates.
               </p>
             </div>
           </div>
@@ -523,7 +498,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
                   className="hidden"
                   onChange={(e) =>
                     e.target.files?.[0] && handleFileChange(e.target.files[0])
@@ -538,10 +513,10 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                   <p className="text-xs font-bold text-slate-800">
                     {selectedFile
                       ? selectedFile.name
-                      : "Glissez-déposez la photo du passeport"}
+                      : "Glissez-déposez la photo ou le PDF du passeport"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Formats acceptés: JPG, PNG, WEBP (Max 10Mo)
+                    Formats acceptés: JPG, PNG, WEBP, PDF (Max 10Mo)
                   </p>
                 </div>
 
@@ -566,38 +541,24 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
 
               {/* Analyze Trigger */}
               <div className="flex justify-end">
-                {!isStaticHost ? (
-                  <button
-                    type="button"
-                    disabled={!selectedFile || isAnalyzing}
-                    onClick={handleUploadAndAnalyze}
-                    className="bg-black hover:bg-slate-900 disabled:opacity-50 text-white font-bold px-6 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-2 text-xs cursor-pointer"
-                  >
-                    {isAnalyzing ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        <span>Analyse OCR en cours...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4" />
-                        <span>Lancer la numérisation OCR</span>
-                      </>
-                    )}
-                  </button>
-                ) : (
-                  <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-xl text-xs flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-yellow-700 shrink-0" />
-                    <div className="flex-1">
-                      <div className="font-bold text-[12px]">Scan OCR indisponible</div>
-                      <div className="text-[11px] text-yellow-800/90">
-                        Le scan OCR n'est pas disponible sur cette plateforme statique.
-                        Pour tester cette fonctionnalité, exécutez l'application serveur
-                        (avec l'API OCR) ou téléversez manuellement les données du passeport.
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <button
+                  type="button"
+                  disabled={!selectedFile || isAnalyzing}
+                  onClick={handleUploadAndAnalyze}
+                  className="bg-black hover:bg-slate-900 disabled:opacity-50 text-white font-bold px-6 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-2 text-xs cursor-pointer"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      <span>Analyse IA en cours (Gemini)...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Lancer la numérisation OCR</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           )}
@@ -725,7 +686,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                   <CheckCircle2 className="w-4 h-4" />
                   <span>
                     Données extraites avec succès (
-                    {extractedData.confidenceScore ?? 70}% de confiance OCR)
+                    {extractedData.confidenceScore ?? 95}% de précision)
                   </span>
                 </div>
 
