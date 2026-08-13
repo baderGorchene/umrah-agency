@@ -73,6 +73,25 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   );
   const [phoneInput, setPhoneInput] = useState<string>("98123456");
 
+  // Detect likely static hosting (GitHub Pages, file://, etc.) so OCR
+  // button can be hidden and a clearer instruction shown instead.
+  const [isStaticHost, setIsStaticHost] = useState<boolean>(false);
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined" && window.location) {
+        const host = window.location.hostname || "";
+        const protocol = window.location.protocol || "";
+        const likelyStatic =
+          host.endsWith("github.io") ||
+          host === "badergorchene.github.io" ||
+          protocol === "file:";
+        setIsStaticHost(likelyStatic);
+      }
+    } catch (e) {
+      setIsStaticHost(false);
+    }
+  }, []);
+
   const [currentStep, setCurrentStep] = useState<number>(1); // 1: upload/extract, 2: crop/upload, 3: assign/save
   const [pendingDocument, setPendingDocument] =
     useState<PendingDocument | null>(null);
@@ -547,24 +566,38 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
 
               {/* Analyze Trigger */}
               <div className="flex justify-end">
-                <button
-                  type="button"
-                  disabled={!selectedFile || isAnalyzing}
-                  onClick={handleUploadAndAnalyze}
-                  className="bg-black hover:bg-slate-900 disabled:opacity-50 text-white font-bold px-6 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-2 text-xs cursor-pointer"
-                >
-                  {isAnalyzing ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Analyse OCR en cours...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      <span>Lancer la numérisation OCR</span>
-                    </>
-                  )}
-                </button>
+                {!isStaticHost ? (
+                  <button
+                    type="button"
+                    disabled={!selectedFile || isAnalyzing}
+                    onClick={handleUploadAndAnalyze}
+                    className="bg-black hover:bg-slate-900 disabled:opacity-50 text-white font-bold px-6 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-2 text-xs cursor-pointer"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Analyse OCR en cours...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Lancer la numérisation OCR</span>
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-xl text-xs flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-yellow-700 shrink-0" />
+                    <div className="flex-1">
+                      <div className="font-bold text-[12px]">Scan OCR indisponible</div>
+                      <div className="text-[11px] text-yellow-800/90">
+                        Le scan OCR n'est pas disponible sur cette plateforme statique.
+                        Pour tester cette fonctionnalité, exécutez l'application serveur
+                        (avec l'API OCR) ou téléversez manuellement les données du passeport.
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
