@@ -32,6 +32,7 @@ import { getPosts, createPost, deletePost } from './services/postsService';
 import { getNotifications, createNotification, markAllNotificationsAsRead, clearAllNotifications } from './services/notificationsService';
 import { logoutUser, fetchUserProfile } from './services/authService';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { saveDocumentRecord } from './services/documentsService';
 
 import { Language, Pilgrim, Staff, Trip, Post, AgencySettings, AppNotification, UserProfile, UserRole } from './types';
 
@@ -178,13 +179,29 @@ export default function App() {
   };
 
   // Handlers for Pilgrims
-  const handleAddPilgrim = async (newPilgrimData: Omit<Pilgrim, 'id'>) => {
+  const handleAddPilgrim = async (newPilgrimData: Omit<Pilgrim, 'id'>, pendingDocument?: { filePath: string; fileUrl?: string; mimeType?: string; fileName?: string }) => {
     const created = await createPilgrim(newPilgrimData, trips);
     if (created) {
       setPilgrims(prev => [created, ...prev]);
 
+      // If a document was provided (passport scan), save it linked to the created pilgrim
+      if (pendingDocument) {
+        try {
+          const doc = await saveDocumentRecord({
+            pilgrimId: created.id,
+            fileName: pendingDocument.fileName || pendingDocument.filePath.split('/').pop() || 'passport',
+            filePath: pendingDocument.filePath,
+            fileUrl: pendingDocument.fileUrl,
+            mimeType: pendingDocument.mimeType,
+          });
+          // Optionally you could attach doc to the pilgrim locally or emit a notification
+        } catch (err) {
+          console.warn('Failed to save pending document for pilgrim', err);
+        }
+      }
+
       // Update trip pilgrim count locally
-      setTrips(prev => prev.map(t => t.id === created.tripId ? { ...t, pilgrimCount: t.pilgrimCount + 1 } : t));
+      setTrips(prev => prev.map(t => t.id === created.tripId ? { ...t, pilgrimCount: (t.pilgrimCount || 0) + 1 } : t));
 
       // Add Notification
       const notifData = {

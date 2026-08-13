@@ -39,7 +39,7 @@ interface PassportScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   trips: Trip[];
-  onImportPilgrim: (newPilgrim: Omit<Pilgrim, "id">) => void;
+  onImportPilgrim: (newPilgrim: Omit<Pilgrim, "id">, pendingDocument?: { filePath: string; fileUrl?: string; mimeType?: string; fileName?: string }) => void;
   onAutoFillForm?: (data: ExtractedPassportData) => void;
 }
 
@@ -105,6 +105,12 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   );
   const [phoneInput, setPhoneInput] = useState<string>("98123456");
 
+  // Cropping states
+  const [isCropOpen, setIsCropOpen] = useState(false);
+  const [cropStart, setCropStart] = useState<{ x: number; y: number } | null>(null);
+  const [cropEnd, setCropEnd] = useState<{ x: number; y: number } | null>(null);
+  const cropImgRef = useRef<HTMLImageElement | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -127,6 +133,80 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       handleFileChange(e.dataTransfer.files[0]);
     }
+  };
+
+  // Cropping helpers
+  const openFilePicker = () => fileInputRef.current?.click();
+
+  const handleFileSelected = (file?: File) => {
+    if (!file) return;
+    setSelectedFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleCropMouseDown = (e: React.MouseEvent) => {
+    const img = cropImgRef.current;
+    if (!img) return;
+    const rect = img.getBoundingClientRect();
+    setCropStart({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    setCropEnd(null);
+  };
+
+  const handleCropMouseMove = (e: React.MouseEvent) => {
+    if (!cropStart) return;
+    const img = cropImgRef.current;
+    if (!img) return;
+    const rect = img.getBoundingClientRect();
+    setCropEnd({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleCropMouseUp = () => {
+    // do nothing here; selection is finalized on performCrop
+  };
+
+  const performCrop = async () => {
+    if (!cropStart || !cropEnd || !cropImgRef.current) {
+      setIsCropOpen(false);
+      return;
+    }
+    const img = cropImgRef.current;
+    const sx = Math.min(cropStart.x, cropEnd.x);
+    const sy = Math.min(cropStart.y, cropEnd.y);
+    const sw = Math.abs(cropEnd.x - cropStart.x);
+    const sh = Math.abs(cropEnd.y - cropStart.y);
+
+    // Compute scale between displayed size and natural image size
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+
+    const nx = Math.round(sx * scaleX);
+    const ny = Math.round(sy * scaleY);
+    const nw = Math.round(sw * scaleX);
+    const nh = Math.round(sh * scaleY);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, nw);
+    canvas.height = Math.max(1, nh);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      setIsCropOpen(false);
+      return;
+    }
+
+    const tempImg = new Image();
+    tempImg.crossOrigin = 'anonymous';
+    tempImg.src = previewUrl || '';
+    await new Promise((res) => (tempImg.onload = res));
+    ctx.drawImage(tempImg, nx, ny, nw, nh, 0, 0, nw, nh);
+
+    const blob: Blob | null = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+    if (blob) {
+      const newFile = new File([blob], `cropped_${selectedFile?.name || 'image'}.jpg`, { type: 'image/jpeg' });
+      handleFileSelected(newFile);
+    }
+    setIsCropOpen(false);
+    setCropStart(null);
+    setCropEnd(null);
   };
 
   const processExtraction = async (base64Data: string, mimeType: string) => {
@@ -238,19 +318,23 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     const isValidUUID = (s: any) => typeof s === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(s);
     const safeTripId = isValidUUID(selectedTripId) ? selectedTripId : null;
 
-    onImportPilgrim({
+    const newPilgrim = {
       nameArabic: extractedData.fullNameArabic || fullNameLatin || "معتمر جديد",
       nameLatin: fullNameLatin || undefined,
       phone: phoneInput || "98000000",
       passportNumber: extractedData.passportNumber,
       birthDate: normalizeBirthDate(extractedData.dateOfBirth),
-      tripId: selectedTripId,
+      tripId: safeTripId,
       tripName: selectedTrip ? selectedTrip.name : "—",
       uniqueCode: `TUN-${Math.floor(100000 + Math.random() * 900000)}`,
       status: "مؤكد",
       emergencyContact: `Tél CIN: ${extractedData.cinNumber || "Non spécifié"}`,
       avatarUrl: DEFAULT_AVATAR_URL,
-    });
+    };
+
+    const pendingDocument = uploadedFilePath ? { filePath: uploadedFilePath, fileUrl: uploadedFileUrl, mimeType: selectedFile?.type, fileName: selectedFile?.name } : undefined;
+
+    onImportPilgrim(newPilgrim, pendingDocument);
 
     onClose();
   };
@@ -414,7 +498,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                     {extractedData.confidenceScore || 95}% de précision)
                   </span>
                 </div>
-
+ 
                 <button
                   onClick={() => setExtractedData(null)}
                   className="text-xs text-slate-500 hover:text-black font-semibold underline flex items-center gap-1"
@@ -423,6 +507,86 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                   <span>Scanner un autre passeport</span>
                 </button>
               </div>
+
+              {/* Image Preview & Manual Crop / Upload Actions */}
+              <div className="flex items-start gap-4">
+                <div className="w-36 h-36 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center">
+                  {previewUrl ? (
+                    <img src={previewUrl} alt="preview" className="w-full h-full object-contain" />
+                  ) : (
+                    <div className="text-xs text-slate-400">Aucun aperçu</div>
+                  )}
+                </div>
+
+                <div className="flex-1 flex flex-col justify-center gap-2">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsCropOpen(true)}
+                      disabled={!previewUrl}
+                      className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-black text-[11px] font-bold text-slate-800 shadow-2xs transition-all"
+                    >
+                      Cropper manuellement
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-black text-[11px] font-bold text-slate-800 shadow-2xs transition-all"
+                    >
+                      Téléverser une autre image
+                    </button>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      ref={fileInputRef}
+                      onChange={(e) => e.target.files?.[0] && handleFileSelected(e.target.files[0])}
+                    />
+                  </div>
+
+                  <p className="text-xs text-slate-500">Vous pouvez recadrer manuellement l'image du passeport ou télécharger une image différente à utiliser comme photo.</p>
+                </div>
+              </div>
+
+              {/* Cropping Overlay */}
+              {isCropOpen && previewUrl && (
+                <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-6">
+                  <div className="bg-white rounded-xl p-4 max-w-3xl w-full">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="font-bold text-sm">Recadrage manuel</h4>
+                      <div className="flex gap-2">
+                        <button onClick={() => { setIsCropOpen(false); setCropStart(null); setCropEnd(null); }} className="px-3 py-1.5 rounded bg-slate-100">Annuler</button>
+                        <button onClick={performCrop} className="px-3 py-1.5 rounded bg-amber-500 text-white font-bold">Appliquer</button>
+                      </div>
+                    </div>
+                    <div className="relative w-full h-96 border border-slate-200 overflow-auto">
+                      <img
+                        ref={el => (cropImgRef.current = el)}
+                        src={previewUrl}
+                        alt="to-crop"
+                        className="max-w-full max-h-full m-auto block"
+                        onMouseDown={handleCropMouseDown}
+                        onMouseMove={handleCropMouseMove}
+                        onMouseUp={handleCropMouseUp}
+                      />
+                      {/* selection rectangle */}
+                      {cropStart && cropEnd && (
+                        <div style={{
+                          position: 'absolute',
+                          left: Math.min(cropStart.x, cropEnd.x),
+                          top: Math.min(cropStart.y, cropEnd.y),
+                          width: Math.abs(cropEnd.x - cropStart.x),
+                          height: Math.abs(cropEnd.y - cropStart.y),
+                          border: '2px dashed #F59E0B',
+                          pointerEvents: 'none'
+                        }} />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Form Grid for Editing Extracted Data */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
