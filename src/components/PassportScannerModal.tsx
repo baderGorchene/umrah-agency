@@ -124,6 +124,8 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   const [currentStep, setCurrentStep] = useState<number>(1); // 1: extract/upload, 2: crop/upload, 3: assign/save
   const [pendingDocument, setPendingDocument] = useState<{ filePath: string; fileUrl?: string; mimeType?: string; fileName?: string } | null>(null);
   const [uploadFailed, setUploadFailed] = useState(false);
+  const [lastCrop, setLastCrop] = useState<{ start: { x: number; y: number }; end: { x: number; y: number } } | null>(null);
+  const [lastCroppedFile, setLastCroppedFile] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -286,7 +288,36 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
 
           const newPreviewUrl = URL.createObjectURL(croppedFile);
           setSelectedFile(croppedFile);
+          setLastCroppedFile(croppedFile);
           setPreviewUrl(newPreviewUrl);
+
+          // Save last crop (container-relative) so reopening the cropper preserves selection
+          try {
+            const container = img.parentElement as HTMLElement | null;
+            const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 } as DOMRect;
+            const imgRect = img.getBoundingClientRect();
+            const imgOffsetX = imgRect.left - containerRect.left;
+            const imgOffsetY = imgRect.top - containerRect.top;
+
+            // use clamped displayed coordinates computed earlier
+            const sxDisplayed = Math.min(cropStart.x, cropEnd.x) - imgOffsetX;
+            const syDisplayed = Math.min(cropStart.y, cropEnd.y) - imgOffsetY;
+            const swDisplayed = Math.abs(cropEnd.x - cropStart.x);
+            const shDisplayed = Math.abs(cropEnd.y - cropStart.y);
+
+            const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+            const sxClamped = clamp(sxDisplayed, 0, img.clientWidth);
+            const syClamped = clamp(syDisplayed, 0, img.clientHeight);
+            const exClamped = clamp(sxDisplayed + swDisplayed, 0, img.clientWidth);
+            const eyClamped = clamp(syDisplayed + shDisplayed, 0, img.clientHeight);
+
+            const startContainer = { x: sxClamped + imgOffsetX, y: syClamped + imgOffsetY };
+            const endContainer = { x: exClamped + imgOffsetX, y: eyClamped + imgOffsetY };
+
+            setLastCrop({ start: startContainer, end: endContainer });
+          } catch (e) {
+            // ignore
+          }
         }
         setIsCropOpen(false);
         setCropStart(null);
@@ -522,7 +553,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                   type="button"
                   disabled={!selectedFile || isAnalyzing}
                   onClick={handleUploadAndAnalyze}
-                  className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white font-bold px-6 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-2 text-xs cursor-pointer"
+                  className="bg-black hover:bg-slate-900 disabled:opacity-50 text-white font-bold px-6 py-2.5 rounded-xl shadow-xs transition-all flex items-center gap-2 text-xs cursor-pointer"
                 >
                   {isAnalyzing ? (
                     <>
@@ -570,7 +601,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => setIsCropOpen(true)}
+                      onClick={() => { if (lastCrop) { setCropStart(lastCrop.start); setCropEnd(lastCrop.end); } setIsCropOpen(true); }}
                       disabled={!previewUrl}
                       className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-black text-[11px] font-bold text-slate-800 shadow-2xs transition-all"
                     >
@@ -625,13 +656,14 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                           try {
                             let uploadedFileUrl: string | undefined;
                             let uploadedFilePath: string | undefined;
-                            if (selectedFile) {
-                              const uploadRes = await uploadPassportToStorage(selectedFile, selectedFile.name);
+                            const fileToUpload = lastCroppedFile ?? selectedFile;
+                            if (fileToUpload) {
+                              const uploadRes = await uploadPassportToStorage(fileToUpload, fileToUpload.name);
                               if (!uploadRes) throw new Error('Échec du téléversement');
                               uploadedFileUrl = uploadRes.fileUrl;
                               uploadedFilePath = uploadRes.filePath;
                             }
-                            setPendingDocument(uploadedFilePath ? { filePath: uploadedFilePath, fileUrl: uploadedFileUrl, mimeType: selectedFile?.type, fileName: selectedFile?.name } : null);
+                            setPendingDocument(uploadedFilePath ? { filePath: uploadedFilePath, fileUrl: uploadedFileUrl, mimeType: (lastCroppedFile?.type ?? selectedFile?.type), fileName: (lastCroppedFile?.name ?? selectedFile?.name) } : null);
                             setCurrentStep(3);
                           } catch (err: any) {
                             console.error(err);
@@ -641,7 +673,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                             setIsAnalyzing(false);
                           }
                         }}
-                        className="px-3 py-1.5 rounded-lg bg-amber-500 text-white font-bold"
+                        className="px-3 py-1.5 rounded-lg bg-black hover:bg-slate-900 text-white font-bold"
                       >Suivant: Affecter au voyage</button>
 
                       {uploadFailed && (
@@ -754,7 +786,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                   <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => setIsCropOpen(true)}
+                      onClick={() => { if (lastCrop) { setCropStart(lastCrop.start); setCropEnd(lastCrop.end); } setIsCropOpen(true); }}
                       disabled={!previewUrl}
                       className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-black text-[11px] font-bold text-slate-800 shadow-2xs transition-all"
                     >
