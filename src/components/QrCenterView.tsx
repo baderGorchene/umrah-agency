@@ -245,11 +245,11 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
 
   const InfoRow = ({ label, value }: { label: string; value?: string }) => (
     <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-right">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-        {label}
-      </span>
-      <span className="text-[13px] font-bold text-slate-800">
+      <span className="text-[16px] font-bold text-slate-800">
         {value || "—"}
+      </span>
+      <span className="text-[16px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+        {label}
       </span>
     </div>
   );
@@ -295,7 +295,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
               {displayName}
             </p>
             <p
-              className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]"
+              className="mt-0.5 text-[16px] font-semibold uppercase tracking-[0.16em]"
               style={{ color: visuals.highlightColor }}
             >
               {template.name || "بطاقة تعريف المعتمر"}
@@ -306,29 +306,35 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
         // ── وضع كامل ──
         <>
           {/* الترويسة */}
-          <div
-            className="relative flex flex-col items-center gap-1.5 px-4 py-4 text-white"
-            style={{ background: visuals.headerBg }}
-          >
+          <div className="relative h-24 w-full flex items-center justify-between bg-black px-6">
             <div
-              className="absolute inset-0 opacity-40"
-              style={{ backgroundImage: visuals.pattern }}
-            />
-            <div className="relative flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-white/15 shadow-sm">
-                <img
-                  src={`${import.meta.env.BASE_URL}logo.png`}
-                  alt="شعار الوكالة"
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <p className="text-sm font-black leading-tight">
-                مسك طيبة للأسفار و السياحة
-              </p>
+              className="flex items-center justify-center"
+              style={{ width: "100px", height: "100%" }}
+            >
+              <img
+                src={`${import.meta.env.BASE_URL}logo.png`}
+                alt="Logo"
+                className="h-20 w-auto"
+              />
             </div>
-            <p className="relative text-[10px] font-semibold uppercase tracking-[0.28em] text-white/75">
-              {template.name || "بطاقة تعريف المعتمر"}
-            </p>
+            <div
+              className="flex items-center justify-center"
+              style={{ width: "70px", height: "100%" }}
+            >
+              <svg
+                width="100"
+                height="67"
+                viewBox="-60 -40 120 80"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="#e70013"
+              >
+                <path d="M-60-40H60v80H-60z" />
+                <circle fill="#fff" r="20" />
+                <circle r="15" />
+                <circle fill="#fff" cx="4" r="12" />
+                <path d="M-5 0l16.281-5.29L1.22 8.56V-8.56L11.28 5.29z" />
+              </svg>
+            </div>
           </div>
 
           {/* الصورة — صغيرة نسبيًا (٢٠٪) مع إطار ذهبي جميل */}
@@ -336,7 +342,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
             <div
               className="relative overflow-hidden rounded-2xl p-[3px] shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
               style={{
-                width: "80%",
+                width: "70%",
                 minWidth: "72px",
                 aspectRatio: "9 / 9",
                 background: `linear-gradient(135deg, ${visuals.highlightColor}, ${visuals.borderColor})`,
@@ -383,14 +389,14 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
                       emergencyGuide1: `${guide1Name || "—"} (${guide1Phone || "—"})`,
                     }
                   }
-                  size={72}
+                  size={144}
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-bold text-slate-700">
+                <p className="text-[16px] font-bold text-slate-700">
                   امسح الرمز للمساعدة والدعم
                 </p>
-                <p className="mt-0.5 text-[10px] text-slate-400">
+                <p className="mt-0.5 text-[16px] text-slate-400">
                   نرافقكم في رحلة الإيمان
                 </p>
               </div>
@@ -399,7 +405,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
 
           {/* التذييل */}
           <div
-            className="border-t border-slate-100 py-2 text-[10px] font-semibold text-slate-500"
+            className="border-t border-slate-100 py-2 text-[16px] font-semibold text-slate-500"
             style={{ color: visuals.highlightColor }}
           >
             مسك طيبة للأسفار و السياحة
