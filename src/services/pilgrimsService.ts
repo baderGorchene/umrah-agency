@@ -52,8 +52,12 @@ export const createPilgrim = async (pilgrimData: Omit<Pilgrim, 'id'>, trips: Tri
   }
 
   try {
+    // Ensure trip_id is either a valid UUID or null to avoid DB errors when frontend provides mock IDs like 'trip-1'
+    const isValidUUID = (s: any) => typeof s === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(s);
+    const tripId = isValidUUID(pilgrimData.tripId) ? pilgrimData.tripId : null;
+
     const payload = {
-      trip_id: pilgrimData.tripId || null,
+      trip_id: tripId,
       name_arabic: pilgrimData.nameArabic,
       name_latin: pilgrimData.nameLatin,
       phone: pilgrimData.phone,

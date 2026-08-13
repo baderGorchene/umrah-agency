@@ -234,6 +234,10 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       }
     }
 
+    // Ensure tripId is either a valid UUID or null to avoid sending mock/demo ids like 'trip-1' to the backend
+    const isValidUUID = (s: any) => typeof s === 'string' && /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(s);
+    const safeTripId = isValidUUID(selectedTripId) ? selectedTripId : null;
+
     onImportPilgrim({
       nameArabic: extractedData.fullNameArabic || fullNameLatin || "معتمر جديد",
       nameLatin: fullNameLatin || undefined,
