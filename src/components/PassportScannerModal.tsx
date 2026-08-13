@@ -241,8 +241,12 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     setIsAnalyzing(true);
     setError(null);
 
+    // Get API base URL from environment or fallback to production backend domain
+    const API_BASE_URL =
+      import.meta.env.VITE_API_URL || "https://your-backend-api.onrender.com";
+
     try {
-      const response = await fetch("/api/extract-passport", {
+      const response = await fetch(`${API_BASE_URL}/api/extract-passport`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
