@@ -167,6 +167,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   const [isCropOpen, setIsCropOpen] = useState(false);
   const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState<number>(1);
+  const [cropScale, setCropScale] = useState<number>(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [lastCroppedFile, setLastCroppedFile] = useState<File | null>(null);
   const [lastCroppedArea, setLastCroppedArea] = useState<any>(null);
@@ -519,7 +520,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                       type="button"
                       onClick={() => { if (lastCroppedArea) { setCrop({ x: lastCroppedArea.x || 0, y: lastCroppedArea.y || 0 }); setZoom(1); } setIsCropOpen(true); }}
                       disabled={!previewUrl}
-                      className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-black text-[11px] font-bold text-slate-800 shadow-2xs transition-all"
+                      className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-all"
                     >
                       Cropper manuellement
                     </button>
@@ -527,7 +528,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-black text-[11px] font-bold text-slate-800 shadow-2xs transition-all"
+                      className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-all"
                     >
                       Téléverser une autre image
                     </button>
@@ -557,7 +558,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                         setPreviewUrl(null);
                         setCurrentStep(1);
                       }}
-                      className="px-3 py-1.5 rounded-lg bg-slate-100"
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold"
                     >
                       Retour
                     </button>
@@ -580,16 +581,17 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                               uploadedFilePath = uploadRes.filePath;
                             }
                             setPendingDocument(uploadedFilePath ? { filePath: uploadedFilePath, fileUrl: uploadedFileUrl, mimeType: (lastCroppedFile?.type ?? selectedFile?.type), fileName: (lastCroppedFile?.name ?? selectedFile?.name) } : null);
-                            setCurrentStep(3);
                           } catch (err: any) {
                             console.error(err);
                             setError(err.message || 'Upload failed');
                             setUploadFailed(true);
                           } finally {
                             setIsAnalyzing(false);
+                            // always advance to assignment step; upload failures are handled by showing a warning and a fallback option in step 3
+                            setCurrentStep(3);
                           }
                         }}
-                        className="px-3 py-1.5 rounded-lg bg-black hover:bg-slate-900 text-white font-bold"
+                        className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold"
                       >Suivant: Affecter au voyage</button>
 
                       {uploadFailed && (
@@ -600,7 +602,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                             setUploadFailed(false);
                             setCurrentStep(3);
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 text-[11px] font-bold"
+                          className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-700"
                         >Continuer sans téléversement</button>
                       )}
                     </div>
@@ -621,13 +623,13 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                             setCrop({ x: 0, y: 0 });
                             setZoom(1); setCroppedAreaPixels(null);
                           }}
-                          className="px-3 py-1.5 rounded bg-slate-100"
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold"
                         >
                           Annuler
                         </button>
                         <button
                           onClick={performEasyCrop}
-                          className="px-3 py-1.5 rounded bg-black hover:bg-slate-900 text-white font-bold"
+                          className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
                         >
                           Appliquer
                         </button>
@@ -640,21 +642,37 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                           crop={crop}
                           zoom={zoom}
                           aspect={3 / 4}
+                          cropSize={{ width: Math.round(240 * cropScale), height: Math.round(320 * cropScale) }}
                           onCropChange={setCrop}
                           onZoomChange={setZoom}
                           onCropComplete={(_croppedArea, croppedAreaPixels) => setCroppedAreaPixels(croppedAreaPixels)}
                         />
                       </div>
-                      <div className="mt-3">
-                        <input
-                          type="range"
-                          min={1}
-                          max={3}
-                          step={0.1}
-                          value={zoom}
-                          onChange={(e) => setZoom(Number((e.target as HTMLInputElement).value))}
-                          className="w-full"
-                        />
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-slate-400">Zoom</label>
+                          <input
+                            type="range"
+                            min={1}
+                            max={3}
+                            step={0.1}
+                            value={zoom}
+                            onChange={(e) => setZoom(Number((e.target as HTMLInputElement).value))}
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-slate-400">Taille du recadrage</label>
+                          <input
+                            type="range"
+                            min={0.6}
+                            max={1.6}
+                            step={0.05}
+                            value={cropScale}
+                            onChange={(e) => setCropScale(Number((e.target as HTMLInputElement).value))}
+                            className="w-full"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -703,7 +721,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                       type="button"
                       onClick={() => { if (lastCroppedArea) { setCrop({ x: lastCroppedArea.x || 0, y: lastCroppedArea.y || 0 }); setZoom(1); } setIsCropOpen(true); }}
                       disabled={!previewUrl}
-                      className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-black text-[11px] font-bold text-slate-800 shadow-2xs transition-all"
+                      className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-all"
                     >
                       Cropper manuellement
                     </button>
@@ -711,7 +729,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:border-black text-[11px] font-bold text-slate-800 shadow-2xs transition-all"
+                      className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-all"
                     >
                       Téléverser une autre image
                     </button>
@@ -748,13 +766,13 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                             setCrop({ x: 0, y: 0 });
                             setZoom(1); setCroppedAreaPixels(null);
                           }}
-                          className="px-3 py-1.5 rounded bg-slate-100"
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold"
                         >
                           Annuler
                         </button>
                         <button
                           onClick={performEasyCrop}
-                          className="px-3 py-1.5 rounded bg-black hover:bg-slate-900 text-white font-bold"
+                          className="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800"
                         >
                           Appliquer
                         </button>
@@ -767,21 +785,37 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
                           crop={crop}
                           zoom={zoom}
                           aspect={3 / 4}
+                          cropSize={{ width: Math.round(240 * cropScale), height: Math.round(320 * cropScale) }}
                           onCropChange={setCrop}
                           onZoomChange={setZoom}
                           onCropComplete={(_croppedArea, croppedAreaPixels) => setCroppedAreaPixels(croppedAreaPixels)}
                         />
                       </div>
-                      <div className="mt-3">
-                        <input
-                          type="range"
-                          min={1}
-                          max={3}
-                          step={0.1}
-                          value={zoom}
-                          onChange={(e) => setZoom(Number((e.target as HTMLInputElement).value))}
-                          className="w-full"
-                        />
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-slate-400">Zoom</label>
+                          <input
+                            type="range"
+                            min={1}
+                            max={3}
+                            step={0.1}
+                            value={zoom}
+                            onChange={(e) => setZoom(Number((e.target as HTMLInputElement).value))}
+                            className="w-full"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-slate-400">Taille du recadrage</label>
+                          <input
+                            type="range"
+                            min={0.6}
+                            max={1.6}
+                            step={0.05}
+                            value={cropScale}
+                            onChange={(e) => setCropScale(Number((e.target as HTMLInputElement).value))}
+                            className="w-full"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
