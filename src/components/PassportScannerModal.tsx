@@ -17,6 +17,7 @@ import {
   uploadPassportToStorage,
   saveDocumentRecord,
 } from "../services/documentsService";
+import Tesseract from 'tesseract.js';
 
 export interface ExtractedPassportData {
   passportNumber: string;
@@ -243,63 +244,157 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     setCroppedAreaPixels(null);
   };
 
-  const processExtraction = async (base64Data: string, mimeType: string) => {
-    setIsAnalyzing(true);
-    setError(null);
 
-    try {
-      const response = await fetch("/api/extract-passport", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          imageBase64: base64Data,
-          mimeType: mimeType,
-        }),
-      });
-
-      const text = await response.text();
-      let result: {
-        success?: boolean;
-        error?: string;
-        data?: ExtractedPassportData;
-      } | null = null;
-
-      try {
-        result = text ? JSON.parse(text) : null;
-      } catch {
-        result = null;
-      }
-
-      if (!response.ok || !result || !result.success) {
-        const message =
-          result?.error ||
-          "Le scan OCR n'est pas disponible sur cette plateforme statique. Utilisez l'application serveur ou chargez un passeport de démonstration.";
-        throw new Error(message);
-      }
-
-      setExtractedData(result.data || null);
-      setCurrentStep(2);
-    } catch (err: any) {
-      console.error(err);
-      setError(
-        err.message ||
-          "Impossible de lire le passeport. Assurez-vous que l'image est claire.",
-      );
-    } finally {
-      setIsAnalyzing(false);
+const parseMRZ = (mrzLines: string[]): Partial<ExtractedPassportData> => {
+  // Very small MRZ parser for 2-line passport MRZ
+  try {
+    const line1 = mrzLines[0] || "";
+    const line2 = mrzLines[1] || "";
+    // line1: P<COUNTRYSURNAME<<GIVEN<NAMES<<<<<<
+    // line2: passportNo<check><country><dob><check><sex><expiry><check><personalNo<check>
+    const res: Partial<ExtractedPassportData> = {};
+    if (line1.startsWith('P')) {
+      const namePart = line1.slice(5).replace(/<+$/g, '');
+      const [surname, ...given] = namePart.split('<<');
+      res.surnameLatin = (surname || '').replace(/</g, ' ').trim();
+      res.givenNamesLatin = (given.join('<<') || '').replace(/</g, ' ').trim();
     }
-  };
 
-  const handleUploadAndAnalyze = () => {
-    if (!selectedFile) return;
+    // passport number
+    const passportNoMatch = line2.match(/([A-Z0-9<]{1,9})/);
+    if (passportNoMatch) {
+      res.passportNumber = passportNoMatch[1].replace(/</g, '').trim();
+    }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const resultStr = e.target?.result as string;
-      processExtraction(resultStr, selectedFile.type || "image/jpeg");
+    // date of birth YYMMDD at pos 13-18 in MRZ (0-based heuristic)
+    if (line2.length >= 18) {
+      const dobRaw = line2.slice(13, 19); // YYMMDD
+      const yy = dobRaw.slice(0, 2);
+      const mm = dobRaw.slice(2, 4);
+      const dd = dobRaw.slice(4, 6);
+      // assume 19xx/20xx heuristic
+      const year = Number(yy) > 30 ? `19${yy}` : `20${yy}`;
+      res.dateOfBirth = `${year}-${mm}-${dd}`;
+    }
+
+    // sex at pos 20
+    if (line2.length >= 21) {
+      const sex = line2[20];
+      res.sex = sex === 'M' ? 'M' : sex === 'F' ? 'F' : sex;
+    }
+
+    return res;
+  } catch (e) {
+    return {};
+  }
+};
+
+const extractFromText = (text: string): Partial<ExtractedPassportData> => {
+  const data: Partial<ExtractedPassportData> = {};
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+
+  // Try to detect MRZ (lines containing '<' and length >= 30)
+  const mrzCandidates = lines.filter((l) => l.includes('<'));
+  if (mrzCandidates.length >= 2) {
+    // pick last two lines with '<'
+    const lastTwo = mrzCandidates.slice(-2);
+    return { ...data, ...parseMRZ(lastTwo) };
+  }
+
+  // Fallback: passport number patterns like N1234567 or letter+digits
+  const passportMatch = text.match(/([A-Z]\d{6,9}|\bN\d{6,9}\b|\b[A-Z0-9]{6,9}\b)/);
+  if (passportMatch) {
+    data.passportNumber = passportMatch[0];
+  }
+
+  // Attempt to find date patterns
+  const dobMatch = text.match(/(\d{2}[\/\-]\d{2}[\/\-]\d{4})|(\d{4}-\d{2}-\d{2})/);
+  if (dobMatch) {
+    const m = dobMatch[0];
+    // normalize dd/mm/yyyy to yyyy-mm-dd
+    const d1 = m.match(/^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/);
+    if (d1) {
+      data.dateOfBirth = `${d1[3]}-${d1[2]}-${d1[1]}`;
+    } else if (/^\d{4}-\d{2}-\d{2}$/.test(m)) {
+      data.dateOfBirth = m;
+    }
+  }
+
+  // Very naive name extraction: lines with uppercase words
+  const nameLine = lines.find((l) => /[A-Z]{2,}/.test(l) && l.split(' ').length <= 4);
+  if (nameLine && !data.surnameLatin) {
+    const parts = nameLine.split(' ');
+    data.surnameLatin = parts.slice(-1).join(' ');
+    data.givenNamesLatin = parts.slice(0, -1).join(' ');
+  }
+
+  return data;
+};
+
+const processExtraction = async (file: File) => {
+  setIsAnalyzing(true);
+  setError(null);
+
+  try {
+    // Use Tesseract.js client-side OCR. Languages: English + Arabic (if available) to improve results
+    const lang = 'eng+ara';
+    const { data } = await Tesseract.recognize(file, lang, {
+      logger: (m) => {
+        // optional: update progress if desired
+        // console.log('Tesseract', m);
+      },
+    });
+
+    const rawText = data?.text || '';
+
+    // Try MRZ-based parsing or fallback regex parsing
+    let parsed: Partial<ExtractedPassportData> = extractFromText(rawText);
+
+    // If MRZ not found, also inspect rawText for MRZ-like blocks (lines with '<')
+    const rawLines = rawText.split('\n').map((l) => l.trim()).filter(Boolean);
+    const mrzLines = rawLines.filter((l) => l.includes('<') && l.length >= 30);
+    if (mrzLines.length >= 2) {
+      parsed = { ...parsed, ...parseMRZ(mrzLines.slice(-2)) };
+    }
+
+    // Build final extracted data object
+    const finalData: ExtractedPassportData = {
+      passportNumber: parsed.passportNumber || '',
+      surnameLatin: parsed.surnameLatin || '',
+      givenNamesLatin: parsed.givenNamesLatin || '',
+      fullNameArabic: parsed.fullNameArabic || '',
+      cinNumber: parsed.cinNumber || undefined,
+      nationality: parsed.nationality || undefined,
+      dateOfBirth: parsed.dateOfBirth || undefined,
+      placeOfBirth: parsed.placeOfBirth || undefined,
+      sex: (parsed.sex as any) || undefined,
+      issueDate: parsed.issueDate || undefined,
+      expiryDate: parsed.expiryDate || undefined,
+      issuingAuthority: parsed.issuingAuthority || undefined,
+      mrz1: mrzLines[0] || undefined,
+      mrz2: mrzLines[1] || undefined,
+      confidenceScore: Math.round((data?.confidence || 75) as number),
     };
-    reader.readAsDataURL(selectedFile);
-  };
+
+    setExtractedData(finalData);
+    setCurrentStep(2);
+  } catch (err: any) {
+    console.error('OCR error', err);
+    setError(
+      err?.message ||
+        'Impossible de lire le passeport avec OCR local. Assurez-vous que l\'image est nette.',
+    );
+  } finally {
+    setIsAnalyzing(false);
+  }
+};
+
+// Update handler to pass file directly to OCR
+const handleUploadAndAnalyze = () => {
+  if (!selectedFile) return;
+  processExtraction(selectedFile);
+};
+
 
   const normalizeBirthDate = (value?: string): string | undefined => {
     if (!value) return undefined;
@@ -349,7 +444,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
       tripId: safeTripId,
       tripName: selectedTrip ? selectedTrip.name : "—",
       uniqueCode: `TUN-${Math.floor(100000 + Math.random() * 900000)}`,
-      status: "مؤكد",
+      status: 'مؤكد' as Pilgrim['status'],
       emergencyContact: `Tél CIN: ${extractedData.cinNumber || "Non spécifié"}`,
       avatarUrl: DEFAULT_AVATAR_URL,
     };
