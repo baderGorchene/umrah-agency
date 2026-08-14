@@ -95,24 +95,23 @@ export const BadgePage: React.FC = () => {
         console.warn("Error resolving pilgrim for badge page:", err);
       }
 
-      // 3) Fallback to default initial pilgrim
-      const defaultPilgrim = initialPilgrims[0];
+      // 3) Fallback if not found
       setBadgeData({
-        agencyName: "مسك طيبة للأسفار و السياحة",
+        agencyName: "",
         uniqueCode: searchCode.toUpperCase(),
-        nameArabic: defaultPilgrim.nameArabic,
-        nameLatin: defaultPilgrim.nameLatin,
-        passportNumber: defaultPilgrim.passportNumber,
-        birthDate: defaultPilgrim.birthDate || "",
-        tripName: defaultPilgrim.tripName,
-        avatarUrl: defaultPilgrim.avatarUrl || DEFAULT_AVATAR_URL,
-        guide1Name: "نادر قويعة",
-        guide1Phone: "25800884",
-        guide2Name: "منير بن صالح",
-        guide2Phone: "98765432",
-        makkahHotel: "الماسـة — مكة المكرمة",
-        madinahHotel: "الكيان العالمي — المدينة المنورة",
-        status: "مؤكد",
+        nameArabic: "معتمر",
+        nameLatin: "",
+        passportNumber: "",
+        birthDate: "",
+        tripName: "",
+        avatarUrl: DEFAULT_AVATAR_URL,
+        guide1Name: "",
+        guide1Phone: "",
+        guide2Name: "",
+        guide2Phone: "",
+        makkahHotel: "",
+        madinahHotel: "",
+        status: "",
       });
       setLoading(false);
     };

@@ -4,7 +4,7 @@ import { initialNotifications } from '../mockData';
 
 export const getNotifications = async (): Promise<AppNotification[]> => {
   if (!isSupabaseConfigured()) {
-    return initialNotifications;
+    return [];
   }
 
   try {
@@ -14,8 +14,8 @@ export const getNotifications = async (): Promise<AppNotification[]> => {
       .order('created_at', { ascending: false });
 
     if (error || !data) {
-      console.warn('Could not fetch notifications from Supabase, returning mock:', error);
-      return initialNotifications;
+      console.warn('Could not fetch notifications from Supabase:', error);
+      return [];
     }
 
     return data.map((n) => ({
@@ -28,7 +28,7 @@ export const getNotifications = async (): Promise<AppNotification[]> => {
     }));
   } catch (err) {
     console.error('Error fetching notifications from Supabase:', err);
-    return initialNotifications;
+    return [];
   }
 };
 
