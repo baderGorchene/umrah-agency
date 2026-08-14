@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Bell } from 'lucide-react';
 import { Language, AppNotification } from '../types';
 import { useTranslation } from 'react-i18next';
+import { useModalDismiss } from '../lib/useModalDismiss';
 
 interface NotificationDrawerProps {
-  lang: Language;
+  lang?: Language;
   isOpen: boolean;
   onClose: () => void;
   notifications: AppNotification[];
@@ -13,38 +14,20 @@ interface NotificationDrawerProps {
 }
 
 export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
-  lang,
   isOpen,
   onClose,
   notifications,
   onMarkAllAsRead,
   onClearAll
 }) => {
-  const { t, i18n } = useTranslation();
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
+  const { t } = useTranslation();
+  const { handleBackdropClick } = useModalDismiss(isOpen, onClose);
 
   if (!isOpen) return null;
-  const isAr = i18n.language === 'ar';
 
   return (
     <div
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
+      onClick={handleBackdropClick}
       className="fixed inset-0 bg-black/30 backdrop-blur-2xs z-50 flex justify-end rtl:justify-start"
     >
       <div className="w-full max-w-sm bg-white h-full shadow-2xl flex flex-col justify-between animate-in slide-in-from-right rtl:slide-in-from-left duration-200">

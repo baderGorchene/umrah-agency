@@ -1,6 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { AppNotification } from '../types';
-import { initialNotifications } from '../mockData';
 
 export const getNotifications = async (): Promise<AppNotification[]> => {
   if (!isSupabaseConfigured()) {

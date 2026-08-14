@@ -1,10 +1,9 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   Scan,
   Sparkles,
   Plus,
   Search,
-  Download,
   Printer,
   Copy,
   Check,
@@ -15,7 +14,6 @@ import {
   Edit3,
   UserPlus,
   FileSpreadsheet,
-  Calendar,
   ShieldCheck,
   Eye,
   X,
@@ -25,7 +23,6 @@ import {
   User,
   Users,
   Clock,
-  ChevronDown,
   Info,
 } from "lucide-react";
 import {

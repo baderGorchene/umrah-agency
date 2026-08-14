@@ -1,6 +1,5 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
-import { initialPilgrims } from "../mockData";
 
 export const normalizeAvatarUrl = (rawUrl?: string | null): string => {
   if (!rawUrl || rawUrl.trim() === "") return DEFAULT_AVATAR_URL;

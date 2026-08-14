@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { X, ShieldCheck, Check, Copy } from "lucide-react";
 import { Pilgrim, Staff, Trip, DEFAULT_AVATAR_URL } from "../types";
 import { QRCodeView } from "./QRCodeView";
 import { buildBadgePublicUrl } from "../lib/qrCode";
+import { useModalDismiss } from "../lib/useModalDismiss";
 
 interface QRPassModalProps {
   isOpen: boolean;
@@ -19,24 +20,10 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
   onClose,
   pilgrim,
   trip,
-  staffList = [],
   emergencyGuide1,
-  emergencyGuide2,
 }) => {
   const [copied, setCopied] = React.useState(false);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isOpen, onClose]);
+  const { handleBackdropClick } = useModalDismiss(isOpen, onClose);
 
   if (!isOpen || !pilgrim) return null;
 
@@ -47,7 +34,6 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
   const guide1Phone = emergencyGuide1?.phone || "25800884";
 
   const displayName = pilgrim.nameArabic || pilgrim.nameLatin || "معتمر";
-  const displayCode = pilgrim.uniqueCode || "—";
   const avatarInitial = displayName.slice(0, 1).toUpperCase();
 
   const handleCopyLink = () => {
@@ -69,11 +55,7 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
 
   return (
     <div
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
+      onClick={handleBackdropClick}
       className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto animate-in fade-in duration-200"
     >
       <div className="w-full max-w-md space-y-4 my-8 relative z-10 font-sans">

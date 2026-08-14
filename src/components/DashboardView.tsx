@@ -26,7 +26,6 @@ interface DashboardViewProps {
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
-  lang,
   pilgrims,
   staff,
   trips,
@@ -34,10 +33,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenAddStaffModal,
   onOpenAddTripModal
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const activeTrip = trips.find(t => t.active) || trips[0];
-  const isAr = i18n.language === 'ar';
 
   return (
     <div className="space-y-6">

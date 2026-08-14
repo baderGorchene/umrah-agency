@@ -8,36 +8,23 @@ import {
   Gem, 
   FileText, 
   CheckSquare, 
-  X,
-  Printer
+  X
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useModalDismiss } from '../lib/useModalDismiss';
 
 interface SecurityModalProps {
-  lang: Language;
+  lang?: Language;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export const SecurityModal: React.FC<SecurityModalProps> = ({ lang, isOpen, onClose }) => {
-  const { t, i18n } = useTranslation();
-  const isAr = i18n.language === 'ar';
+export const SecurityModal: React.FC<SecurityModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
+  const { handleBackdropClick } = useModalDismiss(isOpen, onClose);
   const [isChecked, setIsChecked] = useState(false);
   const [isAccepted, setIsAccepted] = useState(false);
   const [acceptedDate, setAcceptedDate] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isOpen, onClose]);
 
   useEffect(() => {
     const savedAccepted = localStorage.getItem('charterAccepted') === 'true';
@@ -72,11 +59,7 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ lang, isOpen, onCl
 
   return (
     <div
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
+      onClick={handleBackdropClick}
       className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-in fade-in duration-200"
     >
       <div className="bg-white border border-slate-100 rounded-3xl shadow-2xl w-full max-w-5xl my-6 overflow-hidden text-slate-900 font-sans relative flex flex-col max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:w-full print:my-0">

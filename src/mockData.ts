@@ -33,8 +33,6 @@ export const initialPosts: Post[] = [];
 
 export const initialNotifications: AppNotification[] = [];
 
-export const initialPassportEntries: PassportEntry[] = [];
-
 export const badgeTemplates: BadgeTemplate[] = [
   {
     id: "classic",
