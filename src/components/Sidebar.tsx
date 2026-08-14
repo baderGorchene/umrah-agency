@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -13,6 +13,8 @@ import {
   ShieldCheck,
   User,
   UserCheck as StaffIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Language, UserProfile, UserRole } from "../types";
 
@@ -27,8 +29,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   lang,
   currentUser,
 }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const isAr = lang === "AR";
   const userRole: UserRole = currentUser?.role || "admin";
+
+  const toggleSidebar = () => {
+    setIsCollapsed((prev) => !prev);
+  };
 
   const menuItems: {
     path: string;
@@ -122,25 +129,59 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const RoleIcon = roleBadgeInfo.icon;
 
+  // Arrow orientation logic based on Arabic (RTL) vs LTR
+  const renderCollapseIcon = () => {
+    if (isAr) {
+      return isCollapsed ? (
+        <ChevronLeft className="w-5 h-5 text-slate-600" />
+      ) : (
+        <ChevronRight className="w-5 h-5 text-slate-600" />
+      );
+    }
+    return isCollapsed ? (
+      <ChevronRight className="w-5 h-5 text-slate-600" />
+    ) : (
+      <ChevronLeft className="w-5 h-5 text-slate-600" />
+    );
+  };
+
   return (
-    <aside className="w-64 bg-white border-r rtl:border-r-0 rtl:border-l border-slate-100 flex flex-col justify-between h-screen sticky top-0 shrink-0 z-30 select-none print:hidden">
+    <aside
+      className={`relative bg-white flex flex-col justify-between h-screen sticky top-0 shrink-0 z-30 select-none print:hidden transition-all duration-300 ${
+        isCollapsed ? "w-20" : "w-64"
+      }`}
+    >
+      {/* 
+        =======================================================
+        CENTERED TOGGLE BUTTON
+        Using `top-1/2 -translate-y-1/2` to center vertically.
+        =======================================================
+      */}
+      <button
+        onClick={toggleSidebar}
+        title={
+          isCollapsed ? (isAr ? "توسيع" : "Déplier") : isAr ? "طي" : "Replier"
+        }
+        className={`absolute top-1/2 -translate-y-1/2 ${
+          isAr ? "-left-3.5" : "-right-3.5"
+        } flex items-center justify-center bg-white border border-slate-200 rounded-full p-1 shadow-md hover:bg-slate-50 transition-colors cursor-pointer z-40`}
+      >
+        {renderCollapseIcon()}
+      </button>
+
       <div>
-        {/* Logo Header */}
-        <div className="p-4 border-b border-slate-100 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-black border border-amber-500/40 flex items-center justify-center overflow-hidden shadow-xs shrink-0">
+        {/* Centered & Larger Logo Header */}
+        <div className="p-4 flex items-center justify-center">
+          <div
+            className={`rounded-xl flex items-center justify-center overflow-hidden shrink-0 transition-all duration-300 ${
+              isCollapsed ? "w-12 h-12" : "w-28 h-28"
+            }`}
+          >
             <img
               src={`${import.meta.env.BASE_URL}logo.jpeg`}
               alt="Agency logo"
               className="w-full h-full object-cover"
             />
-          </div>
-          <div>
-            <h1 className="font-bold text-slate-900 text-sm leading-tight">
-              مسك طيبة للاسفار و السياحة
-            </h1>
-            <p className="text-xs text-slate-500 font-medium">
-              Umrah Compagnon
-            </p>
           </div>
         </div>
 
@@ -148,13 +189,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <nav className="p-3 space-y-1">
           {visibleMenuItems.map((item) => {
             const Icon = item.icon;
+            const label = isAr ? item.labelAr : item.labelFr;
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
                 end={item.path === "/"}
+                title={isCollapsed ? label : undefined}
                 className={({ isActive }) =>
-                  `w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all ${
+                  `w-full flex items-center ${
+                    isCollapsed ? "justify-center px-2" : "gap-3 px-3"
+                  } py-2.5 text-sm font-medium transition-all ${
                     isActive
                       ? "bg-black text-white rounded-lg shadow-xs"
                       : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg"
@@ -164,13 +209,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {({ isActive }) => (
                   <>
                     <Icon
-                      className={`w-4 h-4 shrink-0 ${
+                      className={`w-5 h-5 shrink-0 ${
                         isActive ? "text-white" : "text-slate-500"
                       }`}
                     />
-                    <span className="truncate">
-                      {isAr ? item.labelAr : item.labelFr}
-                    </span>
+                    {!isCollapsed && <span className="truncate">{label}</span>}
                   </>
                 )}
               </NavLink>
@@ -181,29 +224,50 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Footer / Profile & Role Badge */}
       <div className="p-3 border-t border-slate-100 bg-slate-50/50 space-y-2">
-        <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center gap-2 overflow-hidden">
+        <div
+          className={`flex items-center ${
+            isCollapsed ? "justify-center p-2" : "justify-between p-2.5"
+          } rounded-xl bg-white border border-slate-200/80 shadow-2xs`}
+        >
+          <div
+            className={`flex items-center ${
+              isCollapsed ? "justify-center" : "gap-2"
+            } overflow-hidden`}
+          >
             <div
               className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${roleBadgeInfo.bg}`}
+              title={
+                isCollapsed
+                  ? `${currentUser?.fullName || (isAr ? "مستخدم" : "Utilisateur")} (${
+                      isAr ? roleBadgeInfo.labelAr : roleBadgeInfo.labelFr
+                    })`
+                  : undefined
+              }
             >
               <RoleIcon className="w-4 h-4" />
             </div>
-            <div className="truncate">
-              <p className="text-xs font-bold text-slate-900 truncate">
-                {currentUser?.fullName || (isAr ? "مستخدم" : "Utilisateur")}
-              </p>
-              <p className="text-[10px] text-slate-500 font-medium truncate">
-                {isAr ? roleBadgeInfo.labelAr : roleBadgeInfo.labelFr}
-              </p>
-            </div>
+
+            {!isCollapsed && (
+              <div className="truncate">
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  {currentUser?.fullName || (isAr ? "مستخدم" : "Utilisateur")}
+                </p>
+                <p className="text-[10px] text-slate-500 font-medium truncate">
+                  {isAr ? roleBadgeInfo.labelAr : roleBadgeInfo.labelFr}
+                </p>
+              </div>
+            )}
           </div>
-          <button
-            onClick={onLogout}
-            title={isAr ? "تسجيل الخروج" : "Déconnexion"}
-            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+
+          {!isCollapsed && (
+            <button
+              onClick={onLogout}
+              title={isAr ? "تسجيل الخروج" : "Déconnexion"}
+              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </aside>

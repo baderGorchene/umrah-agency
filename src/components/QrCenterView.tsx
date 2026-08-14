@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   QrCode,
-  Printer,
   Download,
+  Image as ImageIcon,
   RefreshCw,
   Palette,
   Eye,
@@ -17,6 +17,13 @@ import {
   Activity,
   Compass,
 } from "lucide-react";
+import jsPDF from "jspdf";
+// Use the "-pro" fork instead of the base "html2canvas" package: Tailwind v4
+// generates colors using modern CSS functions (oklch/lab/lch/color()) that
+// the original html2canvas cannot parse and throws on. html2canvas-pro adds
+// support for these while keeping the same API.
+import html2canvas from "html2canvas-pro";
+import JSZip from "jszip";
 import {
   Trip,
   Pilgrim,
@@ -228,6 +235,14 @@ const buildBadgePageUrl = (uniqueCode: string): string => {
   return `${appOrigin}${baseUrl}#/badge/${encodeURIComponent(uniqueCode)}`;
 };
 
+/** Turns a pilgrim's display name into a filesystem-safe file name. */
+const toSafeFileName = (value: string): string =>
+  value
+    .normalize("NFKD")
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "_") || "badge";
+
 const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   template,
   pilgrim,
@@ -245,12 +260,10 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
 
   const InfoRow = ({ label, value }: { label: string; value?: string }) => (
     <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-right">
-      <span className="text-[16px] font-bold text-slate-800">
+      <span className="text-[14px] font-bold text-slate-800">
         {value || "—"}
       </span>
-      <span className="text-[16px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-        {label}
-      </span>
+      <span className="text-[14px] font-semibold text-slate-950">{label}</span>
     </div>
   );
 
@@ -295,7 +308,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
               {displayName}
             </p>
             <p
-              className="mt-0.5 text-[16px] font-semibold uppercase tracking-[0.16em]"
+              className="mt-0.5 text-[14px] font-semibold"
               style={{ color: visuals.highlightColor }}
             >
               {template.name || "بطاقة تعريف المعتمر"}
@@ -306,13 +319,13 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
         // ── وضع كامل ──
         <>
           {/* الترويسة */}
-          <div className="relative h-24 w-full flex items-center justify-between bg-black px-6">
+          <div className="relative h-20 w-full flex items-center justify-between bg-black px-6">
             <div
               className="flex items-center justify-center"
               style={{ width: "100px", height: "100%" }}
             >
               <img
-                src={`${import.meta.env.BASE_URL}logo.jpeg`}
+                src={`${import.meta.env.BASE_URL}logob.jpeg`}
                 alt="Logo"
                 className="h-20 w-auto"
               />
@@ -389,14 +402,14 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
                       emergencyGuide1: `${guide1Name || "—"} (${guide1Phone || "—"})`,
                     }
                   }
-                  size={144}
+                  size={90}
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[16px] font-bold text-slate-700">
+                <p className="text-[14px] font-bold text-slate-700">
                   امسح الرمز للمساعدة والدعم
                 </p>
-                <p className="mt-0.5 text-[16px] text-slate-400">
+                <p className="mt-0.5 text-[14px] text-slate-400">
                   نرافقكم في رحلة الإيمان
                 </p>
               </div>
@@ -405,7 +418,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
 
           {/* التذييل */}
           <div
-            className="border-t border-slate-100 py-2 text-[16px] font-semibold text-slate-500"
+            className="border-t border-slate-100 py-2 text-[14px] font-semibold text-slate-500"
             style={{ color: visuals.highlightColor }}
           >
             مسك طيبة للأسفار و السياحة
@@ -461,13 +474,16 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
   const [savedBadgeCount, setSavedBadgeCount] = useState(
     getGeneratedBadgeCount(),
   );
-  const [isPrintMode, setIsPrintMode] = useState(false);
 
-  // Batch print mode vs single badge mode.
-  // Kept in state so the batch-grid rendering path below still works if you
-  // wire up a control for it again later — the screenshot this was matched
-  // against doesn't show a visible toggle, so the switcher UI was removed.
-  const [printMode, setPrintMode] = useState<"single" | "batch">("single");
+  // Export state (PDF / JPG) — drives the disabled/spinner state of the toolbar buttons.
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isExportingJpg, setIsExportingJpg] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // Off-screen full-size badge nodes, one per pilgrim, used as the source for
+  // html2canvas when exporting to PDF/JPG so exports always use the full
+  // (non-compact) badge layout regardless of what's expanded in the preview.
+  const badgeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   // Inspection modal
   const [inspectingPilgrim, setInspectingPilgrim] = useState<Pilgrim | null>(
@@ -585,72 +601,156 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
     }
   };
 
-  const handlePrint = () => {
-    setIsPrintMode(true);
-    window.setTimeout(() => {
-      window.print();
-    }, 50);
-
-    window.addEventListener(
-      "afterprint",
-      () => {
-        setIsPrintMode(false);
-      },
-      { once: true },
-    );
+  /** Waits for every <img> inside a node to finish loading (or erroring) before capture. */
+  const waitForImages = (node: HTMLElement): Promise<void> => {
+    const imgs = Array.from(node.querySelectorAll("img"));
+    return Promise.all(
+      imgs.map((img) => {
+        if (img.complete) return Promise.resolve();
+        return new Promise<void>((resolve) => {
+          img.addEventListener("load", () => resolve(), { once: true });
+          img.addEventListener("error", () => resolve(), { once: true });
+        });
+      }),
+    ).then(() => undefined);
   };
 
-  const printStyles = `
-    @media print {
-      @page {
-        size: A4 portrait;
-        margin: 8mm;
+  const captureBadgeCanvas = async (
+    pilgrim: Pilgrim,
+  ): Promise<HTMLCanvasElement | null> => {
+    const node = badgeRefs.current.get(pilgrim.id);
+    if (!node) return null;
+    await waitForImages(node);
+    return html2canvas(node, {
+      scale: 3,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+    });
+  };
+
+  // Exporte les badges en PDF, deux badges par page A4.
+  const handleExportPDF = async () => {
+    if (!hasPilgrims || isExportingPdf) return;
+    setIsExportingPdf(true);
+    setExportError(null);
+
+    try {
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 8;
+      const gap = 6;
+      const columns = 2;
+      const rows = 2;
+      const perPage = columns * rows;
+      const slotWidth =
+        (pageWidth - margin * 2 - gap * (columns - 1)) / columns;
+      const slotHeight = (pageHeight - margin * 2 - gap * (rows - 1)) / rows;
+
+      for (let i = 0; i < tripPilgrims.length; i++) {
+        const pilgrim = tripPilgrims[i];
+        const canvas = await captureBadgeCanvas(pilgrim);
+        if (!canvas) continue;
+
+        const positionOnPage = i % perPage; // 0..3 = position dans la grille 2x2
+        if (i > 0 && positionOnPage === 0) {
+          pdf.addPage();
+        }
+
+        const col = positionOnPage % columns;
+        const row = Math.floor(positionOnPage / columns);
+        const slotX = margin + col * (slotWidth + gap);
+        const slotY = margin + row * (slotHeight + gap);
+
+        // Ajuste l'image dans son emplacement en conservant les proportions.
+        const imgRatio = canvas.width / canvas.height;
+        const slotRatio = slotWidth / slotHeight;
+        let drawWidth = slotWidth;
+        let drawHeight = slotHeight;
+        if (imgRatio > slotRatio) {
+          drawHeight = slotWidth / imgRatio;
+        } else {
+          drawWidth = slotHeight * imgRatio;
+        }
+        const drawX = slotX + (slotWidth - drawWidth) / 2;
+        const drawY = slotY + (slotHeight - drawHeight) / 2;
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.95);
+        pdf.addImage(imgData, "JPEG", drawX, drawY, drawWidth, drawHeight);
       }
 
-      html, body {
-        background: #ffffff !important;
-      }
-
-      body {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-
-      .badge-print-grid {
-        display: block !important;
-        max-height: none !important;
-        overflow: visible !important;
-      }
-
-      .badge-print-item {
-        display: block !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        break-inside: avoid;
-        page-break-inside: avoid;
-        page-break-after: always;
-        margin: 0 auto 12mm;
-      }
-
-      .badge-print-item:last-child {
-        page-break-after: auto;
-      }
-
-      .badge-print-item .badge-artwork-shell {
-        width: 100% !important;
-        max-width: 430px !important;
-        margin: 0 auto;
-      }
+      const fileTripName = toSafeFileName(selectedTrip?.name || "voyage");
+      pdf.save(`badges-${fileTripName}.pdf`);
+    } catch (err) {
+      console.error("Erreur export PDF", err);
+      setExportError("Échec de l'export PDF. Veuillez réessayer.");
+    } finally {
+      setIsExportingPdf(false);
     }
-  `;
+  };
+
+  // Exporte chaque badge en JPG, regroupés dans un dossier (fichier .zip).
+  const handleExportJPG = async () => {
+    if (!hasPilgrims || isExportingJpg) return;
+    setIsExportingJpg(true);
+    setExportError(null);
+
+    try {
+      const zip = new JSZip();
+      const fileTripName = toSafeFileName(selectedTrip?.name || "voyage");
+      const folder = zip.folder(`badges-${fileTripName}`);
+      const usedNames = new Set<string>();
+
+      for (const pilgrim of tripPilgrims) {
+        const canvas = await captureBadgeCanvas(pilgrim);
+        if (!canvas) continue;
+
+        const blob: Blob | null = await new Promise((resolve) =>
+          canvas.toBlob((b) => resolve(b), "image/jpeg", 0.95),
+        );
+        if (!blob) continue;
+
+        let baseName = toSafeFileName(
+          pilgrim.nameLatin || pilgrim.nameArabic || pilgrim.uniqueCode,
+        );
+        let fileName = `${baseName}.jpg`;
+        let suffix = 2;
+        while (usedNames.has(fileName)) {
+          fileName = `${baseName}_${suffix}.jpg`;
+          suffix += 1;
+        }
+        usedNames.add(fileName);
+
+        folder?.file(fileName, blob);
+      }
+
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `badges-${fileTripName}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Erreur export JPG", err);
+      setExportError("Échec de l'export JPG. Veuillez réessayer.");
+    } finally {
+      setIsExportingJpg(false);
+    }
+  };
 
   return (
     <>
-      <style>{printStyles}</style>
-      <div className={`space-y-6 ${isPrintMode ? "badge-print-mode" : ""}`}>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 print:block">
-          {/* Left Panel (Controls) - Hidden on Print */}
-          <div className="lg:col-span-5 space-y-6 print:hidden">
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Panel (Controls) */}
+          <div className="lg:col-span-5 space-y-6">
             <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-5">
               <h2 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-3 flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-slate-500" />
@@ -808,10 +908,10 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
           </div>
 
           {/* Right Panel (Preview & Template Controls) */}
-          <div className="lg:col-span-7 space-y-6 print:w-full print:p-0">
-            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-6 print:border-none print:shadow-none print:p-0">
+          <div className="lg:col-span-7 space-y-6">
+            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-6">
               {/* Top Toolbar */}
-              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4 print:hidden">
+              <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
                 <h2 className="font-bold text-slate-900 text-base leading-snug max-w-[220px]">
                   {isAr
                     ? "معاينة بطاقات الهوية الرقمية"
@@ -824,20 +924,36 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                     Aperçu en Direct
                   </span>
                   <button
-                    onClick={handlePrint}
-                    disabled={!hasPilgrims}
+                    onClick={handleExportPDF}
+                    disabled={!hasPilgrims || isExportingPdf}
                     className="px-3 py-1.5 bg-white border border-slate-200 disabled:text-slate-300 text-slate-500 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    <Printer className="w-3.5 h-3.5" />
-                    <span>Imprimer les Cartes</span>
+                    {isExportingPdf ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                    <span>
+                      {isExportingPdf
+                        ? "Export en cours..."
+                        : "Exporter en PDF"}
+                    </span>
                   </button>
                   <button
-                    onClick={handlePrint}
-                    disabled={!hasPilgrims}
+                    onClick={handleExportJPG}
+                    disabled={!hasPilgrims || isExportingJpg}
                     className="px-3 py-1.5 bg-white border border-slate-200 disabled:text-slate-300 text-slate-500 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Exporter en PDF</span>
+                    {isExportingJpg ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <ImageIcon className="w-3.5 h-3.5" />
+                    )}
+                    <span>
+                      {isExportingJpg
+                        ? "Export en cours..."
+                        : "Exporter en JPG"}
+                    </span>
                   </button>
                   <button
                     onClick={handleGenerateBadges}
@@ -850,7 +966,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
               </div>
 
               {/* Template Selector */}
-              <div className="space-y-3 print:hidden">
+              <div className="space-y-3">
                 <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-700 flex items-center justify-center shrink-0">
@@ -919,26 +1035,29 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
 
               {/* Badge Preview Area */}
               {saveStatus && (
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 print:hidden">
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                   {saveStatus}
+                </div>
+              )}
+
+              {exportError && (
+                <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {exportError}
                 </div>
               )}
 
               {hasPilgrims ? (
                 <div className="space-y-4">
                   {/* All Badges — flex-wrap reflows around the expanded one, no empty gaps */}
-                  <div className="badge-print-grid flex flex-wrap gap-4 max-h-[80vh] overflow-y-auto pr-1 content-start print:max-h-none print:overflow-visible print:pr-0">
+                  <div className="flex flex-wrap gap-4 max-h-[80vh] overflow-y-auto pr-1 content-start">
                     {tripPilgrims.map((p) => {
                       const isExpanded = selectedPilgrimForPreview?.id === p.id;
-                      const shouldExpandInPrint = isPrintMode || isExpanded;
 
                       return (
                         <div
                           key={p.id}
-                          className={`badge-print-item transition-all duration-300 ease-out print:break-inside-avoid ${
-                            shouldExpandInPrint
-                              ? "w-full"
-                              : "w-[calc(50%-0.5rem)]"
+                          className={`transition-all duration-300 ease-out ${
+                            isExpanded ? "w-full" : "w-[calc(50%-0.5rem)]"
                           }`}
                         >
                           <button
@@ -948,7 +1067,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                                 isExpanded ? null : p,
                               )
                             }
-                            className="block w-full cursor-pointer text-left print:pointer-events-none"
+                            className="block w-full cursor-pointer text-left"
                           >
                             <BadgeArtwork
                               template={selectedTemplate}
@@ -959,9 +1078,9 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                               guide2Name={guide2Name}
                               guide2Phone={guide2Phone}
                               qrPayload={buildBadgePageUrl(p.uniqueCode)}
-                              compact={isPrintMode ? false : !isExpanded}
-                              className={`badge-artwork-shell w-full transition-all duration-300 ease-out ${
-                                shouldExpandInPrint
+                              compact={!isExpanded}
+                              className={`w-full transition-all duration-300 ease-out ${
+                                isExpanded
                                   ? "shadow-xl ring-2 ring-black/10"
                                   : "hover:shadow-md hover:-translate-y-0.5"
                               }`}
@@ -972,7 +1091,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                             <button
                               type="button"
                               onClick={() => setInspectingPilgrim(p)}
-                              className="mt-3 w-full bg-slate-900 hover:bg-black text-white text-[11px] font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer print:hidden"
+                              className="mt-3 w-full bg-slate-900 hover:bg-black text-white text-[11px] font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                             >
                               <Eye className="w-3.5 h-3.5 text-amber-400" />
                               <span>Inspecter le Pass Numérique</span>
@@ -1002,6 +1121,46 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Off-screen full-size badges used as the source for PDF/JPG export.
+          Rendered outside the viewport (not display:none, so layout/fonts
+          compute correctly for html2canvas) for every pilgrim in the trip. */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: "-99999px",
+          zIndex: -1,
+          pointerEvents: "none",
+        }}
+      >
+        {tripPilgrims.map((p) => (
+          <div
+            key={`export-${p.id}`}
+            ref={(el) => {
+              if (el) {
+                badgeRefs.current.set(p.id, el);
+              } else {
+                badgeRefs.current.delete(p.id);
+              }
+            }}
+            style={{ width: "380px" }}
+          >
+            <BadgeArtwork
+              template={selectedTemplate}
+              pilgrim={p}
+              trip={selectedTrip}
+              guide1Name={guide1Name}
+              guide1Phone={guide1Phone}
+              guide2Name={guide2Name}
+              guide2Phone={guide2Phone}
+              qrPayload={buildBadgePageUrl(p.uniqueCode)}
+              compact={false}
+            />
+          </div>
+        ))}
       </div>
 
       {/* Template Selector Modal */}

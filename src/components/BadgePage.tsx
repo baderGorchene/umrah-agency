@@ -172,7 +172,7 @@ export const BadgePage: React.FC = () => {
               style={{ width: "100px", height: "100%" }}
             >
               <img
-                src={`${import.meta.env.BASE_URL}logo.jpeg`}
+                src={`${import.meta.env.BASE_URL}logob.jpeg`}
                 alt="Logo"
                 className="h-20 w-auto"
               />
