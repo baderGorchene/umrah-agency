@@ -18,6 +18,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Language, UserProfile, UserRole } from "../types";
+import { useTranslation } from "react-i18next";
 
 interface SidebarProps {
   onLogout: () => void;
@@ -30,8 +31,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
   lang,
   currentUser,
 }) => {
+  const { t, i18n } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const isAr = lang === "AR";
+  const isAr = i18n.language === "ar";
   const userRole: UserRole = currentUser?.role || "admin";
 
   const toggleSidebar = () => {
@@ -40,71 +42,61 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const menuItems: {
     path: string;
-    labelAr: string;
-    labelFr: string;
+    labelKey: string;
     icon: React.ElementType;
     allowedRoles: UserRole[];
   }[] = [
     {
       path: "/",
-      labelAr: "لوحة التحكم",
-      labelFr: "Tableau de bord",
+      labelKey: "menu.dashboard",
       icon: LayoutDashboard,
       allowedRoles: ["admin", "agent", "pilgrim"],
     },
     {
       path: "/pilgrims",
-      labelAr: "المعتمرون",
-      labelFr: "Pèlerins",
+      labelKey: "menu.pilgrims",
       icon: Users,
       allowedRoles: ["admin", "agent"],
     },
     {
       path: "/passports",
-      labelAr: "استخراج الجوازات",
-      labelFr: "Registre Passeports",
+      labelKey: "menu.passports",
       icon: Scan,
       allowedRoles: ["admin", "agent"],
     },
     {
       path: "/staff",
-      labelAr: "المرافقون",
-      labelFr: "Accompagnateurs",
+      labelKey: "menu.staff",
       icon: UserCheck,
       allowedRoles: ["admin", "agent"],
     },
     {
       path: "/trips",
-      labelAr: "الرحلات",
-      labelFr: "Voyages",
+      labelKey: "menu.trips",
       icon: Plane,
       allowedRoles: ["admin", "agent"],
     },
     {
       path: "/qr-center",
-      labelAr: "مركز الرمز الرقمي",
-      labelFr: "Centre QR Pass",
+      labelKey: "menu.qr_center",
       icon: QrCode,
       allowedRoles: ["admin", "agent", "pilgrim"],
     },
     {
       path: "/documents",
-      labelAr: "الوثائق والملفات",
-      labelFr: "Documents",
+      labelKey: "menu.documents",
       icon: FileText,
       allowedRoles: ["admin", "agent"],
     },
     {
       path: "/news",
-      labelAr: "الأخبار والتحديثات",
-      labelFr: "Actualités",
+      labelKey: "menu.news",
       icon: Newspaper,
       allowedRoles: ["admin", "agent", "pilgrim"],
     },
     {
       path: "/settings",
-      labelAr: "الإعدادات",
-      labelFr: "Paramètres",
+      labelKey: "menu.settings",
       icon: Settings,
       allowedRoles: ["admin"],
     },
@@ -116,20 +108,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const roleBadgeInfo = {
     admin: {
-      labelAr: "مدير النظام",
-      labelFr: "Administrateur",
+      labelKey: "roles.admin",
       bg: "bg-amber-100 border-amber-300 text-amber-900",
       icon: ShieldCheck,
     },
     agent: {
-      labelAr: "مرافق / وكيل",
-      labelFr: "Accompagnateur",
+      labelKey: "roles.agent",
       bg: "bg-blue-100 border-blue-300 text-blue-900",
       icon: StaffIcon,
     },
     pilgrim: {
-      labelAr: "معتمر",
-      labelFr: "Pèlerin",
+      labelKey: "roles.pilgrim",
       bg: "bg-emerald-100 border-emerald-300 text-emerald-900",
       icon: User,
     },
@@ -197,7 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <nav className="p-3 space-y-1">
           {visibleMenuItems.map((item) => {
             const Icon = item.icon;
-            const label = isAr ? item.labelAr : item.labelFr;
+            const label = t(item.labelKey);
             return (
               <NavLink
                 key={item.path}
@@ -246,8 +235,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${roleBadgeInfo.bg}`}
               title={
                 isCollapsed
-                  ? `${currentUser?.fullName || (isAr ? "مستخدم" : "Utilisateur")} (${
-                      isAr ? roleBadgeInfo.labelAr : roleBadgeInfo.labelFr
+                  ? `${currentUser?.fullName || t('users.user')} (${
+                      t(roleBadgeInfo.labelKey)
                     })`
                   : undefined
               }
@@ -258,10 +247,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {!isCollapsed && (
               <div className="truncate">
                 <p className="text-xs font-bold text-slate-900 truncate">
-                  {currentUser?.fullName || (isAr ? "مستخدم" : "Utilisateur")}
+                  {currentUser?.fullName || t('users.user')}
                 </p>
                 <p className="text-[10px] text-slate-500 font-medium truncate">
-                  {isAr ? roleBadgeInfo.labelAr : roleBadgeInfo.labelFr}
+                  {t(roleBadgeInfo.labelKey)}
                 </p>
               </div>
             )}

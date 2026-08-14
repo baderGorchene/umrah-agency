@@ -13,6 +13,7 @@ import {
   ChevronRight 
 } from 'lucide-react';
 import { Language, Pilgrim, Staff, Trip } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface DashboardViewProps {
   lang: Language;
@@ -33,19 +34,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenAddStaffModal,
   onOpenAddTripModal
 }) => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const activeTrip = trips.find(t => t.active) || trips[0];
-  const isAr = lang === 'AR';
+  const isAr = i18n.language === 'ar';
 
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          {isAr ? 'مرحباً بك مجدداً' : 'Ravi de vous revoir'}
+          {t('dashboard.welcome')}
         </h1>
         <p className="text-xs text-slate-500 font-medium">
-          {isAr ? 'إليك نشاط وكالتك اليوم.' : "Voici l'activité de votre agence aujourd'hui."}
+          {t('dashboard.subtitle')}
         </p>
       </div>
 
@@ -61,7 +63,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div>
             <p className="text-xs font-semibold text-slate-500">
-              {isAr ? 'إجمالي المعتمرين' : 'Total Pèlerins'}
+              {t('dashboard.total_pilgrims')}
             </p>
             <p className="text-2xl font-extrabold text-slate-900">{pilgrims.length}</p>
           </div>
@@ -77,7 +79,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div>
             <p className="text-xs font-semibold text-slate-500">
-              {isAr ? 'إجمالي الرحلات' : 'Total des Voyages'}
+              {t('dashboard.total_trips')}
             </p>
             <p className="text-2xl font-extrabold text-slate-900">{trips.length}</p>
           </div>
@@ -93,7 +95,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div>
             <p className="text-xs font-semibold text-slate-500">
-              {isAr ? 'المرافقون' : 'Accompagnateurs'}
+              {t('dashboard.accompagneurs')}
             </p>
             <p className="text-2xl font-extrabold text-slate-900">{staff.length}</p>
           </div>
@@ -106,7 +108,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div>
             <p className="text-xs font-semibold text-slate-500">
-              {isAr ? 'تنبيهات الطوارئ' : 'Alertes SOS Ouvertes'}
+              {t('dashboard.emergency_alerts')}
             </p>
             <p className="text-2xl font-extrabold text-slate-900">0</p>
           </div>
@@ -121,14 +123,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="flex items-center gap-2">
               <Plane className="w-5 h-5 text-slate-700" />
               <h2 className="font-bold text-slate-900 text-sm">
-                {isAr ? 'الرحلات الحالية' : 'Voyages actuels'}
+                {t('dashboard.current_trips')}
               </h2>
             </div>
             <button 
               onClick={() => navigate('/trips')}
               className="text-xs font-semibold text-slate-500 hover:text-black flex items-center gap-1"
             >
-              <span>{isAr ? 'عرض الكل' : 'Voir tout'}</span>
+              <span>{t('dashboard.view_all')}</span>
               <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180" />
             </button>
           </div>
@@ -145,12 +147,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="flex items-center gap-4 text-xs text-slate-600 bg-white p-3 rounded-lg border border-slate-100">
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{isAr ? 'المغادرة' : 'Départ'} <b>{activeTrip.startDate}</b></span>
+                  <span>{t('dashboard.depart')} <b>{activeTrip.startDate}</b></span>
                 </div>
                 <span className="rtl:rotate-180">→</span>
                 <div className="flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{isAr ? 'العودة' : 'Retour'} <b>{activeTrip.endDate}</b></span>
+                  <span>{t('dashboard.retour')} <b>{activeTrip.endDate}</b></span>
                 </div>
               </div>
 
@@ -160,7 +162,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <div>
                     <span className="font-bold text-emerald-900 text-sm">{activeTrip.pilgrimCount}</span>
                     <p className="text-[10px] text-emerald-700 font-medium">
-                      {isAr ? 'معتمر' : 'Pèlerin(s)'}
+                      {t('dashboard.pilgrims_count')}
                     </p>
                   </div>
                 </div>
@@ -170,7 +172,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <div>
                     <span className="font-bold text-sky-900 text-sm">{activeTrip.guideCount}</span>
                     <p className="text-[10px] text-sky-700 font-medium">
-                      {isAr ? 'مرافق' : 'Accompagnateur(s)'}
+                      {t('dashboard.guides_count')}
                     </p>
                   </div>
                 </div>
@@ -178,7 +180,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           ) : (
             <p className="text-xs text-slate-400 py-6 text-center">
-              {isAr ? 'لا توجد رحلة نشطة حالياً.' : 'Aucun voyage actif actuellement.'}
+              {t('dashboard.no_active_trip')}
             </p>
           )}
         </div>
@@ -188,7 +190,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex items-center gap-2 border-b border-slate-100 pb-4">
             <span className="text-amber-500 font-bold">⚡</span>
             <h2 className="font-bold text-slate-900 text-sm">
-              {isAr ? 'إجراءات سريعة' : 'Actions rapides'}
+              {t('dashboard.quick_actions')}
             </h2>
           </div>
 
@@ -203,10 +205,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-800 group-hover:text-black">
-                  {isAr ? 'إضافة معتمر' : 'Ajouter un pèlerin'}
+                  {t('dashboard.add_pilgrim')}
                 </p>
                 <p className="text-[10px] text-slate-500">
-                  {isAr ? 'تسجيل معتمر جديد' : 'Enregistrer un nouveau pèlerin'}
+                  {t('dashboard.register_pilgrim')}
                 </p>
               </div>
             </button>
@@ -221,10 +223,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-800 group-hover:text-black">
-                  {isAr ? 'إضافة مرافق' : 'Ajouter un accompagnateur'}
+                  {t('dashboard.add_accompagneur')}
                 </p>
                 <p className="text-[10px] text-slate-500">
-                  {isAr ? 'إضافة مرشد أو مرافق' : 'Ajouter un guide ou accompagnateur'}
+                  {t('dashboard.register_accompagneur')}
                 </p>
               </div>
             </button>
@@ -239,10 +241,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-800 group-hover:text-black">
-                  {isAr ? 'إنشاء رحلة' : 'Créer un voyage'}
+                  {t('dashboard.create_trip')}
                 </p>
                 <p className="text-[10px] text-slate-500">
-                  {isAr ? 'تخطيط وربط المعتمرين' : 'Planifier et lier les pèlerins'}
+                  {t('dashboard.plan_trip')}
                 </p>
               </div>
             </button>
@@ -257,10 +259,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-800 group-hover:text-black">
-                  {isAr ? 'إنشاء بطاقات QR' : 'Créer des cartes QR'}
+                  {t('dashboard.create_qr')}
                 </p>
                 <p className="text-[10px] text-slate-500">
-                  {isAr ? 'توليد بطاقات الهوية' : "Générer les badges d'identité"}
+                  {t('dashboard.generate_badges')}
                 </p>
               </div>
             </button>
@@ -275,10 +277,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-800 group-hover:text-black">
-                  {isAr ? 'قائمة الحضور' : 'Créer liste de présence'}
+                  {t('dashboard.presence_list')}
                 </p>
                 <p className="text-[10px] text-slate-500">
-                  {isAr ? 'طباعة قائمة الحضور' : 'Imprimer la liste de présence'}
+                  {t('dashboard.print_presence_list')}
                 </p>
               </div>
             </button>

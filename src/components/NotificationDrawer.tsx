@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Bell } from 'lucide-react';
 import { Language, AppNotification } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface NotificationDrawerProps {
   lang: Language;
@@ -19,6 +20,8 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   onMarkAllAsRead,
   onClearAll
 }) => {
+  const { t, i18n } = useTranslation();
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -33,7 +36,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
-  const isAr = lang === 'AR';
+  const isAr = i18n.language === 'ar';
 
   return (
     <div
@@ -50,7 +53,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
           <div className="flex items-center gap-2">
             <Bell className="w-4 h-4 text-slate-800" />
             <h2 className="font-bold text-slate-900 text-sm">
-              {isAr ? 'مركز الإشعارات' : 'Centre de notifications'}
+              {t('notifications.title')}
             </h2>
           </div>
           <div className="flex items-center gap-2">
@@ -58,11 +61,11 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
               onClick={onClearAll}
               className="text-[11px] font-semibold text-slate-400 hover:text-red-600 px-2 py-1 rounded"
             >
-              {isAr ? 'مسح الكل' : 'Tout effacer'}
+              {t('notifications.clear_all')}
             </button>
             <button
               onClick={onClose}
-              aria-label={isAr ? "إغلاق" : "Fermer"}
+              aria-label={t('notifications.close')}
               className="text-slate-400 font-bold p-1 hover:text-slate-600"
             >
               ✕
@@ -74,7 +77,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {notifications.length === 0 ? (
             <div className="py-20 text-center text-slate-400 text-xs">
-              {isAr ? 'لا توجد أي إشعارات.' : 'Aucune notification.'}
+              {t('notifications.no_notifications')}
             </div>
           ) : (
             notifications.map(n => (
@@ -100,7 +103,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
             onClick={onMarkAllAsRead}
             className="w-full bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-3 rounded-lg text-xs transition-all"
           >
-            {isAr ? 'تعليم الكل كمعلوم' : 'Tout marquer comme lu'}
+            {t('notifications.mark_all_read')}
           </button>
         </div>
       </div>

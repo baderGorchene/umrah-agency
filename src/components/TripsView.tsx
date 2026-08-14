@@ -11,6 +11,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { Language, Trip, NavTab } from "../types";
+import { useTranslation } from "react-i18next";
 
 interface TripsViewProps {
   lang: Language;
@@ -33,7 +34,8 @@ export const TripsView: React.FC<TripsViewProps> = ({
   isAddModalOpen,
   setIsAddModalOpen,
 }) => {
-  const isAr = lang === "AR";
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === "ar";
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [deletingTripId, setDeletingTripId] = useState<string | null>(null);
 
@@ -80,12 +82,10 @@ export const TripsView: React.FC<TripsViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {isAr ? "إدارة الرحلات" : "Gestion des Voyages"}
+            {t('trips.title')}
           </h1>
           <p className="text-xs text-slate-500 font-medium">
-            {isAr
-              ? "تخطيط المجموعات والحافلات والإقامات الفندقية."
-              : "Planification des groupes, des bus et des hébergements."}
+            {t('trips.subtitle')}
           </p>
         </div>
         <button
@@ -129,9 +129,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
               {trips.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
-                    {isAr
-                      ? "لا توجد أي رحلة مسجلة."
-                      : "Aucun voyage configuré."}
+                    {t('trips.no_trips')}
                   </td>
                 </tr>
               ) : (
@@ -211,7 +209,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
           <div className="bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="font-bold text-slate-900 text-base">
-                {isAr ? "مساعد إنشاء رحلة جديدة" : "Assistant Nouveau Voyage"}
+                {t('trips.create_title')}
               </h2>
               <button
                 onClick={() => setIsAddModalOpen(false)}
@@ -224,7 +222,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr ? "اسم الرحلة *" : "Nom du Voyage *"}
+                  {t('trips.form.name')}
                 </label>
                 <input
                   type="text"
@@ -241,7 +239,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {isAr ? "تاريخ الذهاب *" : "Date de Départ *"}
+                    {t('trips.form.start_date')}
                   </label>
                   <input
                     type="date"
@@ -255,7 +253,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
                 </div>
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {isAr ? "تاريخ العودة *" : "Date de Retour *"}
+                    {t('trips.form.end_date')}
                   </label>
                   <input
                     type="date"
@@ -272,7 +270,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {isAr ? "فندق مكة" : "Hôtel Mecque"}
+                    {t('trips.form.makkah_hotel')}
                   </label>
                   <input
                     type="text"
@@ -286,7 +284,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
                 </div>
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {isAr ? "فندق المدينة" : "Hôtel Médine"}
+                    {t('trips.form.madinah_hotel')}
                   </label>
                   <input
                     type="text"
@@ -306,13 +304,13 @@ export const TripsView: React.FC<TripsViewProps> = ({
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
-                  {isAr ? "إلغاء" : "Annuler"}
+                  {t('buttons.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 cursor-pointer"
                 >
-                  {isAr ? "إنشاء الرحلة" : "Créer le Voyage"}
+                  {t('buttons.save')}
                 </button>
               </div>
             </form>
@@ -326,7 +324,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
           <div className="bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="font-bold text-slate-900 text-base">
-                {isAr ? "تعديل بيانات الرحلة" : "Modifier le Voyage"}
+                {t('trips.edit_title')}
               </h2>
               <button
                 onClick={() => setEditingTrip(null)}
@@ -339,7 +337,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr ? "اسم الرحلة" : "Nom du Voyage"}
+                  {t('trips.form.name')}
                 </label>
                 <input
                   type="text"
@@ -354,7 +352,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {isAr ? "فندق مكة" : "Hôtel Mecque"}
+                    {t('trips.form.makkah_hotel')}
                   </label>
                   <input
                     type="text"
@@ -370,7 +368,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
                 </div>
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {isAr ? "فندق المدينة" : "Hôtel Médine"}
+                    {t('trips.form.madinah_hotel')}
                   </label>
                   <input
                     type="text"
@@ -392,13 +390,13 @@ export const TripsView: React.FC<TripsViewProps> = ({
                   onClick={() => setEditingTrip(null)}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
-                  {isAr ? "إلغاء" : "Annuler"}
+                  {t('buttons.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 cursor-pointer"
                 >
-                  {isAr ? "تحديث" : "Mettre à jour"}
+                  {t('buttons.update')}
                 </button>
               </div>
             </form>
@@ -411,19 +409,17 @@ export const TripsView: React.FC<TripsViewProps> = ({
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white border border-slate-100 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
             <h3 className="font-bold text-slate-900 text-sm">
-              {isAr ? "تأكيد الحذف" : "Confirmer la suppression"}
+              {t('trips.delete_title')}
             </h3>
             <p className="text-xs text-slate-600">
-              {isAr
-                ? "هل أنت تأكد من أنك ترغب في حذف هذه الرحلة؟"
-                : "Voulez-vous vraiment supprimer ce voyage ?"}
+              {t('trips.delete_confirm')}
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setDeletingTripId(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
-                {isAr ? "إلغاء" : "Annuler"}
+                {t('buttons.cancel')}
               </button>
               <button
                 onClick={() => {
@@ -432,7 +428,7 @@ export const TripsView: React.FC<TripsViewProps> = ({
                 }}
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700 cursor-pointer"
               >
-                {isAr ? "حذف" : "Supprimer"}
+                {t('buttons.delete')}
               </button>
             </div>
           </div>

@@ -10,6 +10,7 @@ import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { LoginView } from "./components/LoginView";
 import { Suspense, lazy } from "react";
+import i18n from "./i18n";
 
 const DashboardView = lazy(() => import("./components/DashboardView").then(module => ({ default: module.DashboardView })));
 const PilgrimsView = lazy(() => import("./components/PilgrimsView").then(module => ({ default: module.PilgrimsView })));
@@ -290,8 +291,6 @@ export default function App() {
 
     // sync i18next
     try {
-      // dynamic import to avoid initialization order issues
-      const i18n = require("./i18n").default;
       i18n.changeLanguage(lang === "FR" ? "fr" : "ar");
     } catch (err) {
       // ignore if i18n not available

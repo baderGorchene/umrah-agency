@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Bell, Shield, Key } from "lucide-react";
 import { Language, Pilgrim, Staff, Trip, UserProfile } from "../types";
+import { useTranslation } from "react-i18next";
 
 interface TopBarProps {
   lang: Language;
@@ -31,11 +32,12 @@ export const TopBar: React.FC<TopBarProps> = ({
   onSelectSearchResult,
   currentUser,
 }) => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  const isAr = lang === "AR";
+  const isAr = i18n.language === "ar";
 
   // Filter search results
   const filteredPilgrims = searchQuery.trim()
@@ -71,9 +73,9 @@ export const TopBar: React.FC<TopBarProps> = ({
     filteredTrips.length > 0;
 
   const roleLabels = {
-    admin: isAr ? "مدير النظام" : "Administrateur",
-    agent: isAr ? "مرافق / وكيل" : "Accompagnateur",
-    pilgrim: isAr ? "معتمر" : "Pèlerin",
+    admin: t('roles.admin'),
+    agent: t('roles.agent'),
+    pilgrim: t('roles.pilgrim'),
   };
 
   const roleLabel = roleLabels[currentUser?.role || "admin"];
@@ -90,9 +92,7 @@ export const TopBar: React.FC<TopBarProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
             onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-            placeholder={
-              isAr ? "بحث سريع عن معتمر، مرافق، رحلة..." : "Recherche rapide..."
-            }
+            placeholder={t('search.placeholder')}
             className="w-full bg-slate-50 border border-slate-200/80 rounded-full pl-9 pr-4 rtl:pl-4 rtl:pr-9 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-slate-400 transition-all text-start"
           />
           {searchQuery && (
@@ -110,14 +110,14 @@ export const TopBar: React.FC<TopBarProps> = ({
           <div className="absolute left-0 right-0 top-11 bg-white border border-slate-100 rounded-xl shadow-xl p-2 z-50 max-h-80 overflow-y-auto">
             {!hasSearchResults ? (
               <p className="text-xs text-slate-400 text-center py-4">
-                {isAr ? "لا توجد نتائج مطابقة" : "Aucun résultat trouvé"}
+                {t('search.no_result')}
               </p>
             ) : (
               <div className="space-y-3 text-xs">
                 {filteredPilgrims.length > 0 && (
                   <div>
                     <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">
-                      {isAr ? "المعتمرون" : "Pèlerins"}
+                      {t('search.pilgrims')}
                     </div>
                     {filteredPilgrims.map((p) => (
                       <div
@@ -151,7 +151,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 {filteredStaff.length > 0 && (
                   <div>
                     <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">
-                      {isAr ? "المرافقون" : "Accompagnateurs"}
+                      {t('search.personnel')}
                     </div>
                     {filteredStaff.map((s) => (
                       <div
@@ -178,7 +178,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 {filteredTrips.length > 0 && (
                   <div>
                     <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">
-                      {isAr ? "الرحلات" : "Voyages"}
+                      {t('search.trips')}
                     </div>
                     {filteredTrips.map((t) => (
                       <div
@@ -218,11 +218,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Security Shield Icon with Alert Dot */}
         <button
           onClick={onOpenSecurityModal}
-          title={
-            isAr
-              ? "ميثاق الأمان وحماية البيانات"
-              : "Charte de sécurité & protection des données"
-          }
+          title={t('security.title')}
           className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors group"
         >
           <Shield className="w-5 h-5 text-slate-700 group-hover:text-black" />
@@ -234,7 +230,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         {/* Notification Bell */}
         <button
           onClick={onOpenNotifications}
-          title={isAr ? "الإشعارات" : "Notifications"}
+          title={t('notifications.title')}
           className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors group"
         >
           <Bell className="w-5 h-5 text-slate-700 group-hover:text-black" />

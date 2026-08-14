@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Building, ArrowRight, AlertCircle, Loader2, CheckCircle2, Lock } from 'lucide-react';
 import { Language, UserProfile } from '../types';
 import { loginWithSupabase, signUpWithSupabase } from '../services/authService';
+import { useTranslation } from 'react-i18next';
 
 interface LoginViewProps {
   onLoginSuccess: (user: UserProfile, token: string | null) => void;
@@ -14,6 +15,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   lang = 'FR',
   onLanguageToggle
 }) => {
+  const { t, i18n } = useTranslation();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('misktibajammel@gmail.com');
   const [password, setPassword] = useState('••••••••••••');
@@ -22,7 +24,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const isAr = lang === 'AR';
+  const isAr = i18n.language === 'ar';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,10 +36,10 @@ export const LoginView: React.FC<LoginViewProps> = ({
       if (mode === 'signup') {
         const res = await signUpWithSupabase(email, password, fullName);
         if (!res.success || !res.user) {
-          setErrorMsg(res.error || (isAr ? 'فشل إنشاء الحساب.' : 'Échec de la création du compte.'));
+          setErrorMsg(res.error || t('login.error_signup'));
           return;
         }
-        setSuccessMsg(isAr ? 'تم إنشاء الحساب بنجاح! جاري الاتصال...' : 'Compte créé avec succès ! Connexion...');
+        setSuccessMsg(t('login.success_signup'));
         setTimeout(() => {
           onLoginSuccess(res.user!, res.token);
         }, 800);
@@ -59,7 +61,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
             onLoginSuccess(fallbackUser, 'session-token');
             return;
           }
-          setErrorMsg(res.error || (isAr ? 'بيانات الاعتماد غير صحيحة.' : 'Identifiants incorrects.'));
+          setErrorMsg(res.error || t('login.error_credential'));
           return;
         }
         onLoginSuccess(res.user, res.token);
@@ -118,10 +120,10 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <Building className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-black tracking-tight text-white">
-            Umrah Compagnon
+            {t('login.title')}
           </h1>
           <p className="text-xs text-slate-400 font-medium">
-            {isAr ? 'بوابة إدارة وكالة العمرة — مسك طيبة' : "Portail de gestion de l'agence d'Umrah — مسك طيبة"}
+            {t('login.subtitle')}
           </p>
         </div>
 
@@ -134,7 +136,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               mode === 'login' ? 'bg-amber-400 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            {isAr ? 'تسجيل الدخول' : 'Se Connecter'}
+            {t('login.login_tab')}
           </button>
           <button
             type="button"
@@ -143,7 +145,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               mode === 'signup' ? 'bg-amber-400 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            {isAr ? 'إنشاء حساب جديد' : 'Créer un Compte'}
+            {t('login.signup_tab')}
           </button>
         </div>
 
@@ -166,7 +168,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
           {mode === 'signup' && (
             <div className="space-y-1 text-start">
               <label className="text-xs font-semibold text-slate-300">
-                {isAr ? 'الاسم الكامل' : 'Nom et Prénom'}
+                {t('login.fullName')}
               </label>
               <input
                 type="text"
@@ -181,7 +183,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
           <div className="space-y-1 text-start">
             <label className="text-xs font-semibold text-slate-300">
-              {isAr ? 'البريد الإلكتروني للوكالة' : "E-mail de l'agence"}
+              {t('login.email')}
             </label>
             <input
               type="email"
@@ -194,7 +196,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
           <div className="space-y-1 text-start">
             <label className="text-xs font-semibold text-slate-300">
-              {isAr ? 'كلمة المرور' : 'Mot de passe'}
+              {t('login.password')}
             </label>
             <input
               type="password"
@@ -213,11 +215,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
             {loading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-                <span>{isAr ? 'جاري الاتصال...' : 'Connexion...'}</span>
+                <span>{t('login.connecting')}</span>
               </>
             ) : (
               <>
-                <span>{mode === 'login' ? (isAr ? 'تسجيل الدخول' : 'Se Connecter') : (isAr ? 'إنشاء حساب' : 'S\'inscrire')}</span>
+                <span>{mode === 'login' ? t('login.submit_login') : t('login.submit_signup')}</span>
                 <ArrowRight className="w-4 h-4 rtl:rotate-180" />
               </>
             )}
@@ -227,9 +229,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         <div className="text-center text-[11px] text-slate-500 pt-2 border-t border-slate-700/60 flex items-center justify-center gap-1.5">
           <Lock className="w-3.5 h-3.5 text-amber-400/80" />
           <span>
-            {isAr
-              ? 'مسك طيبة للاسفار و السياحة — النظام السحابي لإدارة وكالات العمرة v2.4'
-              : "Misk Tiba Umrah — Système SaaS de gestion d'agence v2.4"}
+            {t('login.footer')}
           </span>
         </div>
       </div>
