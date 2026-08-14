@@ -142,6 +142,7 @@ export const BadgePage: React.FC = () => {
     const resolvePilgrimData = async () => {
       setLoading(true);
       const searchCode = (code || "YELC9821").trim();
+      console.log("🔍 [BadgePage] Starting resolution for badge code:", searchCode, "From route param:", code);
 
       // Default agency fallback
       let defaultAgencyName = "مسك طيبة للأسفار و العمرة";
@@ -164,8 +165,8 @@ export const BadgePage: React.FC = () => {
 
       // 1. Check saved badge generation records in local storage
       const storedRecord = findGeneratedBadgeByCode(searchCode);
-
       if (storedRecord) {
+        console.log("📦 [BadgePage] Found stored badge record in local storage:", storedRecord);
         const payload =
           typeof storedRecord.payload === "string"
             ? JSON.parse(storedRecord.payload)
@@ -177,6 +178,8 @@ export const BadgePage: React.FC = () => {
           storedRecord.pilgrimName || payload.nameArabic,
           payload.avatarUrl,
         );
+
+        console.log("🖼️ [BadgePage] Resolved avatar from local record:", avatar?.substring(0, 50));
 
         setData({
           agencyName:
@@ -204,10 +207,12 @@ export const BadgePage: React.FC = () => {
         return;
       }
 
-      // 2. Query pilgrims database / registry
+      // 2. Query pilgrims database (Supabase & localStorage)
       try {
+        console.log("🌐 [BadgePage] Querying database for pilgrim:", searchCode);
         const pilgrim = await getPilgrimByUniqueCode(searchCode);
         if (pilgrim) {
+          console.log("✅ [BadgePage] Loaded pilgrim from database:", pilgrim.nameArabic, "Avatar:", pilgrim.avatarUrl ? `${pilgrim.avatarUrl.substring(0, 40)}...` : "NONE");
           try {
             const staffList = await getStaff();
             const tripGuide = staffList.find(
@@ -253,10 +258,11 @@ export const BadgePage: React.FC = () => {
           return;
         }
       } catch (err) {
-        console.warn("Error resolving pilgrim for landing page:", err);
+        console.error("🔴 [BadgePage] Error resolving pilgrim for landing page:", err);
       }
 
-      // 3. Fallback state
+      // 3. Fallback state (when pilgrim code not found in Supabase)
+      console.warn("⚠️ [BadgePage] Pilgrim not found for code:", searchCode, ". Rendering fallback demo card.");
       const fallbackAvatar = resolvePilgrimAvatarFromAnySource(
         searchCode,
         undefined,
@@ -520,7 +526,11 @@ ${locationLink}`
                 alt={pilgrimName}
                 className="w-full h-full object-cover"
                 onError={(e) => {
+                  console.error("❌ [BadgePage] <img> failed to render avatar source:", data?.avatarUrl?.substring(0, 100));
                   (e.target as HTMLImageElement).src = DEFAULT_AVATAR_URL;
+                }}
+                onLoad={() => {
+                  console.log("✅ [BadgePage] <img> rendered avatar successfully.");
                 }}
               />
             </div>

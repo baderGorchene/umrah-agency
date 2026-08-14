@@ -184,32 +184,65 @@ export const getPilgrimByUniqueCode = async (
   uniqueCode: string,
 ): Promise<Pilgrim | null> => {
   const normCode = uniqueCode.trim().toUpperCase();
+  console.log("🔍 [pilgrimsService] getPilgrimByUniqueCode requested for code:", normCode);
 
   if (isSupabaseConfigured()) {
     try {
-      const { data, error } = await supabase
+      console.log("📡 [Supabase] Querying pilgrims table with unique_code ilike:", normCode);
+      let { data, error } = await supabase
         .from("pilgrims")
         .select("*")
         .ilike("unique_code", normCode)
         .limit(1)
         .maybeSingle();
 
+      if (error) {
+        console.error("🔴 [Supabase] Query error on unique_code:", error);
+      }
+
+      // If not found by unique_code, try matching passport_number
+      if (!data) {
+        console.log("📡 [Supabase] Trying secondary query with passport_number ilike:", normCode);
+        const passportRes = await supabase
+          .from("pilgrims")
+          .select("*")
+          .ilike("passport_number", normCode)
+          .limit(1)
+          .maybeSingle();
+        if (passportRes.data) {
+          data = passportRes.data;
+          console.log("✅ [Supabase] Pilgrim matched via passport_number:", data.name_arabic);
+        } else if (passportRes.error) {
+          console.error("🔴 [Supabase] Secondary query error:", passportRes.error);
+        }
+      }
+
       if (data) {
+        console.log("✅ [Supabase] Found pilgrim record in database:", {
+          id: data.id,
+          name_arabic: data.name_arabic,
+          unique_code: data.unique_code,
+          has_avatar: Boolean(data.avatar_url),
+          avatar_preview: data.avatar_url ? `${data.avatar_url.substring(0, 40)}...` : "NONE",
+        });
+
         let tripName = "—";
         if (data.trip_id) {
           try {
-            const { data: tripData } = await supabase
+            const { data: tripData, error: tripErr } = await supabase
               .from("trips")
               .select("name")
               .eq("id", data.trip_id)
               .maybeSingle();
             if (tripData?.name) tripName = tripData.name;
+            if (tripErr) console.warn("⚠️ [Supabase] Trip name lookup note:", tripErr);
           } catch {
             // ignore
           }
         }
 
         const rawAvatar = data.avatar_url || data.avatarUrl || data.photo_url || data.image_url;
+        const resolvedAvatar = normalizeAvatarUrl(rawAvatar);
 
         return {
           id: data.id,
@@ -221,15 +254,29 @@ export const getPilgrimByUniqueCode = async (
           uniqueCode: data.unique_code || data.uniqueCode || normCode,
           status: data.status || "مؤكد",
           passportNumber: data.passport_number || data.passportNumber,
-          avatarUrl: normalizeAvatarUrl(rawAvatar),
+          avatarUrl: resolvedAvatar,
           emergencyContact: data.emergency_contact || data.emergencyContact,
           gender: data.gender,
           birthDate: data.birth_date || data.birthDate,
         };
+      } else {
+        console.warn(`⚠️ [Supabase] No pilgrim found matching code "${normCode}". Inspecting available records...`);
+        // Diagnostic probe: fetch all available records to diagnose RLS or mismatch
+        try {
+          const { data: sampleList, error: probeErr } = await supabase
+            .from("pilgrims")
+            .select("id, name_arabic, unique_code, passport_number, avatar_url")
+            .limit(5);
+          console.log("📋 [Supabase Diagnostic] Available pilgrims in database:", sampleList, "Probe error (if RLS blocked):", probeErr);
+        } catch (probeEx) {
+          console.warn("Probe exception:", probeEx);
+        }
       }
     } catch (err) {
-      console.warn("Error fetching pilgrim by unique code from Supabase:", err);
+      console.error("🔴 [Supabase] Exception fetching pilgrim by unique code:", err);
     }
+  } else {
+    console.warn("⚠️ [Supabase] Supabase is not configured (missing URL or anon key).");
   }
 
   // Fallback: check localStorage for saved pilgrims or passports
