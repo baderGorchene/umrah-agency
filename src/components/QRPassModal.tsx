@@ -77,7 +77,7 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
         {/* ── Badge Artwork Modal Container ── */}
         <div className="relative mx-auto flex flex-col overflow-hidden rounded-[24px] border border-amber-500/30 bg-white text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)]">
           {/* Header Banner */}
-          <div className="relative h-24 w-full flex items-center justify-between bg-black px-6">
+          <div className="relative h-20 w-full flex items-center justify-between bg-black px-6">
             <div
               className="flex items-center justify-center"
               style={{ width: "100px", height: "100%" }}

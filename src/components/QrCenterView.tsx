@@ -244,21 +244,34 @@ const toSafeFileName = (value: string): string =>
     .replace(/\s+/g, "_") || "badge";
 
 /** Resolves the best available avatar image for a pilgrim */
-export const resolvePilgrimAvatar = (pilgrim: Pilgrim | null | undefined): string => {
+export const resolvePilgrimAvatar = (
+  pilgrim: Pilgrim | null | undefined,
+): string => {
   if (!pilgrim) return DEFAULT_AVATAR_URL;
-  if (pilgrim.avatarUrl && pilgrim.avatarUrl !== DEFAULT_AVATAR_URL && !pilgrim.avatarUrl.includes("unsplash.com")) {
+  if (
+    pilgrim.avatarUrl &&
+    pilgrim.avatarUrl !== DEFAULT_AVATAR_URL &&
+    !pilgrim.avatarUrl.includes("unsplash.com")
+  ) {
     return pilgrim.avatarUrl;
   }
   if (typeof window !== "undefined") {
     try {
-      const rawPassports = window.localStorage.getItem("umrah_passports_registry");
+      const rawPassports = window.localStorage.getItem(
+        "umrah_passports_registry",
+      );
       if (rawPassports) {
         const passports = JSON.parse(rawPassports);
         if (Array.isArray(passports)) {
           const match = passports.find(
             (p: any) =>
-              (p.passportNumber && pilgrim.passportNumber && p.passportNumber.trim().toUpperCase() === pilgrim.passportNumber.trim().toUpperCase()) ||
-              (p.fullNameArabic && pilgrim.nameArabic && p.fullNameArabic.trim() === pilgrim.nameArabic.trim())
+              (p.passportNumber &&
+                pilgrim.passportNumber &&
+                p.passportNumber.trim().toUpperCase() ===
+                  pilgrim.passportNumber.trim().toUpperCase()) ||
+              (p.fullNameArabic &&
+                pilgrim.nameArabic &&
+                p.fullNameArabic.trim() === pilgrim.nameArabic.trim()),
           );
           if (match?.avatarUrl && match.avatarUrl !== DEFAULT_AVATAR_URL) {
             return match.avatarUrl;
@@ -287,7 +300,9 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   const displayCode = pilgrim?.uniqueCode || "—";
   const avatarInitial = displayName.slice(0, 1).toUpperCase();
   const effectiveAvatar = resolvePilgrimAvatar(pilgrim);
-  const hasCustomAvatar = Boolean(effectiveAvatar && effectiveAvatar !== DEFAULT_AVATAR_URL);
+  const hasCustomAvatar = Boolean(
+    effectiveAvatar && effectiveAvatar !== DEFAULT_AVATAR_URL,
+  );
 
   const InfoRow = ({ label, value }: { label: string; value?: string }) => (
     <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-right">
