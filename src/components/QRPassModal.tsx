@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { X, ShieldCheck, Check, Copy } from "lucide-react";
 import { Pilgrim, Staff, Trip, DEFAULT_AVATAR_URL } from "../types";
 import { QRCodeView } from "./QRCodeView";
@@ -24,6 +24,19 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
   emergencyGuide2,
 }) => {
   const [copied, setCopied] = React.useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen || !pilgrim) return null;
 
@@ -55,7 +68,14 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto animate-in fade-in duration-200">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 overflow-y-auto animate-in fade-in duration-200"
+    >
       <div className="w-full max-w-md space-y-4 my-8 relative z-10 font-sans">
         {/* Top Header Bar */}
         <div className="flex items-center justify-between text-xs font-semibold text-slate-300 px-2">
@@ -65,6 +85,7 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
           </div>
           <button
             onClick={onClose}
+            aria-label="إغلاق"
             className="text-slate-400 hover:text-white bg-slate-800 p-1.5 rounded-full border border-slate-700 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />

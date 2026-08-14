@@ -25,6 +25,19 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ lang, isOpen, onCl
   const [acceptedDate, setAcceptedDate] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  useEffect(() => {
     const savedAccepted = localStorage.getItem('charterAccepted') === 'true';
     const savedDate = localStorage.getItem('charterAcceptedDate');
     if (savedAccepted) {
@@ -56,7 +69,14 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ lang, isOpen, onCl
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-in fade-in duration-200">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-in fade-in duration-200"
+    >
       <div className="bg-white border border-slate-100 rounded-3xl shadow-2xl w-full max-w-5xl my-6 overflow-hidden text-slate-900 font-sans relative flex flex-col max-h-[92vh] print:max-h-none print:shadow-none print:border-none print:w-full print:my-0">
         
         {/* Top Header */}
@@ -84,6 +104,7 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ lang, isOpen, onCl
             </div>
             <button
               onClick={onClose}
+              aria-label={isAr ? "إغلاق" : "Fermer"}
               className="text-slate-400 hover:text-white p-1.5 rounded-full hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-5 h-5" />
