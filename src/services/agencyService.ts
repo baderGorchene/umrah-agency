@@ -15,7 +15,7 @@ export const getAgencySettings = async (): Promise<AgencySettings> => {
       .single();
 
     if (error || !data) {
-      console.warn('Could not fetch agency settings from Supabase, falling back to mock:', error);
+      console.warn('Could not fetch agency settings from Supabase:', error);
       return initialAgencySettings;
     }
 

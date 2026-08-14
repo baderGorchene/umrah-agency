@@ -6,143 +6,31 @@ import {
   AgencySettings,
   AppNotification,
   BadgeTemplate,
-  DEFAULT_AVATAR_URL,
 } from "./types";
 
 export const initialAgencySettings: AgencySettings = {
-  name: "مسك طيبة للاسفار و السياحة",
-  subtitle: "Umrah Compagnon",
-  description:
-    "وكالة مسك طيبة للأسفار والعمرة - خدمات متميزة ومرافقة شاملة للمعتمرين من تونس إلى البقاع المقدسة.",
-  bannerUrl:
-    "https://images.unsplash.com/photo-1591604466107-ec97de577aff?auto=format&fit=crop&w=1400&q=80", // Madinah Green Dome / Mosque style
-  logoUrl: `${import.meta.env.BASE_URL}logo.jpeg`,
-  address: "شارع الحبيب بورقيبة، جمّال 5020",
-  city: "المنستير / جمّال",
-  country: "تونس",
-  phone: "+216 73 481 100",
-  email: "misktibajammel@gmail.com",
-  licenseNumber: "AG-TUN-2026-88",
+  name: "",
+  subtitle: "",
+  description: "",
+  bannerUrl: "",
+  logoUrl: "",
+  address: "",
+  city: "",
+  country: "",
+  phone: "",
+  email: "",
+  licenseNumber: "",
 };
 
-export const initialTrips: Trip[] = [
-  {
-    id: "trip-1",
-    name: "عمرة المولد",
-    startDate: "2026-08-22",
-    endDate: "2026-09-04",
-    makkahHotel: "الماسـة",
-    madinahHotel: "الكيان العالمي",
-    pilgrimCount: 1,
-    guideCount: 1,
-    active: true,
-    busCount: 1,
-    flightDetails: "TU711 Tunis -> Jeddah / TU712 Medina -> Tunis",
-  },
-];
+export const initialTrips: Trip[] = [];
 
-export const initialPilgrims: Pilgrim[] = [
-  {
-    id: "pilgrim-1",
-    nameArabic: "انوار زقاب",
-    nameLatin: "Anouar Zghab",
-    phone: "99048168",
-    tripId: "trip-1",
-    tripName: "عمرة المولد",
-    uniqueCode: "YELC9821",
-    status: "مؤكد",
-    passportNumber: "N2891048",
-    avatarUrl: DEFAULT_AVATAR_URL,
-    emergencyContact: "+216 99 048 168",
-    gender: "F",
-    birthDate: "1982-05-14",
-  },
-];
+export const initialPilgrims: Pilgrim[] = [];
 
-export const initialStaff: Staff[] = [
-  {
-    id: "staff-1",
-    nameArabic: "نادر قويعة",
-    nameLatin: "Nader Kouiaa",
-    phone: "25800884",
-    whatsapp: "+21625800884",
-    role: "Chef de Bus",
-    uniqueCode: "KCF32091",
-    tripId: "trip-1",
-    tripName: "عمرة المولد",
-    avatarUrl: DEFAULT_AVATAR_URL,
-  },
-  {
-    id: "staff-2",
-    nameArabic: "نادر قويعة",
-    nameLatin: "Nader Kouiaa (Admin)",
-    phone: "25800884",
-    whatsapp: "25800884",
-    role: "Coordonnateur Administratif",
-    uniqueCode: "Q44U8812",
-    tripId: "",
-    tripName: "—",
-    avatarUrl: DEFAULT_AVATAR_URL,
-  },
-  {
-    id: "staff-3",
-    nameArabic: "كريمة شاكر",
-    nameLatin: "Karima Chaker",
-    phone: "21805829",
-    whatsapp: "21805829",
-    role: "Chef de Bus",
-    uniqueCode: "FH659912",
-    tripId: "",
-    tripName: "—",
-    avatarUrl: DEFAULT_AVATAR_URL,
-  },
-  {
-    id: "staff-4",
-    nameArabic: "حنان عطية",
-    nameLatin: "Hanan Attia",
-    phone: "99048768",
-    whatsapp: "99048768",
-    role: "Chef de Bus",
-    uniqueCode: "3TUA4492",
-    tripId: "",
-    tripName: "—",
-    avatarUrl: DEFAULT_AVATAR_URL,
-  },
-];
+export const initialStaff: Staff[] = [];
 
-export const initialPosts: Post[] = [
-  {
-    id: "post-1",
-    title: "تذكير بموعد الرحلة والمستندات المطلوبة",
-    content:
-      "يرجى من جميع معتمري رحلة عمرة المولد تجهيز جوازات السفر والحضور لمقر الوكالة بجمال قبل الموعد بـ 4 ساعات.",
-    createdAt: "2026-08-01 10:30",
-    tripId: "trip-1",
-    tripName: "عمرة المولد",
-    notifyPush: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1565552645632-d725f8bfc19a?auto=format&fit=crop&w=800&q=80",
-  },
-];
+export const initialPosts: Post[] = [];
 
-export const initialNotifications: AppNotification[] = [
-  {
-    id: "notif-1",
-    title: "تم تحديث بطاقات QR",
-    message: "جاهزية شارات المعتمرين لرحلة عمرة المولد للطباعة والتصدير.",
-    time: "منذ 10 دقائق",
-    read: false,
-    type: "info",
-  },
-  {
-    id: "notif-2",
-    title: "تأكيد تسجيل معتمر جديد",
-    message: "تم إضافة المعتمر انوار زقاب بنجاح وتعيين الكود YELC9821.",
-    time: "منذ ساعة",
-    read: false,
-    type: "trip",
-  },
-];
+export const initialNotifications: AppNotification[] = [];
 
 export const badgeTemplates: BadgeTemplate[] = [
   {
@@ -186,7 +74,7 @@ export const badgeTemplates: BadgeTemplate[] = [
     name: "Midnight Violet",
     nameArabic: "بنفسجي منتصف الليل",
     description:
-      "Une identité élégante et profonde, pensée pour les groupes de prestige.",
+      "Une identity élégante et profonde, pensée pour les groupes de prestige.",
     accentColor: "#6D28D9",
     variant: "royal",
   },
@@ -275,7 +163,7 @@ export const badgeTemplates: BadgeTemplate[] = [
     name: "Copper Folio",
     nameArabic: "النحاسي المجلد",
     description:
-      "Une structure élégante avec des lignes architecturales raffinées.",
+      "Une structure élégante with des lignes architecturales raffinées.",
     accentColor: "#92400E",
     variant: "folio",
   },

@@ -4,7 +4,7 @@ import { initialTrips } from "../mockData";
 
 export const getTrips = async (): Promise<Trip[]> => {
   if (!isSupabaseConfigured()) {
-    return initialTrips;
+    return [];
   }
 
   try {

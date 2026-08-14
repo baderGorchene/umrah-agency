@@ -4,7 +4,7 @@ import { initialStaff } from '../mockData';
 
 export const getStaff = async (trips: Trip[] = []): Promise<Staff[]> => {
   if (!isSupabaseConfigured()) {
-    return initialStaff;
+    return [];
   }
 
   try {
@@ -14,8 +14,8 @@ export const getStaff = async (trips: Trip[] = []): Promise<Staff[]> => {
       .order('created_at', { ascending: false });
 
     if (error || !data) {
-      console.warn('Could not fetch staff from Supabase, returning mock:', error);
-      return initialStaff;
+      console.warn('Could not fetch staff from Supabase:', error);
+      return [];
     }
 
     const tripsMap = new Map(trips.map((t) => [t.id, t.name]));
@@ -39,7 +39,7 @@ export const getStaff = async (trips: Trip[] = []): Promise<Staff[]> => {
     });
   } catch (err) {
     console.error('Error fetching staff from Supabase:', err);
-    return initialStaff;
+    return [];
   }
 };
 

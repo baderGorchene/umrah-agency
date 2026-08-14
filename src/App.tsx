@@ -9,15 +9,17 @@ import {
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { LoginView } from "./components/LoginView";
-import { DashboardView } from "./components/DashboardView";
-import { PilgrimsView } from "./components/PilgrimsView";
-import { StaffView } from "./components/StaffView";
-import { TripsView } from "./components/TripsView";
-import { QrCenterView } from "./components/QrCenterView";
-import { BadgePage } from "./components/BadgePage";
-import { DocumentsView } from "./components/DocumentsView";
-import { NewsView } from "./components/NewsView";
-import { SettingsView } from "./components/SettingsView";
+import { Suspense, lazy } from "react";
+
+const DashboardView = lazy(() => import("./components/DashboardView").then(module => ({ default: module.DashboardView })));
+const PilgrimsView = lazy(() => import("./components/PilgrimsView").then(module => ({ default: module.PilgrimsView })));
+const StaffView = lazy(() => import("./components/StaffView").then(module => ({ default: module.StaffView })));
+const TripsView = lazy(() => import("./components/TripsView").then(module => ({ default: module.TripsView })));
+const QrCenterView = lazy(() => import("./components/QrCenterView").then(module => ({ default: module.QrCenterView })));
+const BadgePage = lazy(() => import("./components/BadgePage").then(module => ({ default: module.BadgePage })));
+const DocumentsView = lazy(() => import("./components/DocumentsView").then(module => ({ default: module.DocumentsView })));
+const NewsView = lazy(() => import("./components/NewsView").then(module => ({ default: module.NewsView })));
+const SettingsView = lazy(() => import("./components/SettingsView").then(module => ({ default: module.SettingsView })));
 import { SecurityModal } from "./components/SecurityModal";
 import { NotificationDrawer } from "./components/NotificationDrawer";
 
@@ -158,38 +160,79 @@ export default function App() {
     };
   }, []);
 
-  // Async load data from Supabase on mount
+  // On-demand route-based network fetching to optimize data transfer and prevent loading unused tables.
   useEffect(() => {
-    async function loadAllData() {
+    if (!isLoggedIn) return;
+
+    const path = location.pathname;
+
+    async function loadRouteData() {
       setIsLoadingData(true);
       try {
-        const fetchedSettings = await getAgencySettings();
-        setAgencySettings(fetchedSettings);
+        // 1. Settings (Only fetch when settings or documents page is loaded)
+        if (path === "/settings" || path === "/documents") {
+          const fetchedSettings = await getAgencySettings();
+          setAgencySettings(fetchedSettings);
+        }
 
-        const fetchedTrips = await getTrips();
-        setTrips(fetchedTrips);
+        // 2. Trips (Core data needed across almost all main views. Load once if not yet populated)
+        let currentTrips = trips;
+        if (trips.length === 0) {
+          currentTrips = await getTrips();
+          setTrips(currentTrips);
+        }
 
-        const [fetchedPilgrims, fetchedStaff, fetchedPosts, fetchedNotifs] =
-          await Promise.all([
-            getPilgrims(fetchedTrips),
-            getStaff(fetchedTrips),
-            getPosts(fetchedTrips),
-            getNotifications(),
-          ]);
+        // 3. Pilgrims (Load on demand for dashboard, pilgrims list, qr-center, or documents)
+        if (
+          path === "/" ||
+          path === "/pilgrims" ||
+          path === "/qr-center" ||
+          path === "/documents"
+        ) {
+          if (pilgrims.length === 0) {
+            const fetchedPilgrims = await getPilgrims(currentTrips);
+            setPilgrims(fetchedPilgrims);
+          }
+        }
 
-        setPilgrims(fetchedPilgrims);
-        setStaff(fetchedStaff);
-        setPosts(fetchedPosts);
-        setNotifications(fetchedNotifs);
+        // 4. Staff (Load on demand for dashboard, staff list, qr-center, or documents)
+        if (
+          path === "/" ||
+          path === "/staff" ||
+          path === "/qr-center" ||
+          path === "/documents"
+        ) {
+          if (staff.length === 0) {
+            const fetchedStaff = await getStaff(currentTrips);
+            setStaff(fetchedStaff);
+          }
+        }
+
+        // 5. Posts (Only load on news view)
+        if (path === "/news") {
+          if (posts.length === 0) {
+            const fetchedPosts = await getPosts(currentTrips);
+            setPosts(fetchedPosts);
+          }
+        }
       } catch (err) {
-        console.error("Error loading Supabase data into App state:", err);
+        console.error("Error loading route-specific data:", err);
       } finally {
         setIsLoadingData(false);
       }
     }
 
-    loadAllData();
-  }, []);
+    loadRouteData();
+  }, [location.pathname, isLoggedIn]);
+
+  // Fetch notifications only when the notification drawer is actively opened
+  useEffect(() => {
+    if (isNotificationDrawerOpen && isLoggedIn) {
+      getNotifications().then((fetchedNotifs) => {
+        setNotifications(fetchedNotifs);
+      });
+    }
+  }, [isNotificationDrawerOpen, isLoggedIn]);
 
   // Sync document direction (RTL/LTR) with selected language and update i18next language
   useEffect(() => {
@@ -387,7 +430,11 @@ export default function App() {
 
   // Render the badge page as a standalone responsive page without the app shell
   if (isBadgeRoute) {
-    return <BadgePage />;
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center font-bold">Loading...</div>}>
+        <BadgePage />
+      </Suspense>
+    );
   }
 
   if (!isLoggedIn) {
@@ -429,164 +476,170 @@ export default function App() {
 
         {/* Dynamic Router Page Views */}
         <main className="p-6 md:p-8 max-w-7xl w-full mx-auto flex-1">
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <DashboardView
-                  lang={lang}
-                  pilgrims={pilgrims}
-                  staff={staff}
-                  trips={trips}
-                  onOpenAddPilgrimModal={() => {
-                    navigate("/pilgrims");
-                    setIsAddPilgrimModalOpen(true);
-                  }}
-                  onOpenAddStaffModal={() => {
-                    navigate("/staff");
-                    setIsAddStaffModalOpen(true);
-                  }}
-                  onOpenAddTripModal={() => {
-                    navigate("/trips");
-                    setIsAddTripModalOpen(true);
-                  }}
-                />
-              }
-            />
-
-            {/* Pilgrims View: Admin & Agent */}
-            <Route
-              path="/pilgrims"
-              element={
-                ["admin", "agent"].includes(userRole) ? (
-                  <PilgrimsView
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-24">
+              <div className="w-8 h-8 border-4 border-slate-300 border-t-black rounded-full animate-spin"></div>
+            </div>
+          }>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <DashboardView
                     lang={lang}
                     pilgrims={pilgrims}
+                    staff={staff}
                     trips={trips}
-                    onAddPilgrim={handleAddPilgrim}
-                    onEditPilgrim={handleEditPilgrim}
-                    onDeletePilgrim={handleDeletePilgrim}
-                    isAddModalOpen={isAddPilgrimModalOpen}
-                    setIsAddModalOpen={setIsAddPilgrimModalOpen}
-                  />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-
-            {/* Staff View: Admin & Agent */}
-            <Route
-              path="/staff"
-              element={
-                ["admin", "agent"].includes(userRole) ? (
-                  <StaffView
-                    lang={lang}
-                    staffList={staff}
-                    trips={trips}
-                    onAddStaff={handleAddStaff}
-                    onEditStaff={handleEditStaff}
-                    onDeleteStaff={handleDeleteStaff}
-                    isAddModalOpen={isAddStaffModalOpen}
-                    setIsAddModalOpen={setIsAddStaffModalOpen}
-                  />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-
-            {/* Trips View: Admin & Agent */}
-            <Route
-              path="/trips"
-              element={
-                ["admin", "agent"].includes(userRole) ? (
-                  <TripsView
-                    lang={lang}
-                    trips={trips}
-                    onAddTrip={handleAddTrip}
-                    onEditTrip={handleEditTrip}
-                    onNavigateToQrCenter={(tripId) => {
-                      setSelectedTripForQr(tripId);
-                      navigate(`/qr-center?tripId=${tripId}`);
+                    onOpenAddPilgrimModal={() => {
+                      navigate("/pilgrims");
+                      setIsAddPilgrimModalOpen(true);
                     }}
-                    isAddModalOpen={isAddTripModalOpen}
-                    setIsAddModalOpen={setIsAddTripModalOpen}
-                    onDeleteTrip={handleDeleteTrip}
+                    onOpenAddStaffModal={() => {
+                      navigate("/staff");
+                      setIsAddStaffModalOpen(true);
+                    }}
+                    onOpenAddTripModal={() => {
+                      navigate("/trips");
+                      setIsAddTripModalOpen(true);
+                    }}
                   />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
+                }
+              />
 
-            {/* QR Center: All Roles */}
-            <Route
-              path="/qr-center"
-              element={
-                <QrCenterView
-                  lang={lang}
-                  trips={trips}
-                  pilgrims={pilgrims}
-                  staff={staff}
-                  selectedTripId={selectedTripForQr}
-                />
-              }
-            />
+              {/* Pilgrims View: Admin & Agent */}
+              <Route
+                path="/pilgrims"
+                element={
+                  ["admin", "agent"].includes(userRole) ? (
+                    <PilgrimsView
+                      lang={lang}
+                      pilgrims={pilgrims}
+                      trips={trips}
+                      onAddPilgrim={handleAddPilgrim}
+                      onEditPilgrim={handleEditPilgrim}
+                      onDeletePilgrim={handleDeletePilgrim}
+                      isAddModalOpen={isAddPilgrimModalOpen}
+                      setIsAddModalOpen={setIsAddPilgrimModalOpen}
+                    />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
 
-            <Route path="/badge/:code" element={<BadgePage />} />
+              {/* Staff View: Admin & Agent */}
+              <Route
+                path="/staff"
+                element={
+                  ["admin", "agent"].includes(userRole) ? (
+                    <StaffView
+                      lang={lang}
+                      staffList={staff}
+                      trips={trips}
+                      onAddStaff={handleAddStaff}
+                      onEditStaff={handleEditStaff}
+                      onDeleteStaff={handleDeleteStaff}
+                      isAddModalOpen={isAddStaffModalOpen}
+                      setIsAddModalOpen={setIsAddStaffModalOpen}
+                    />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
 
-            {/* Documents View: Admin & Agent */}
-            <Route
-              path="/documents"
-              element={
-                ["admin", "agent"].includes(userRole) ? (
-                  <DocumentsView
+              {/* Trips View: Admin & Agent */}
+              <Route
+                path="/trips"
+                element={
+                  ["admin", "agent"].includes(userRole) ? (
+                    <TripsView
+                      lang={lang}
+                      trips={trips}
+                      onAddTrip={handleAddTrip}
+                      onEditTrip={handleEditTrip}
+                      onNavigateToQrCenter={(tripId) => {
+                        setSelectedTripForQr(tripId);
+                        navigate(`/qr-center?tripId=${tripId}`);
+                      }}
+                      isAddModalOpen={isAddTripModalOpen}
+                      setIsAddModalOpen={setIsAddTripModalOpen}
+                      onDeleteTrip={handleDeleteTrip}
+                    />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+
+              {/* QR Center: All Roles */}
+              <Route
+                path="/qr-center"
+                element={
+                  <QrCenterView
                     lang={lang}
                     trips={trips}
                     pilgrims={pilgrims}
                     staff={staff}
-                    agencySettings={agencySettings}
-                    onAddPilgrim={handleAddPilgrim}
+                    selectedTripId={selectedTripForQr}
                   />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
+                }
+              />
 
-            {/* News View: All Roles */}
-            <Route
-              path="/news"
-              element={
-                <NewsView
-                  lang={lang}
-                  posts={posts}
-                  trips={trips}
-                  onAddPost={handleAddPost}
-                  onDeletePost={handleDeletePost}
-                />
-              }
-            />
+              <Route path="/badge/:code" element={<BadgePage />} />
 
-            {/* Settings View: Admin only */}
-            <Route
-              path="/settings"
-              element={
-                userRole === "admin" ? (
-                  <SettingsView
+              {/* Documents View: Admin & Agent */}
+              <Route
+                path="/documents"
+                element={
+                  ["admin", "agent"].includes(userRole) ? (
+                    <DocumentsView
+                      lang={lang}
+                      trips={trips}
+                      pilgrims={pilgrims}
+                      staff={staff}
+                      agencySettings={agencySettings}
+                      onAddPilgrim={handleAddPilgrim}
+                    />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+
+              {/* News View: All Roles */}
+              <Route
+                path="/news"
+                element={
+                  <NewsView
                     lang={lang}
-                    settings={agencySettings}
-                    onUpdateSettings={handleUpdateSettings}
+                    posts={posts}
+                    trips={trips}
+                    onAddPost={handleAddPost}
+                    onDeletePost={handleDeletePost}
                   />
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
+                }
+              />
 
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Settings View: Admin only */}
+              <Route
+                path="/settings"
+                element={
+                  userRole === "admin" ? (
+                    <SettingsView
+                      lang={lang}
+                      settings={agencySettings}
+                      onUpdateSettings={handleUpdateSettings}
+                    />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </main>
       </div>
 

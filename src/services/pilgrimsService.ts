@@ -4,7 +4,7 @@ import { initialPilgrims } from "../mockData";
 
 export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
   if (!isSupabaseConfigured()) {
-    return initialPilgrims;
+    return [];
   }
 
   try {
@@ -15,10 +15,10 @@ export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
 
     if (error || !data) {
       console.warn(
-        "Could not fetch pilgrims from Supabase, returning mock:",
+        "Could not fetch pilgrims from Supabase:",
         error,
       );
-      return initialPilgrims;
+      return [];
     }
 
     const tripsMap = new Map(trips.map((t) => [t.id, t.name]));
@@ -46,7 +46,7 @@ export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
     });
   } catch (err) {
     console.error("Error fetching pilgrims from Supabase:", err);
-    return initialPilgrims;
+    return [];
   }
 };
 
@@ -208,15 +208,5 @@ export const getPilgrimByUniqueCode = async (
     }
   }
 
-  // Fallback to local mock pilgrims if offline or not found in DB
-  const foundLocal = initialPilgrims.find(
-    (p) => p.uniqueCode.toUpperCase() === normCode || p.id === uniqueCode,
-  );
-
-  if (foundLocal) {
-    return foundLocal;
-  }
-
-  // General fallback for demo codes
-  return initialPilgrims[0] || null;
+  return null;
 };
