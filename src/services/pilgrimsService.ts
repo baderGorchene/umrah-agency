@@ -208,5 +208,54 @@ export const getPilgrimByUniqueCode = async (
     }
   }
 
+  // Fallback: check localStorage for saved pilgrims or passports
+  if (typeof window !== "undefined") {
+    try {
+      const rawPilgrims = window.localStorage.getItem("umrah_pilgrims_registry");
+      if (rawPilgrims) {
+        const parsed = JSON.parse(rawPilgrims);
+        if (Array.isArray(parsed)) {
+          const match = parsed.find(
+            (p: any) =>
+              (p.uniqueCode && p.uniqueCode.trim().toUpperCase() === normCode) ||
+              (p.id && p.id.trim().toUpperCase() === normCode) ||
+              (p.passportNumber && p.passportNumber.trim().toUpperCase() === normCode)
+          );
+          if (match) return match;
+        }
+      }
+
+      const rawPassports = window.localStorage.getItem("umrah_passports_registry");
+      if (rawPassports) {
+        const parsed = JSON.parse(rawPassports);
+        if (Array.isArray(parsed)) {
+          const match = parsed.find(
+            (p: any) =>
+              (p.passportNumber && p.passportNumber.trim().toUpperCase() === normCode) ||
+              (p.id && p.id.trim().toUpperCase() === normCode)
+          );
+          if (match) {
+            return {
+              id: match.id,
+              nameArabic: match.fullNameArabic,
+              nameLatin: match.fullNameLatin,
+              phone: "—",
+              tripId: "",
+              tripName: "رحلة العمرة",
+              uniqueCode: normCode,
+              status: "مؤكد",
+              passportNumber: match.passportNumber,
+              avatarUrl: match.avatarUrl,
+              birthDate: match.birthDate,
+              gender: match.gender,
+            };
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Error looking up pilgrim from localStorage:", e);
+    }
+  }
+
   return null;
 };

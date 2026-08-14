@@ -105,7 +105,20 @@ export default function App() {
   const [agencySettings, setAgencySettings] = useState<AgencySettings>(
     initialAgencySettings,
   );
-  const [pilgrims, setPilgrims] = useState<Pilgrim[]>(initialPilgrims);
+  const [pilgrims, setPilgrims] = useState<Pilgrim[]>(() => {
+    try {
+      const saved = localStorage.getItem("umrah_pilgrims_registry");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load saved pilgrims registry:", e);
+    }
+    return initialPilgrims;
+  });
   const [passports, setPassports] = useState<PassportEntry[]>(() => {
     try {
       const saved = localStorage.getItem("umrah_passports_registry");
@@ -126,7 +139,7 @@ export default function App() {
   const [notifications, setNotifications] =
     useState<AppNotification[]>(initialNotifications);
 
-  // Sync passports to localStorage
+  // Sync passports & pilgrims to localStorage
   useEffect(() => {
     try {
       localStorage.setItem("umrah_passports_registry", JSON.stringify(passports));
@@ -134,6 +147,16 @@ export default function App() {
       console.warn("Failed to persist passports registry:", e);
     }
   }, [passports]);
+
+  useEffect(() => {
+    try {
+      if (pilgrims.length > 0) {
+        localStorage.setItem("umrah_pilgrims_registry", JSON.stringify(pilgrims));
+      }
+    } catch (e) {
+      console.warn("Failed to persist pilgrims registry:", e);
+    }
+  }, [pilgrims]);
 
   // Modals & Drawers
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
@@ -491,7 +514,14 @@ export default function App() {
   // Render the badge page as a standalone responsive page without the app shell
   if (isBadgeRoute) {
     return (
-      <Suspense fallback={<div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center font-bold">Loading...</div>}>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center font-bold">
+            <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin mb-3" />
+            <p className="text-sm text-slate-600">جاري تحميل بطاقة المعتمر...</p>
+          </div>
+        }
+      >
         <BadgePage />
       </Suspense>
     );
