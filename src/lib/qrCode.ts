@@ -1,5 +1,8 @@
 import QRCode from "qrcode";
 
+// In-memory cache map for generated QR code data URLs to improve performance
+const qrCache = new Map<string, string>();
+
 export interface QRPayload {
   agency: string;
   uniqueCode: string;
@@ -62,16 +65,29 @@ export async function generateQRCodeDataUrl(
     content = buildBadgePublicUrl(textOrPayload.uniqueCode);
   }
 
+  // In-memory cache to prevent redundant QR Code generation, improving render performance
+  // and eliminating CPU bottlenecks when processing batch badge rendering.
+  const width = options.width || 300;
+  const margin = options.margin ?? 1;
+  const darkColor = options.darkColor || "#000000";
+  const lightColor = options.lightColor || "#FFFFFF";
+  const cacheKey = `${content}_w${width}_m${margin}_d${darkColor}_l${lightColor}`;
+
+  if (qrCache.has(cacheKey)) {
+    return qrCache.get(cacheKey)!;
+  }
+
   try {
     const dataUrl = await QRCode.toDataURL(content, {
-      width: options.width || 300,
-      margin: options.margin ?? 1,
+      width,
+      margin,
       color: {
-        dark: options.darkColor || "#000000",
-        light: options.lightColor || "#FFFFFF",
+        dark: darkColor,
+        light: lightColor,
       },
       errorCorrectionLevel: "M",
     });
+    qrCache.set(cacheKey, dataUrl);
     return dataUrl;
   } catch (err) {
     console.error("Failed to generate QR Code:", err);
