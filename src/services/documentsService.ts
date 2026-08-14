@@ -59,54 +59,63 @@ export const uploadPassportToStorage = async (
 };
 
 /**
- * Uploads a profile avatar photo to Supabase Storage bucket 'avatars'
- * If Supabase is not configured, converts to base64 Data URL.
+ * Uploads/Converts a profile avatar photo to an optimized base64 Data URL.
+ * Works immediately without requiring a Supabase Storage bucket.
  */
 export const uploadAvatarToStorage = async (
   file: File | Blob,
-  entityId: string,
-  type: 'pilgrim' | 'staff' = 'pilgrim'
+  _entityId?: string,
+  _type: 'pilgrim' | 'staff' = 'pilgrim'
 ): Promise<string | null> => {
-  if (!isSupabaseConfigured()) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(file);
-    });
-  }
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const rawResult = e.target?.result as string;
+      if (!rawResult) return resolve(null);
 
-  try {
-    const fileExt = file.type.split('/')[1] || 'jpg';
-    const fileName = `${type}_${entityId}_${Date.now()}.${fileExt}`;
-    const storagePath = `${type}s/${fileName}`;
+      // If it's not an image (e.g. PDF), return the data URL as is
+      if (file.type && !file.type.startsWith('image/')) {
+        return resolve(rawResult);
+      }
 
-    const { data, error } = await supabase.storage
-      .from('avatars')
-      .upload(storagePath, file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const maxDim = 480;
+          let width = img.width;
+          let height = img.height;
 
-    if (error || !data) {
-      console.error('Error uploading avatar to Supabase storage:', error);
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(file);
-      });
-    }
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
 
-    const { data: publicUrlData } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(storagePath);
-
-    return publicUrlData?.publicUrl || null;
-  } catch (err) {
-    console.error('Avatar upload exception:', err);
-    return null;
-  }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const optimized = canvas.toDataURL('image/jpeg', 0.85);
+            resolve(optimized);
+          } else {
+            resolve(rawResult);
+          }
+        } catch {
+          resolve(rawResult);
+        }
+      };
+      img.onerror = () => resolve(rawResult);
+      img.src = rawResult;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
 };
 
 /**
