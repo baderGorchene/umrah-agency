@@ -20,6 +20,7 @@ import { Language, Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
 import { PassportScannerModal } from "./PassportScannerModal";
 import { QRPassModal } from "./QRPassModal";
 import { uploadAvatarToStorage } from "../services/documentsService";
+import { useTranslation } from "react-i18next";
 
 interface PilgrimsViewProps {
   lang: Language;
@@ -50,7 +51,8 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
   isAddModalOpen,
   setIsAddModalOpen,
 }) => {
-  const isAr = lang === "AR";
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === "ar";
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTripFilter, setSelectedTripFilter] = useState("ALL");
   const [revealedCodes, setRevealedCodes] = useState<Record<string, boolean>>(
@@ -196,12 +198,10 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {isAr ? "إدارة المعتمرين" : "Gestion des pèlerins"}
+            {t('pilgrims.title')}
           </h1>
           <p className="text-xs text-slate-500 font-medium">
-            {isAr
-              ? "قائمة كاملة بالمعتمرين المسجلين وحالاتهم."
-              : "Liste complète des pèlerins enregistrés et leurs statuts."}
+            {t('pilgrims.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2.5">
@@ -210,14 +210,14 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
             className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 px-4 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer text-xs"
           >
             <Sparkles className="w-4 h-4 fill-slate-950" />
-            <span>{isAr ? "مسح الجواز" : "Scanner Passeport"}</span>
+            <span>{t('misc.scanner')}</span>
           </button>
           <button
             onClick={() => setIsAddModalOpen(true)}
             className="bg-black hover:bg-slate-900 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer text-xs"
           >
             <Plus className="w-4 h-4" />
-            <span>{isAr ? "إضافة معتمر" : "Ajouter un pèlerin"}</span>
+            <span>{t('dashboard.add_pilgrim')}</span>
           </button>
         </div>
       </div>
@@ -230,11 +230,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={
-              isAr
-                ? "بحث بالاسم، الهاتف، الكود..."
-                : "Rechercher par nom, tél, code..."
-            }
+            placeholder={t('pilgrims.search_placeholder')}
             className="w-full bg-slate-50 border border-slate-200/80 rounded-xl pl-9 pr-4 rtl:pl-4 rtl:pr-9 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-black/5 text-start"
           />
         </div>
@@ -246,7 +242,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
             className="w-full bg-slate-50 border border-slate-200/80 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-black/5 text-start"
           >
             <option value="ALL">
-              {isAr ? "جميع الرحلات" : "Tous les voyages"}
+              {t('pilgrims.all_trips')}
             </option>
             {trips.map((t) => (
               <option key={t.id} value={t.id}>
@@ -264,19 +260,19 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
             <thead>
               <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider text-start">
                 <th className="py-3.5 px-6 text-start">
-                  {isAr ? "المعتمر" : "Pèlerin"}
+                  {t('pilgrims.table_header_pilgrim')}
                 </th>
                 <th className="py-3.5 px-6 text-start">
-                  {isAr ? "الرحلة المعينة" : "Voyage Assigné"}
+                  {t('pilgrims.table_header_trip')}
                 </th>
                 <th className="py-3.5 px-6 text-center">
-                  {isAr ? "الكود الفريد" : "Code Unique"}
+                  {t('pilgrims.table_header_code')}
                 </th>
                 <th className="py-3.5 px-6 text-center">
-                  {isAr ? "الحالة" : "Statut"}
+                  {t('pilgrims.table_header_status')}
                 </th>
                 <th className="py-3.5 px-6 text-end">
-                  {isAr ? "إجراءات" : "Actions"}
+                  {t('pilgrims.table_header_actions')}
                 </th>
               </tr>
             </thead>
@@ -284,9 +280,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
               {filteredPilgrims.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-slate-400">
-                    {isAr
-                      ? "لم يتم العثور على أي معتمر."
-                      : "Aucun pèlerin trouvé."}
+                    {t('pilgrims.no_pilgrims')}
                   </td>
                 </tr>
               ) : (
@@ -339,7 +333,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                           <span>{codeDisplay}</span>
                           <button
                             onClick={() => toggleRevealCode(p.id)}
-                            title={isRevealed ? "Masquer" : "Révéler"}
+                            title={isRevealed ? t('staff.reveal.hide') : t('staff.reveal.show')}
                             className="text-slate-400 hover:text-slate-700 transition-colors p-0.5"
                           >
                             {isRevealed ? (
@@ -350,14 +344,14 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                           </button>
                           <button
                             onClick={() => handleCopyCode(p.id, p.uniqueCode)}
-                            title="Copier le code"
+                            title={t('buttons.copy')}
                             className="text-slate-400 hover:text-black transition-colors p-0.5"
                           >
                             <Copy className="w-3.5 h-3.5" />
                           </button>
                           {copiedCodeId === p.id && (
                             <span className="text-[10px] text-emerald-600 font-sans font-bold">
-                              Copié!
+                              {t('pilgrims.copied')}
                             </span>
                           )}
                         </div>
@@ -375,7 +369,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => setInspectingPilgrim(p)}
-                            title={isAr ? "عرض بطاقة QR" : "Voir le Pass QR"}
+                            title={t('pilgrims.view_qr')}
                             className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
                           >
                             <QrCode className="w-4 h-4" />
@@ -387,14 +381,14 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                                 tripId: p.tripId || trips[0]?.id || "",
                               })
                             }
-                            title={isAr ? "تعديل" : "Modifier"}
+                            title={t('buttons.edit')}
                             className="p-1.5 text-slate-400 hover:text-black hover:bg-slate-100 rounded-lg transition-all"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setDeletingPilgrimId(p.id)}
-                            title={isAr ? "حذف" : "Supprimer"}
+                            title={t('buttons.delete')}
                             className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -416,7 +410,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
           <div className="bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="font-bold text-slate-900 text-base">
-                {isAr ? "إضافة معتمر جديد" : "Ajouter un nouveau pèlerin"}
+                {t('pilgrims.add_title')}
               </h2>
               <button
                 onClick={() => setIsAddModalOpen(false)}
@@ -444,7 +438,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                     className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold flex-col gap-0.5"
                   >
                     <Camera className="w-4 h-4" />
-                    <span>{isAr ? "تغيير" : "Changer"}</span>
+                    <span>{t('pilgrims.form_avatar_change')}</span>
                   </button>
                 </div>
                 <input
@@ -466,21 +460,15 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                   <Upload className="w-3.5 h-3.5" />
                   <span>
                     {isUploadingAvatar
-                      ? isAr
-                        ? "جاري التحميل..."
-                        : "Téléversement..."
-                      : isAr
-                        ? "تغيير الصورة الشخصية (اختياري)"
-                        : "Changer la photo de profil (Optionnel)"}
+                      ? t('pilgrims.form_avatar_uploading')
+                      : t('pilgrims.form_avatar_upload_optional')}
                   </span>
                 </button>
               </div>
 
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr
-                    ? "الاسم واللقب (بالعربية) *"
-                    : "Nom et Prénom (en Arabe) *"}
+                  {t('pilgrims.form_name_ar')}
                 </label>
                 <input
                   type="text"
@@ -496,9 +484,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
 
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr
-                    ? "الاسم واللقب (باللاتينية)"
-                    : "Nom et Prénom (en Latin)"}
+                  {t('pilgrims.form_name_latin')}
                 </label>
                 <input
                   type="text"
@@ -514,9 +500,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {isAr
-                      ? "رقم الهاتف (تونس) *"
-                      : "Numéro Téléphone (Tunisie) *"}
+                    {t('pilgrims.form_phone')}
                   </label>
                   <input
                     type="text"
@@ -532,7 +516,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
 
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {isAr ? "تاريخ الميلاد" : "Date de naissance"}
+                    {t('pilgrims.form_birthdate')}
                   </label>
                   <input
                     type="date"
@@ -550,7 +534,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
 
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr ? "رقم جواز السفر" : "Numéro Passeport"}
+                  {t('pilgrims.form_passport')}
                 </label>
                 <input
                   type="text"
@@ -568,7 +552,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
 
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr ? "الرحلة المعينة" : "Voyage Assigné"}
+                  {t('pilgrims.form_trip')}
                 </label>
                 <select
                   value={formData.tripId}
@@ -591,13 +575,13 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
                 >
-                  {isAr ? "إلغاء" : "Annuler"}
+                  {t('buttons.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 shadow-xs"
                 >
-                  {isAr ? "حفظ" : "Enregistrer"}
+                  {t('buttons.save')}
                 </button>
               </div>
             </form>
@@ -611,7 +595,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
           <div className="bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h2 className="font-bold text-slate-900 text-base">
-                {isAr ? "تعديل بيانات المعتمر" : "Modifier le pèlerin"}
+                {t('pilgrims.edit_title')}
               </h2>
               <button
                 onClick={() => setEditingPilgrim(null)}
@@ -639,7 +623,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                     className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold flex-col gap-0.5"
                   >
                     <Camera className="w-4 h-4" />
-                    <span>{isAr ? "تغيير" : "Changer"}</span>
+                    <span>{t('pilgrims.form_avatar_change')}</span>
                   </button>
                 </div>
                 <input
@@ -661,21 +645,15 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                   <Upload className="w-3.5 h-3.5" />
                   <span>
                     {isUploadingAvatar
-                      ? isAr
-                        ? "جاري التحميل..."
-                        : "Téléversement..."
-                      : isAr
-                        ? "تعديل الصورة الشخصية"
-                        : "Modifier la photo de profil"}
+                      ? t('pilgrims.form_avatar_uploading')
+                      : t('pilgrims.form_avatar_upload_optional')}
                   </span>
                 </button>
               </div>
 
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr
-                    ? "الاسم واللقب (بالعربية)"
-                    : "Nom et Prénom (en Arabe)"}
+                  {t('pilgrims.form_name_ar')}
                 </label>
                 <input
                   type="text"
@@ -692,7 +670,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
 
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr ? "رقم الهاتف" : "Téléphone"}
+                  {t('pilgrims.form_phone')}
                 </label>
                 <input
                   type="text"
@@ -709,7 +687,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
 
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr ? "تاريخ الميلاد" : "Date de naissance"}
+                  {t('pilgrims.form_birthdate')}
                 </label>
                 <input
                   type="date"
@@ -726,7 +704,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
 
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr ? "الرحلة المعينة" : "Voyage Assigné"}
+                  {t('pilgrims.form_trip')}
                 </label>
                 <select
                   value={editingPilgrim.tripId}
@@ -752,13 +730,13 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                   onClick={() => setEditingPilgrim(null)}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
                 >
-                  {isAr ? "إلغاء" : "Annuler"}
+                  {t('buttons.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900"
                 >
-                  {isAr ? "تحديث" : "Mettre à jour"}
+                  {t('buttons.update')}
                 </button>
               </div>
             </form>
@@ -771,19 +749,17 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white border border-slate-100 rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 text-start">
             <h3 className="font-bold text-slate-900 text-sm">
-              {isAr ? "تأكيد الحذف" : "Confirmer la suppression"}
+              {t('pilgrims.delete_title')}
             </h3>
             <p className="text-xs text-slate-600">
-              {isAr
-                ? "هل أنت تأكد من رغبتك في حذف هذا المعتمر؟ لا يمكن التراجع عن هذا الإجراء."
-                : "Êtes-vous sûr de vouloir supprimer ce pèlerin ? Cette action est irréversible."}
+              {t('pilgrims.delete_confirm')}
             </p>
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setDeletingPilgrimId(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
               >
-                {isAr ? "إلغاء" : "Annuler"}
+                {t('buttons.cancel')}
               </button>
               <button
                 onClick={() => {
@@ -792,7 +768,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                 }}
                 className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700"
               >
-                {isAr ? "حذف" : "Supprimer"}
+                {t('buttons.delete')}
               </button>
             </div>
           </div>
