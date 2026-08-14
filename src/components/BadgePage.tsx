@@ -18,6 +18,7 @@ import { getPilgrimByUniqueCode } from "../services/pilgrimsService";
 import { getAgencySettings } from "../services/agencyService";
 import { getStaff } from "../services/staffService";
 import { DEFAULT_AVATAR_URL } from "../types";
+import { useTranslation } from "react-i18next";
 
 interface PilgrimLandingData {
   agencyName: string;
@@ -39,10 +40,6 @@ interface PilgrimLandingData {
   status?: string;
 }
 
-/**
- * Multi-tiered resolver to retrieve the actual pilgrim photo from
- * badge payload, pilgrims registry, or passport OCR scans stored in localStorage.
- */
 const resolvePilgrimAvatarFromAnySource = (
   code: string,
   passportNumber?: string,
@@ -61,7 +58,6 @@ const resolvePilgrimAvatarFromAnySource = (
   try {
     const normCode = code.trim().toUpperCase();
 
-    // 1. Check pilgrims registry in localStorage
     const rawPilgrims = window.localStorage.getItem("umrah_pilgrims_registry");
     if (rawPilgrims) {
       const list = JSON.parse(rawPilgrims);
@@ -85,7 +81,6 @@ const resolvePilgrimAvatarFromAnySource = (
       }
     }
 
-    // 2. Check passports registry in localStorage
     const rawPassports = window.localStorage.getItem(
       "umrah_passports_registry",
     );
@@ -120,22 +115,21 @@ const resolvePilgrimAvatarFromAnySource = (
 };
 
 export const BadgePage: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === "ar";
   const params = useParams<{ code?: string; id?: string }>();
   const location = useLocation();
 
-  // Multi-tier parameter extraction: handles :code, :id, query params, or URL hash parsing
   const extractCodeFromAnySource = (): string | undefined => {
     if (params.code && params.code.trim()) return params.code.trim();
     if (params.id && params.id.trim()) return params.id.trim();
 
-    // Check query params (?code=XXX or ?id=XXX)
     if (location.search) {
       const searchParams = new URLSearchParams(location.search);
       const qCode = searchParams.get("code") || searchParams.get("id");
       if (qCode && qCode.trim()) return qCode.trim();
     }
 
-    // Direct URL hash fallback (e.g. #/badge/TUN-450130)
     if (typeof window !== "undefined" && window.location.hash) {
       const hashSegments = window.location.hash.split("/").filter(Boolean);
       const lastSegment = hashSegments[hashSegments.length - 1];
@@ -148,7 +142,6 @@ export const BadgePage: React.FC = () => {
       }
     }
 
-    // Direct pathname fallback
     if (typeof window !== "undefined" && window.location.pathname) {
       const pathSegments = window.location.pathname.split("/").filter(Boolean);
       const lastSegment = pathSegments[pathSegments.length - 1];
@@ -164,7 +157,6 @@ export const BadgePage: React.FC = () => {
   const [data, setData] = useState<PilgrimLandingData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Geolocation & action states
   const [locationStatus, setLocationStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -183,18 +175,12 @@ export const BadgePage: React.FC = () => {
       setLoading(true);
 
       if (!code) {
-        console.warn("⚠️ [BadgePage] No badge code parameter provided in URL.");
         setLoading(false);
         return;
       }
 
       const searchCode = code.trim();
-      console.log(
-        "🔍 [BadgePage] Starting resolution for badge code:",
-        searchCode,
-      );
 
-      // Default agency fallback
       let defaultAgencyName = "مسك طيبة للأسفار و العمرة";
       let defaultAgencyPhone = "+216 73 481 100";
       let agencyLogo = `${import.meta.env.BASE_URL}logob.jpeg`;
@@ -208,18 +194,12 @@ export const BadgePage: React.FC = () => {
         console.warn("Could not fetch agency settings:", err);
       }
 
-      // Default accompanist fallback
       let defaultAccompanistName = "نادر قويعة";
       let defaultAccompanistPhone = "25800884";
       let defaultAccompanistRole = "مرافق الرحلة / مرشد ديني";
 
-      // 1. Check saved badge generation records in local storage
       const storedRecord = findGeneratedBadgeByCode(searchCode);
       if (storedRecord) {
-        console.log(
-          "📦 [BadgePage] Found stored badge record in local storage:",
-          storedRecord,
-        );
         const payload =
           typeof storedRecord.payload === "string"
             ? JSON.parse(storedRecord.payload)
@@ -258,18 +238,9 @@ export const BadgePage: React.FC = () => {
         return;
       }
 
-      // 2. Query pilgrims database (Supabase & localStorage)
       try {
-        console.log(
-          "🌐 [BadgePage] Querying database for pilgrim:",
-          searchCode,
-        );
         const pilgrim = await getPilgrimByUniqueCode(searchCode);
         if (pilgrim) {
-          console.log(
-            "✅ [BadgePage] Loaded pilgrim from database:",
-            pilgrim.nameArabic,
-          );
           try {
             const staffList = await getStaff();
             const tripGuide = staffList.find(
@@ -315,18 +286,9 @@ export const BadgePage: React.FC = () => {
           return;
         }
       } catch (err) {
-        console.error(
-          "🔴 [BadgePage] Error resolving pilgrim for landing page:",
-          err,
-        );
+        console.error("Error resolving pilgrim for landing page:", err);
       }
 
-      // 3. Fallback state (when pilgrim code not found)
-      console.warn(
-        "⚠️ [BadgePage] Pilgrim not found for code:",
-        searchCode,
-        ". Rendering fallback demo card.",
-      );
       const fallbackAvatar = resolvePilgrimAvatarFromAnySource(
         searchCode,
         undefined,
@@ -357,7 +319,6 @@ export const BadgePage: React.FC = () => {
     resolvePilgrimData();
   }, [code, location.pathname, location.search]);
 
-  // Clean and format international phone number for WhatsApp
   const cleanPhoneForWhatsApp = (rawPhone?: string): string => {
     if (!rawPhone) return "21625800884";
     const cleaned = rawPhone.trim();
@@ -384,7 +345,6 @@ export const BadgePage: React.FC = () => {
     return digits;
   };
 
-  // Build the pre-filled WhatsApp message with Google Maps GPS link & pilgrim details
   const generateWhatsAppUrl = (
     currentCoords?: { latitude: number; longitude: number } | null,
   ): string => {
@@ -426,7 +386,6 @@ ${locationLink}`
     return `https://wa.me/${targetPhone}?text=${encodeURIComponent(messageText)}`;
   };
 
-  // Activates GPS location, gets coordinates, and redirects to WhatsApp
   const handleLocateAndSendWhatsApp = () => {
     if (coords) {
       const url = generateWhatsAppUrl(coords);
@@ -498,12 +457,12 @@ ${locationLink}`
   if (loading) {
     return (
       <div
-        dir="rtl"
+        dir={isAr ? "rtl" : "ltr"}
         className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center p-6 font-sans"
       >
         <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin mb-4" />
         <p className="text-sm font-bold text-slate-700">
-          جاري تحميل بيانات المعتمر والرحلة...
+          {t("badge.loading_data")}
         </p>
       </div>
     );
@@ -512,14 +471,13 @@ ${locationLink}`
   if (!code && !data) {
     return (
       <div
-        dir="rtl"
+        dir={isAr ? "rtl" : "ltr"}
         className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center p-6 font-sans text-center"
       >
         <AlertCircle className="w-12 h-12 text-amber-500 mb-3" />
-        <h2 className="text-lg font-bold text-slate-900">رمز الشارة مفقود</h2>
+        <h2 className="text-lg font-bold text-slate-900">{t("badge.missing_code")}</h2>
         <p className="text-sm text-slate-600 mt-1">
-          يرجى التأكد من مسح رمز QR الصحيح أو استخدام رابط يحتوي على الرمز
-          التعريفي للمعتمر.
+          {t("badge.missing_code_desc")}
         </p>
       </div>
     );
@@ -531,12 +489,11 @@ ${locationLink}`
 
   return (
     <div
-      dir="rtl"
+      dir={isAr ? "rtl" : "ltr"}
       className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center justify-start p-4 sm:p-6 font-sans selection:bg-emerald-600 selection:text-white"
     >
-      {/* Main Container */}
       <div className="w-full max-w-md space-y-4 my-2 sm:my-4">
-        {/* ── TOP HEADER CARD (Agency Brand) ── */}
+        {/* Top Header Card */}
         <header className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 p-1">
@@ -554,7 +511,7 @@ ${locationLink}`
             <div>
               <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-bold">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>بطاقة تعريف المعتمر الرقمية</span>
+                <span>{t("badge.digital_card_title")}</span>
               </div>
               <h2 className="text-sm font-black text-slate-900 truncate">
                 {agencyName}
@@ -565,8 +522,8 @@ ${locationLink}`
           <button
             onClick={handleCopyShareLink}
             className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200 transition-colors cursor-pointer shrink-0"
-            title="مشاركة الرابط"
-            aria-label="Share page link"
+            title={t("badge.share_link")}
+            aria-label={t("badge.share_link")}
           >
             {copiedLink ? (
               <Check className="w-4 h-4 text-emerald-600" />
@@ -576,22 +533,39 @@ ${locationLink}`
           </button>
         </header>
 
-        {/* ── 1. PILGRIM INFO CARD (MAIN STATEMENT & DETAILS) ── */}
+        {/* Pilgrim Info Card */}
         <div className="bg-white text-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-slate-200/90 space-y-5">
-          {/* Main Statement Banner */}
           <div className="bg-gradient-to-r from-emerald-50 via-teal-50/80 to-amber-50/70 border border-emerald-200/80 rounded-2xl p-4 text-center">
             <p className="text-sm leading-relaxed text-slate-800 font-medium">
-              المعتمر{" "}
-              <span className="font-black text-slate-950 text-base underline decoration-emerald-500 decoration-2">
-                {pilgrimName}
-              </span>{" "}
-              مسجل رسمياً لدى وكالة{" "}
-              <span className="font-bold text-emerald-900">{agencyName}</span>،
-              بمرافقة{" "}
-              <span className="font-black text-emerald-800 text-base">
-                {accompanistName}
-              </span>
-              .
+              {isAr ? (
+                <>
+                  المعتمر{" "}
+                  <span className="font-black text-slate-950 text-base underline decoration-emerald-500 decoration-2">
+                    {pilgrimName}
+                  </span>{" "}
+                  مسجل رسمياً لدى وكالة{" "}
+                  <span className="font-bold text-emerald-900">{agencyName}</span>،
+                  بمرافقة{" "}
+                  <span className="font-black text-emerald-800 text-base">
+                    {accompanistName}
+                  </span>
+                  .
+                </>
+              ) : (
+                <>
+                  Le pèlerin{" "}
+                  <span className="font-black text-slate-950 text-base underline decoration-emerald-500 decoration-2">
+                    {pilgrimName}
+                  </span>{" "}
+                  est enregistré auprès de l'agence{" "}
+                  <span className="font-bold text-emerald-900">{agencyName}</span>,
+                  accompagné par{" "}
+                  <span className="font-black text-emerald-800 text-base">
+                    {accompanistName}
+                  </span>
+                  .
+                </>
+              )}
             </p>
           </div>
 
@@ -608,7 +582,7 @@ ${locationLink}`
               />
             </div>
 
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 text-start">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200">
                   {data?.status || "معتمر مؤكد"}
@@ -627,7 +601,7 @@ ${locationLink}`
               )}
               {data?.passportNumber && (
                 <p className="text-xs text-slate-600 font-mono mt-0.5">
-                  جواز السفر:{" "}
+                  {t("passports.fields.passport_number")}:{" "}
                   <span className="font-bold text-slate-800">
                     {data.passportNumber}
                   </span>
@@ -644,9 +618,9 @@ ${locationLink}`
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
                   <UserCheck className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="text-start">
                   <p className="text-[11px] font-bold text-slate-500">
-                    المرافق المسؤول / المرشد
+                    {t("badge.accompanist")}
                   </p>
                   <p className="text-sm font-black text-slate-900">
                     {accompanistName}
@@ -660,7 +634,7 @@ ${locationLink}`
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
                 <MessageCircle className="w-4 h-4 text-emerald-600" />
-                <span>واتساب متاح</span>
+                <span>{t("badge.whatsapp_available")}</span>
               </div>
             </div>
 
@@ -670,9 +644,9 @@ ${locationLink}`
                 <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
                   <Hotel className="w-5 h-5" />
                 </div>
-                <div>
+                <div className="text-start">
                   <p className="text-[11px] font-bold text-slate-500">
-                    الرحلة ومقر الإقامة
+                    {t("badge.trip_residence")}
                   </p>
                   <p className="text-xs font-bold text-slate-900">
                     {data?.tripName}
@@ -681,44 +655,41 @@ ${locationLink}`
                     <p className="text-[11px] text-slate-500 mt-0.5 truncate max-w-[200px]">
                       {data.makkahHotel
                         ? data.makkahHotel.split("—")[0].trim()
-                        : "مكة"}{" "}
+                        : t("badge.makkah")}{" "}
                       /{" "}
                       {data.madinahHotel
                         ? data.madinahHotel.split("—")[0].trim()
-                        : "المدينة"}
+                        : t("badge.madinah")}
                     </p>
                   )}
                 </div>
               </div>
               <span className="text-[11px] font-bold text-slate-600 bg-white px-2.5 py-1 rounded-md border border-slate-200 shadow-2xs shrink-0">
-                مكة / المدينة
+                {t("badge.makkah_madinah")}
               </span>
             </div>
           </div>
         </div>
 
-        {/* ── 2. LOCATION & WHATSAPP ACTION (ONLY ONE BUTTON) ── */}
+        {/* Location & WhatsApp Action */}
         <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/90 shadow-xs space-y-4">
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3 text-start">
             <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200/70 flex items-center justify-center shrink-0 mt-0.5">
               <MapPin className="w-5 h-5" />
             </div>
             <div className="space-y-1">
               <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
-                <span>المساعدة ومشاركة الموقع الجغرافي</span>
+                <span>{t("badge.help_location")}</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100/80 text-emerald-800 font-bold border border-emerald-200">
-                  GPS مباشر
+                  {t("badge.gps_live")}
                 </span>
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                إذا كنت تائهاً أو تحتاج للمساعدة، اضغط على الزر أدناه ليتم تحديد
-                موقعك الجغرافي الحالي تلقائياً وإرساله فوراً للمرافق عبر واتساب
-                لسرعة الوصول إليك.
+                {t("badge.help_desc")}
               </p>
             </div>
           </div>
 
-          {/* THE SINGLE PRIMARY ACTION BUTTON */}
           <button
             type="button"
             onClick={handleLocateAndSendWhatsApp}
@@ -728,19 +699,18 @@ ${locationLink}`
             {isLocatingAndRedirecting ? (
               <>
                 <RefreshCw className="w-5 h-5 animate-spin text-white" />
-                <span>جاري تحديد موقعك وفتح الواتساب...</span>
+                <span>{t("badge.locating_whatsapp")}</span>
               </>
             ) : (
               <>
                 <MessageCircle className="w-5 h-5 text-white shrink-0 fill-white" />
                 <span className="truncate">
-                  تحديد موقعي وإرساله للمرافق عبر واتساب
+                  {t("badge.send_location_whatsapp")}
                 </span>
               </>
             )}
           </button>
 
-          {/* GPS feedback if coordinates already acquired */}
           {coords && locationStatus === "success" && (
             <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-900 flex items-center justify-between gap-2 animate-in fade-in duration-200">
               <div className="flex items-center gap-2">
@@ -755,13 +725,12 @@ ${locationLink}`
                 rel="noopener noreferrer"
                 className="text-[11px] font-bold text-emerald-700 hover:underline flex items-center gap-1"
               >
-                <span>عرض على الخريطة</span>
+                <span>{t("badge.view_map")}</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
           )}
 
-          {/* Notice if location permission was denied */}
           {locationStatus === "error" && locationErrorMessage && (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2 animate-in fade-in duration-200">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
@@ -772,13 +741,13 @@ ${locationLink}`
           )}
         </div>
 
-        {/* ── FOOTER ── */}
+        {/* Footer */}
         <footer className="text-center text-slate-500 text-xs py-4 space-y-1">
           <p className="font-bold text-slate-600">
-            {agencyName} — في خدمة ضيوف الرحمن
+            {agencyName} — {t("badge.service_guests")}
           </p>
           <p className="text-[10px] text-slate-400 font-mono">
-            الرمز التعريفي: {data?.uniqueCode || code}
+            {t("badge.unique_code_label")} {data?.uniqueCode || code}
           </p>
         </footer>
       </div>

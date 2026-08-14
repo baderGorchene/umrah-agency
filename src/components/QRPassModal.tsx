@@ -4,6 +4,7 @@ import { Pilgrim, Staff, Trip, DEFAULT_AVATAR_URL } from "../types";
 import { QRCodeView } from "./QRCodeView";
 import { buildBadgePublicUrl } from "../lib/qrCode";
 import { useModalDismiss } from "../lib/useModalDismiss";
+import { useTranslation } from "react-i18next";
 
 interface QRPassModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
   trip,
   emergencyGuide1,
 }) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = React.useState(false);
   const { handleBackdropClick } = useModalDismiss(isOpen, onClose);
 
@@ -29,7 +31,6 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
 
   const publicUrl = buildBadgePublicUrl(pilgrim.uniqueCode);
 
-  // Fallbacks if guides aren't explicitly passed
   const guide1Name = emergencyGuide1?.name || "نادر قويعة";
   const guide1Phone = emergencyGuide1?.phone || "25800884";
 
@@ -63,11 +64,11 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
         <div className="flex items-center justify-between text-xs font-semibold text-slate-300 px-2">
           <div className="flex items-center gap-1.5 text-amber-400 font-bold">
             <ShieldCheck className="w-4 h-4" />
-            <span>بطاقة معتمر رقمية رسمية</span>
+            <span>{t("badge.official_digital_badge")}</span>
           </div>
           <button
             onClick={onClose}
-            aria-label="إغلاق"
+            aria-label={t("buttons.close")}
             className="text-slate-400 hover:text-white bg-slate-800 p-1.5 rounded-full border border-slate-700 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
@@ -140,11 +141,11 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
 
           {/* Details Section */}
           <div className="px-4 py-3 text-right">
-            <InfoRow label="الاسم" value={displayName} />
-            <InfoRow label="فندق مكة المكرمة" value={trip?.makkahHotel} />
-            <InfoRow label="فندق المدينة المنورة" value={trip?.madinahHotel} />
-            <InfoRow label="رئيس المجموعة" value={guide1Name} />
-            <InfoRow label="رقم الهاتف" value={guide1Phone} />
+            <InfoRow label={t("pilgrims.table_header_pilgrim")} value={displayName} />
+            <InfoRow label={t("trips.form.makkah_hotel")} value={trip?.makkahHotel} />
+            <InfoRow label={t("trips.form.madinah_hotel")} value={trip?.madinahHotel} />
+            <InfoRow label={t("badge.accompanist")} value={guide1Name} />
+            <InfoRow label={t("scanner.phone_tunisia")} value={guide1Phone} />
 
             {/* Scannable QR Code Box */}
             <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-right">
@@ -153,10 +154,10 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[16px] font-bold text-slate-700">
-                  امسح الرمز للمساعدة والدعم
+                  {t("badge.scan_me_help")}
                 </p>
                 <p className="mt-0.5 text-[16px] text-slate-400">
-                  نرافقكم في رحلة الإيمان
+                  {t("badge.accompany_faith")}
                 </p>
               </div>
             </div>
@@ -164,7 +165,7 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
 
           {/* Footer Branding */}
           <div className="border-t border-slate-100 py-2 text-[16px] font-semibold text-amber-600">
-            مسك طيبة للأسفار و السياحة
+            {t("badge.agency_name")}
           </div>
         </div>
 
@@ -178,12 +179,12 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
             {copied ? (
               <>
                 <Check className="w-4 h-4 text-slate-950" />
-                <span>تم نسخ الرابط!</span>
+                <span>{t("badge.copied_link")}</span>
               </>
             ) : (
               <>
                 <Copy className="w-4 h-4 text-slate-950" />
-                <span>مشاركة الرابط</span>
+                <span>{t("badge.share_link")}</span>
               </>
             )}
           </button>
@@ -193,7 +194,7 @@ export const QRPassModal: React.FC<QRPassModalProps> = ({
             onClick={onClose}
             className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-2xl text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer shadow-md"
           >
-            <span>إغلاق البطاقة</span>
+            <span>{t("badge.close_badge")}</span>
           </button>
         </div>
       </div>

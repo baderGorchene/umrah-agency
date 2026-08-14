@@ -37,7 +37,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Filter search results
   const filteredPilgrims = searchQuery.trim()
     ? pilgrims.filter(
         (p) =>
@@ -60,8 +59,8 @@ export const TopBar: React.FC<TopBarProps> = ({
     : [];
 
   const filteredTrips = searchQuery.trim()
-    ? trips.filter((t) =>
-        t.name.toLowerCase().includes(searchQuery.toLowerCase()),
+    ? trips.filter((tItem) =>
+        tItem.name.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : [];
 
@@ -96,6 +95,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
+              aria-label={t("buttons.close")}
               className="absolute right-3 rtl:right-auto rtl:left-3 text-xs text-slate-400 hover:text-slate-600 font-bold"
             >
               ✕
@@ -178,22 +178,22 @@ export const TopBar: React.FC<TopBarProps> = ({
                     <div className="text-[10px] uppercase font-bold text-slate-400 px-2 py-1">
                       {t('search.trips')}
                     </div>
-                    {filteredTrips.map((t) => (
+                    {filteredTrips.map((tItem) => (
                       <div
-                        key={t.id}
+                        key={tItem.id}
                         onClick={() => {
                           if (onSelectSearchResult)
-                            onSelectSearchResult("trip", t.id);
+                            onSelectSearchResult("trip", tItem.id);
                           navigate("/trips");
                           setSearchQuery("");
                         }}
                         className="p-2 hover:bg-slate-50 rounded-lg cursor-pointer flex justify-between items-center"
                       >
                         <span className="font-semibold text-slate-800">
-                          {t.name}
+                          {tItem.name}
                         </span>
                         <span className="text-slate-400 text-[10px]">
-                          {t.startDate}
+                          {tItem.startDate}
                         </span>
                       </div>
                     ))}
@@ -213,10 +213,11 @@ export const TopBar: React.FC<TopBarProps> = ({
           <span>{roleLabel}</span>
         </div>
 
-        {/* Security Shield Icon with Alert Dot */}
+        {/* Security Shield Icon */}
         <button
           onClick={onOpenSecurityModal}
           title={t('security.title')}
+          aria-label={t('security.title')}
           className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors group"
         >
           <Shield className="w-5 h-5 text-slate-700 group-hover:text-black" />
@@ -229,6 +230,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         <button
           onClick={onOpenNotifications}
           title={t('notifications.title')}
+          aria-label={t('notifications.title')}
           className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-full transition-colors group"
         >
           <Bell className="w-5 h-5 text-slate-700 group-hover:text-black" />
