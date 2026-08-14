@@ -6,12 +6,18 @@ export const normalizeAvatarUrl = (rawUrl?: string | null): string => {
   if (!rawUrl || rawUrl.trim() === "") return DEFAULT_AVATAR_URL;
   const trimmed = rawUrl.trim();
   if (trimmed.includes("unsplash.com")) return DEFAULT_AVATAR_URL;
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) {
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("data:")
+  ) {
     return trimmed;
   }
   if (isSupabaseConfigured()) {
     try {
-      const cleanPath = trimmed.startsWith("avatars/") ? trimmed.replace(/^avatars\//, "") : trimmed;
+      const cleanPath = trimmed.startsWith("avatars/")
+        ? trimmed.replace(/^avatars\//, "")
+        : trimmed;
       const { data } = supabase.storage.from("avatars").getPublicUrl(cleanPath);
       if (data?.publicUrl) return data.publicUrl;
     } catch {
@@ -33,17 +39,15 @@ export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
       .order("created_at", { ascending: false });
 
     if (error || !data) {
-      console.warn(
-        "Could not fetch pilgrims from Supabase:",
-        error,
-      );
+      console.warn("Could not fetch pilgrims from Supabase:", error);
       return [];
     }
 
     const tripsMap = new Map(trips.map((t) => [t.id, t.name]));
 
     return data.map((p: any) => {
-      const rawAvatar = p.avatar_url || p.avatarUrl || p.photo_url || p.image_url;
+      const rawAvatar =
+        p.avatar_url || p.avatarUrl || p.photo_url || p.image_url;
       const avatarUrl = normalizeAvatarUrl(rawAvatar);
 
       return {
@@ -89,7 +93,9 @@ export const createPilgrim = async (
       name_arabic: pilgrimData.nameArabic,
       name_latin: pilgrimData.nameLatin,
       phone: pilgrimData.phone,
-      unique_code: pilgrimData.uniqueCode,
+      unique_code: pilgrimData.uniqueCode
+        ? pilgrimData.uniqueCode.trim().toUpperCase()
+        : null,
       status: pilgrimData.status,
       passport_number: pilgrimData.passportNumber,
       avatar_url: pilgrimData.avatarUrl,
@@ -133,7 +139,6 @@ export const updatePilgrim = async (pilgrim: Pilgrim): Promise<boolean> => {
   if (!isSupabaseConfigured()) return true;
 
   try {
-    // 1. Validate UUID check to prevent PostgreSQL syntax error
     const isValidUUID = (s: any) =>
       typeof s === "string" &&
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
@@ -142,7 +147,7 @@ export const updatePilgrim = async (pilgrim: Pilgrim): Promise<boolean> => {
     const tripId = isValidUUID(pilgrim.tripId) ? pilgrim.tripId : null;
 
     const payload = {
-      trip_id: tripId, // 👈 Ensures valid UUID or null
+      trip_id: tripId,
       name_arabic: pilgrim.nameArabic,
       name_latin: pilgrim.nameLatin,
       phone: pilgrim.phone,
@@ -184,36 +189,83 @@ export const getPilgrimByUniqueCode = async (
   uniqueCode: string,
 ): Promise<Pilgrim | null> => {
   const normCode = uniqueCode.trim().toUpperCase();
-  console.log("🔍 [pilgrimsService] getPilgrimByUniqueCode requested for code:", normCode);
+  console.log(
+    "🔍 [pilgrimsService] getPilgrimByUniqueCode requested for code:",
+    normCode,
+  );
 
   if (isSupabaseConfigured()) {
     try {
-      console.log("📡 [Supabase] Querying pilgrims table with unique_code ilike:", normCode);
-      let { data, error } = await supabase
-        .from("pilgrims")
-        .select("*")
+      let matchedPilgrimId: string | null = null;
+
+      // 1. Check badge_generations table first (e.g. for generated badge codes like YELC9821)
+      console.log(
+        "📡 [Supabase] Querying badge_generations for code:",
+        normCode,
+      );
+      const { data: badgeRecord, error: badgeErr } = await supabase
+        .from("badge_generations")
+        .select("pilgrim_id")
         .ilike("unique_code", normCode)
         .limit(1)
         .maybeSingle();
 
-      if (error) {
-        console.error("🔴 [Supabase] Query error on unique_code:", error);
+      if (badgeRecord?.pilgrim_id) {
+        matchedPilgrimId = badgeRecord.pilgrim_id;
+        console.log(
+          "✅ [Supabase] Matched code via badge_generations. Pilgrim ID:",
+          matchedPilgrimId,
+        );
+      } else if (badgeErr) {
+        console.warn("⚠️ [Supabase] badge_generations lookup note:", badgeErr);
       }
 
-      // If not found by unique_code, try matching passport_number
-      if (!data) {
-        console.log("📡 [Supabase] Trying secondary query with passport_number ilike:", normCode);
-        const passportRes = await supabase
+      // 2. Fetch pilgrim from pilgrims table
+      let data: any = null;
+
+      if (matchedPilgrimId) {
+        // Match by ID resolved from badge_generations
+        const res = await supabase
           .from("pilgrims")
           .select("*")
-          .ilike("passport_number", normCode)
+          .eq("id", matchedPilgrimId)
+          .maybeSingle();
+        data = res.data;
+      } else {
+        // Fallback: Query pilgrims table directly by unique_code
+        console.log(
+          "📡 [Supabase] Querying pilgrims table with unique_code ilike:",
+          normCode,
+        );
+        const codeRes = await supabase
+          .from("pilgrims")
+          .select("*")
+          .ilike("unique_code", normCode)
           .limit(1)
           .maybeSingle();
-        if (passportRes.data) {
-          data = passportRes.data;
-          console.log("✅ [Supabase] Pilgrim matched via passport_number:", data.name_arabic);
-        } else if (passportRes.error) {
-          console.error("🔴 [Supabase] Secondary query error:", passportRes.error);
+
+        data = codeRes.data;
+
+        // Fallback secondary query: Try passport_number
+        if (!data) {
+          console.log(
+            "📡 [Supabase] Trying secondary query with passport_number ilike:",
+            normCode,
+          );
+          const passportRes = await supabase
+            .from("pilgrims")
+            .select("*")
+            .ilike("passport_number", normCode)
+            .limit(1)
+            .maybeSingle();
+
+          if (passportRes.data) {
+            data = passportRes.data;
+            console.log(
+              "✅ [Supabase] Pilgrim matched via passport_number:",
+              data.name_arabic,
+            );
+          }
         }
       }
 
@@ -223,25 +275,27 @@ export const getPilgrimByUniqueCode = async (
           name_arabic: data.name_arabic,
           unique_code: data.unique_code,
           has_avatar: Boolean(data.avatar_url),
-          avatar_preview: data.avatar_url ? `${data.avatar_url.substring(0, 40)}...` : "NONE",
+          avatar_preview: data.avatar_url
+            ? `${data.avatar_url.substring(0, 40)}...`
+            : "NONE",
         });
 
         let tripName = "—";
         if (data.trip_id) {
           try {
-            const { data: tripData, error: tripErr } = await supabase
+            const { data: tripData } = await supabase
               .from("trips")
               .select("name")
               .eq("id", data.trip_id)
               .maybeSingle();
             if (tripData?.name) tripName = tripData.name;
-            if (tripErr) console.warn("⚠️ [Supabase] Trip name lookup note:", tripErr);
           } catch {
             // ignore
           }
         }
 
-        const rawAvatar = data.avatar_url || data.avatarUrl || data.photo_url || data.image_url;
+        const rawAvatar =
+          data.avatar_url || data.avatarUrl || data.photo_url || data.image_url;
         const resolvedAvatar = normalizeAvatarUrl(rawAvatar);
 
         return {
@@ -260,50 +314,68 @@ export const getPilgrimByUniqueCode = async (
           birthDate: data.birth_date || data.birthDate,
         };
       } else {
-        console.warn(`⚠️ [Supabase] No pilgrim found matching code "${normCode}". Inspecting available records...`);
-        // Diagnostic probe: fetch all available records to diagnose RLS or mismatch
+        console.warn(
+          `⚠️ [Supabase] No pilgrim found matching code "${normCode}". Inspecting available records...`,
+        );
         try {
           const { data: sampleList, error: probeErr } = await supabase
             .from("pilgrims")
             .select("id, name_arabic, unique_code, passport_number, avatar_url")
             .limit(5);
-          console.log("📋 [Supabase Diagnostic] Available pilgrims in database:", sampleList, "Probe error (if RLS blocked):", probeErr);
+          console.log(
+            "📋 [Supabase Diagnostic] Available pilgrims in database:",
+            sampleList,
+            "Probe error (if RLS blocked):",
+            probeErr,
+          );
         } catch (probeEx) {
           console.warn("Probe exception:", probeEx);
         }
       }
     } catch (err) {
-      console.error("🔴 [Supabase] Exception fetching pilgrim by unique code:", err);
+      console.error(
+        "🔴 [Supabase] Exception fetching pilgrim by unique code:",
+        err,
+      );
     }
   } else {
-    console.warn("⚠️ [Supabase] Supabase is not configured (missing URL or anon key).");
+    console.warn(
+      "⚠️ [Supabase] Supabase is not configured (missing URL or anon key).",
+    );
   }
 
-  // Fallback: check localStorage for saved pilgrims or passports
+  // Fallback: check localStorage
   if (typeof window !== "undefined") {
     try {
-      const rawPilgrims = window.localStorage.getItem("umrah_pilgrims_registry");
+      const rawPilgrims = window.localStorage.getItem(
+        "umrah_pilgrims_registry",
+      );
       if (rawPilgrims) {
         const parsed = JSON.parse(rawPilgrims);
         if (Array.isArray(parsed)) {
           const match = parsed.find(
             (p: any) =>
-              (p.uniqueCode && p.uniqueCode.trim().toUpperCase() === normCode) ||
+              (p.uniqueCode &&
+                p.uniqueCode.trim().toUpperCase() === normCode) ||
               (p.id && p.id.trim().toUpperCase() === normCode) ||
-              (p.passportNumber && p.passportNumber.trim().toUpperCase() === normCode)
+              (p.passportNumber &&
+                p.passportNumber.trim().toUpperCase() === normCode),
           );
           if (match) return match;
         }
       }
 
-      const rawPassports = window.localStorage.getItem("umrah_passports_registry");
+      const rawPassports = window.localStorage.getItem(
+        "umrah_passports_registry",
+      );
       if (rawPassports) {
         const parsed = JSON.parse(rawPassports);
         if (Array.isArray(parsed)) {
           const match = parsed.find(
             (p: any) =>
-              (p.passportNumber && p.passportNumber.trim().toUpperCase() === normCode) ||
-              (p.id && p.id.trim().toUpperCase() === normCode)
+              (p.passportNumber &&
+                p.passportNumber.trim().toUpperCase() === normCode) ||
+              (p.id && p.id.trim().toUpperCase() === normCode),
           );
           if (match) {
             return {

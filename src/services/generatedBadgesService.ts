@@ -1,23 +1,31 @@
-import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { GeneratedBadgeRecord } from '../types';
+import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { GeneratedBadgeRecord } from "../types";
 
-const STORAGE_KEY = 'umrah-generated-badges';
-const TABLE_NAME = 'badge_generations';
+const STORAGE_KEY = "umrah-generated-badges";
+const TABLE_NAME = "badge_generations";
 
-type GeneratedBadgeStorageItem = Omit<GeneratedBadgeRecord, 'payload'> & {
+type GeneratedBadgeStorageItem = Omit<GeneratedBadgeRecord, "payload"> & {
   payload: string;
 };
 
-const parseGeneratedBadgeItem = (item: unknown): GeneratedBadgeRecord | null => {
-  if (!item || typeof item !== 'object') return null;
+const parseGeneratedBadgeItem = (
+  item: unknown,
+): GeneratedBadgeRecord | null => {
+  if (!item || typeof item !== "object") return null;
 
   const parsed = item as GeneratedBadgeStorageItem;
   let payload: Record<string, unknown> = {};
 
   try {
-    payload = typeof parsed.payload === 'string' ? JSON.parse(parsed.payload) : parsed.payload;
+    payload =
+      typeof parsed.payload === "string"
+        ? JSON.parse(parsed.payload)
+        : parsed.payload;
   } catch {
-    payload = typeof parsed.payload === 'object' && parsed.payload ? parsed.payload : {};
+    payload =
+      typeof parsed.payload === "object" && parsed.payload
+        ? parsed.payload
+        : {};
   }
 
   return {
@@ -26,7 +34,9 @@ const parseGeneratedBadgeItem = (item: unknown): GeneratedBadgeRecord | null => 
   };
 };
 
-export const saveGeneratedBadges = async (records: GeneratedBadgeRecord[]): Promise<boolean> => {
+export const saveGeneratedBadges = async (
+  records: GeneratedBadgeRecord[],
+): Promise<boolean> => {
   if (!records.length) {
     return false;
   }
@@ -36,12 +46,12 @@ export const saveGeneratedBadges = async (records: GeneratedBadgeRecord[]): Prom
     payload: JSON.stringify(record.payload),
   }));
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== "undefined") {
     const existing = window.localStorage.getItem(STORAGE_KEY);
     const parsed = existing ? JSON.parse(existing) : [];
     window.localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify([...parsed, ...persistedPayload])
+      JSON.stringify([...parsed, ...persistedPayload]),
     );
   }
 
@@ -67,23 +77,29 @@ export const saveGeneratedBadges = async (records: GeneratedBadgeRecord[]): Prom
         guide_2_phone: record.guide2Phone,
         payload: record.payload,
         created_at: record.createdAt || new Date().toISOString(),
-      }))
+      })),
     );
 
     if (error) {
-      console.warn(`Could not persist badges to Supabase table ${TABLE_NAME}:`, error);
+      console.warn(
+        `Could not persist badges to Supabase table ${TABLE_NAME}:`,
+        error,
+      );
       return true;
     }
 
     return true;
   } catch (error) {
-    console.warn(`Unexpected error while saving badges to Supabase table ${TABLE_NAME}:`, error);
+    console.warn(
+      `Unexpected error while saving badges to Supabase table ${TABLE_NAME}:`,
+      error,
+    );
     return true;
   }
 };
 
 export const getGeneratedBadges = (): GeneratedBadgeRecord[] => {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === "undefined") return [];
 
   try {
     const existing = window.localStorage.getItem(STORAGE_KEY);
@@ -100,34 +116,47 @@ export const getGeneratedBadges = (): GeneratedBadgeRecord[] => {
   }
 };
 
-export const findGeneratedBadgeByCode = (uniqueCode: string): GeneratedBadgeRecord | null => {
-  return getGeneratedBadges().find((record) => record.uniqueCode === uniqueCode) || null;
+export const findGeneratedBadgeByCode = (
+  uniqueCode: string,
+): GeneratedBadgeRecord | null => {
+  return (
+    getGeneratedBadges().find((record) => record.uniqueCode === uniqueCode) ||
+    null
+  );
 };
 
-export const getGeneratedBadgeByCode = async (uniqueCode: string): Promise<GeneratedBadgeRecord | null> => {
+export const getGeneratedBadgeByCode = async (
+  uniqueCode: string,
+): Promise<GeneratedBadgeRecord | null> => {
   if (!isSupabaseConfigured()) return null;
+
+  const normCode = uniqueCode.trim().toUpperCase();
 
   try {
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .select('*')
-      .eq('unique_code', uniqueCode)
+      .select("*")
+      .ilike("unique_code", normCode) // 👈 Using ilike for case-insensitive matching
       .limit(1)
       .maybeSingle();
 
     if (error || !data) {
+      if (error)
+        console.warn("Supabase query error on badge_generations:", error);
       return null;
     }
 
-    // data.payload may be stored as JSON string or already an object
     let payloadObj: Record<string, unknown> = {};
     try {
-      payloadObj = typeof data.payload === 'string' ? JSON.parse(data.payload) : data.payload || {};
+      payloadObj =
+        typeof data.payload === "string"
+          ? JSON.parse(data.payload)
+          : data.payload || {};
     } catch {
       payloadObj = {};
     }
 
-    const record: GeneratedBadgeRecord = {
+    return {
       id: data.id,
       tripId: data.trip_id,
       tripName: data.trip_name,
@@ -138,23 +167,21 @@ export const getGeneratedBadgeByCode = async (uniqueCode: string): Promise<Gener
       templateName: data.template_name,
       templateVariant: data.template_variant,
       accentColor: data.accent_color,
-      guide1Name: data.guide_1_name || '',
-      guide1Phone: data.guide_1_phone || '',
-      guide2Name: data.guide_2_name || '',
-      guide2Phone: data.guide_2_phone || '',
+      guide1Name: data.guide_1_name || "",
+      guide1Phone: data.guide_1_phone || "",
+      guide2Name: data.guide_2_name || "",
+      guide2Phone: data.guide_2_phone || "",
       payload: payloadObj,
       createdAt: data.created_at,
     };
-
-    return record;
   } catch (err) {
-    console.warn('Error querying badge_generations for code', uniqueCode, err);
+    console.warn("Error querying badge_generations for code", normCode, err);
     return null;
   }
 };
 
 export const getGeneratedBadgeCount = (): number => {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return 0;
   }
 
