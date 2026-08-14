@@ -177,15 +177,19 @@ export const getPilgrimByUniqueCode = async (
         .maybeSingle();
 
       if (data) {
-        const tripName = data.trip_id
-          ? (
-              await supabase
-                .from("trips")
-                .select("name")
-                .eq("id", data.trip_id)
-                .single()
-            ).data?.name
-          : "—";
+        let tripName = "—";
+        if (data.trip_id) {
+          try {
+            const { data: tripData } = await supabase
+              .from("trips")
+              .select("name")
+              .eq("id", data.trip_id)
+              .maybeSingle();
+            if (tripData?.name) tripName = tripData.name;
+          } catch {
+            // ignore
+          }
+        }
 
         return {
           id: data.id,

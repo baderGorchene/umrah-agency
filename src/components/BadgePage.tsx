@@ -13,10 +13,7 @@ import {
   RefreshCw,
   ExternalLink,
 } from "lucide-react";
-import {
-  findGeneratedBadgeByCode,
-  getGeneratedBadgeByCode,
-} from "../services/generatedBadgesService";
+import { findGeneratedBadgeByCode } from "../services/generatedBadgesService";
 import { getPilgrimByUniqueCode } from "../services/pilgrimsService";
 import { getAgencySettings } from "../services/agencyService";
 import { getStaff } from "../services/staffService";
@@ -165,11 +162,8 @@ export const BadgePage: React.FC = () => {
       let defaultAccompanistPhone = "25800884";
       let defaultAccompanistRole = "مرافق الرحلة / مرشد ديني";
 
-      // 1. Check saved badge generation records (local cache or Supabase)
-      let storedRecord = findGeneratedBadgeByCode(searchCode);
-      if (!storedRecord) {
-        storedRecord = await getGeneratedBadgeByCode(searchCode);
-      }
+      // 1. Check saved badge generation records in local storage
+      const storedRecord = findGeneratedBadgeByCode(searchCode);
 
       if (storedRecord) {
         const payload =
