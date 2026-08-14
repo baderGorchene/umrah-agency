@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import {
   MapPin,
   MessageCircle,
@@ -120,7 +120,47 @@ const resolvePilgrimAvatarFromAnySource = (
 };
 
 export const BadgePage: React.FC = () => {
-  const { code } = useParams<{ code: string }>();
+  const params = useParams<{ code?: string; id?: string }>();
+  const location = useLocation();
+
+  // Multi-tier parameter extraction: handles :code, :id, query params, or URL hash parsing
+  const extractCodeFromAnySource = (): string | undefined => {
+    if (params.code && params.code.trim()) return params.code.trim();
+    if (params.id && params.id.trim()) return params.id.trim();
+
+    // Check query params (?code=XXX or ?id=XXX)
+    if (location.search) {
+      const searchParams = new URLSearchParams(location.search);
+      const qCode = searchParams.get("code") || searchParams.get("id");
+      if (qCode && qCode.trim()) return qCode.trim();
+    }
+
+    // Direct URL hash fallback (e.g. #/badge/TUN-450130)
+    if (typeof window !== "undefined" && window.location.hash) {
+      const hashSegments = window.location.hash.split("/").filter(Boolean);
+      const lastSegment = hashSegments[hashSegments.length - 1];
+      if (
+        lastSegment &&
+        !lastSegment.startsWith("#") &&
+        lastSegment.toLowerCase() !== "badge"
+      ) {
+        return decodeURIComponent(lastSegment.split("?")[0].trim());
+      }
+    }
+
+    // Direct pathname fallback
+    if (typeof window !== "undefined" && window.location.pathname) {
+      const pathSegments = window.location.pathname.split("/").filter(Boolean);
+      const lastSegment = pathSegments[pathSegments.length - 1];
+      if (lastSegment && lastSegment.toLowerCase() !== "badge") {
+        return decodeURIComponent(lastSegment.split("?")[0].trim());
+      }
+    }
+
+    return undefined;
+  };
+
+  const code = extractCodeFromAnySource();
   const [data, setData] = useState<PilgrimLandingData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -150,7 +190,7 @@ export const BadgePage: React.FC = () => {
 
       const searchCode = code.trim();
       console.log(
-        "🔍 [BadgePage] Resolving badge code from route:",
+        "🔍 [BadgePage] Starting resolution for badge code:",
         searchCode,
       );
 
@@ -315,7 +355,7 @@ export const BadgePage: React.FC = () => {
     };
 
     resolvePilgrimData();
-  }, [code]);
+  }, [code, location.pathname, location.search]);
 
   // Clean and format international phone number for WhatsApp
   const cleanPhoneForWhatsApp = (rawPhone?: string): string => {
@@ -478,8 +518,8 @@ ${locationLink}`
         <AlertCircle className="w-12 h-12 text-amber-500 mb-3" />
         <h2 className="text-lg font-bold text-slate-900">رمز الشارة مفقود</h2>
         <p className="text-sm text-slate-600 mt-1">
-          يرجى التأكد من مسح رمز QR الصحبح أو استخدام رابط يحتوي على الرمز
-          التعريفى للمعتمر.
+          يرجى التأكد من مسح رمز QR الصحيح أو استخدام رابط يحتوي على الرمز
+          التعريفي للمعتمر.
         </p>
       </div>
     );
