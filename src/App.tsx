@@ -12,16 +12,51 @@ import { LoginView } from "./components/LoginView";
 import { Suspense, lazy } from "react";
 import i18n from "./i18n";
 
-const DashboardView = lazy(() => import("./components/DashboardView").then(module => ({ default: module.DashboardView })));
-const PilgrimsView = lazy(() => import("./components/PilgrimsView").then(module => ({ default: module.PilgrimsView })));
-const PassportsView = lazy(() => import("./components/PassportsView").then(module => ({ default: module.PassportsView })));
-const StaffView = lazy(() => import("./components/StaffView").then(module => ({ default: module.StaffView })));
-const TripsView = lazy(() => import("./components/TripsView").then(module => ({ default: module.TripsView })));
-const QrCenterView = lazy(() => import("./components/QrCenterView").then(module => ({ default: module.QrCenterView })));
-const BadgePage = lazy(() => import("./components/BadgePage").then(module => ({ default: module.BadgePage })));
-const DocumentsView = lazy(() => import("./components/DocumentsView").then(module => ({ default: module.DocumentsView })));
-const NewsView = lazy(() => import("./components/NewsView").then(module => ({ default: module.NewsView })));
-const SettingsView = lazy(() => import("./components/SettingsView").then(module => ({ default: module.SettingsView })));
+const DashboardView = lazy(() =>
+  import("./components/DashboardView").then((module) => ({
+    default: module.DashboardView,
+  })),
+);
+const PilgrimsView = lazy(() =>
+  import("./components/PilgrimsView").then((module) => ({
+    default: module.PilgrimsView,
+  })),
+);
+const PassportsView = lazy(() =>
+  import("./components/PassportsView").then((module) => ({
+    default: module.PassportsView,
+  })),
+);
+const StaffView = lazy(() =>
+  import("./components/StaffView").then((module) => ({
+    default: module.StaffView,
+  })),
+);
+const TripsView = lazy(() =>
+  import("./components/TripsView").then((module) => ({
+    default: module.TripsView,
+  })),
+);
+const QrCenterView = lazy(() =>
+  import("./components/QrCenterView").then((module) => ({
+    default: module.QrCenterView,
+  })),
+);
+const BadgePage = lazy(() =>
+  import("./components/BadgePage").then((module) => ({
+    default: module.BadgePage,
+  })),
+);
+const DocumentsView = lazy(() =>
+  import("./components/DocumentsView").then((module) => ({
+    default: module.DocumentsView,
+  })),
+);
+const SettingsView = lazy(() =>
+  import("./components/SettingsView").then((module) => ({
+    default: module.SettingsView,
+  })),
+);
 import { SecurityModal } from "./components/SecurityModal";
 import { NotificationDrawer } from "./components/NotificationDrawer";
 
@@ -141,7 +176,10 @@ export default function App() {
   // Sync passports & pilgrims to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem("umrah_passports_registry", JSON.stringify(passports));
+      localStorage.setItem(
+        "umrah_passports_registry",
+        JSON.stringify(passports),
+      );
     } catch (e) {
       console.warn("Failed to persist passports registry:", e);
     }
@@ -150,7 +188,10 @@ export default function App() {
   useEffect(() => {
     try {
       if (pilgrims.length > 0) {
-        localStorage.setItem("umrah_pilgrims_registry", JSON.stringify(pilgrims));
+        localStorage.setItem(
+          "umrah_pilgrims_registry",
+          JSON.stringify(pilgrims),
+        );
       }
     } catch (e) {
       console.warn("Failed to persist pilgrims registry:", e);
@@ -493,9 +534,7 @@ export default function App() {
   };
 
   // Search result jump
-  const handleSelectSearchResult = (
-    type: "pilgrim" | "staff" | "trip",
-  ) => {
+  const handleSelectSearchResult = (type: "pilgrim" | "staff" | "trip") => {
     if (type === "pilgrim") navigate("/pilgrims");
     else if (type === "staff") navigate("/staff");
     else if (type === "trip") navigate("/trips");
@@ -510,7 +549,9 @@ export default function App() {
         fallback={
           <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center font-bold">
             <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin mb-3" />
-            <p className="text-sm text-slate-600">جاري تحميل بطاقة المعتمر...</p>
+            <p className="text-sm text-slate-600">
+              جاري تحميل بطاقة المعتمر...
+            </p>
           </div>
         }
       >
@@ -558,11 +599,13 @@ export default function App() {
 
         {/* Dynamic Router Page Views */}
         <main className="p-6 md:p-8 max-w-7xl w-full mx-auto flex-1">
-          <Suspense fallback={
-            <div className="flex items-center justify-center py-24">
-              <div className="w-8 h-8 border-4 border-slate-300 border-t-black rounded-full animate-spin"></div>
-            </div>
-          }>
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center py-24">
+                <div className="w-8 h-8 border-4 border-slate-300 border-t-black rounded-full animate-spin"></div>
+              </div>
+            }
+          >
             <Routes>
               <Route
                 path="/"
@@ -705,20 +748,6 @@ export default function App() {
                   ) : (
                     <Navigate to="/" replace />
                   )
-                }
-              />
-
-              {/* News View: All Roles */}
-              <Route
-                path="/news"
-                element={
-                  <NewsView
-                    lang={lang}
-                    posts={posts}
-                    trips={trips}
-                    onAddPost={handleAddPost}
-                    onDeletePost={handleDeletePost}
-                  />
                 }
               />
 

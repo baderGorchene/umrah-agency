@@ -461,7 +461,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 </h3>
                 <select
                   value={defaultLang}
-                  onChange={(e) => setDefaultLang(e.target.value as "ar" | "fr")}
+                  onChange={(e) =>
+                    setDefaultLang(e.target.value as "ar" | "fr")
+                  }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 text-start focus:outline-none focus:ring-2 focus:ring-black/5"
                 >
                   <option value="ar">Arabe (RTL)</option>
@@ -488,7 +490,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               className="w-full sm:w-auto min-w-[220px] bg-black hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer text-xs"
             >
               <Save className="w-4 h-4" />
-              <span>{isAr ? "حفظ التغييرات" : "Enregistrer Configurations"}</span>
+              <span>
+                {isAr ? "حفظ التغييرات" : "Enregistrer Configurations"}
+              </span>
             </button>
           </div>
         </form>

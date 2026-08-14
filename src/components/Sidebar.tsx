@@ -8,7 +8,6 @@ import {
   Plane,
   QrCode,
   FileText,
-  Newspaper,
   Settings,
   LogOut,
   ShieldCheck,
@@ -26,10 +25,7 @@ interface SidebarProps {
   currentUser: UserProfile | null;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
-  onLogout,
-  currentUser,
-}) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
   const { t, i18n } = useTranslation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const isAr = i18n.language === "ar";
@@ -86,12 +82,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       labelKey: "menu.documents",
       icon: FileText,
       allowedRoles: ["admin", "agent"],
-    },
-    {
-      path: "/news",
-      labelKey: "menu.news",
-      icon: Newspaper,
-      allowedRoles: ["admin", "agent", "pilgrim"],
     },
     {
       path: "/settings",
@@ -234,9 +224,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${roleBadgeInfo.bg}`}
               title={
                 isCollapsed
-                  ? `${currentUser?.fullName || t('users.user')} (${
-                      t(roleBadgeInfo.labelKey)
-                    })`
+                  ? `${currentUser?.fullName || t("users.user")} (${t(
+                      roleBadgeInfo.labelKey,
+                    )})`
                   : undefined
               }
             >
@@ -246,7 +236,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {!isCollapsed && (
               <div className="truncate">
                 <p className="text-xs font-bold text-slate-900 truncate">
-                  {currentUser?.fullName || t('users.user')}
+                  {currentUser?.fullName || t("users.user")}
                 </p>
                 <p className="text-[10px] text-slate-500 font-medium truncate">
                   {t(roleBadgeInfo.labelKey)}
