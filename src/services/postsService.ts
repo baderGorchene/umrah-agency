@@ -1,6 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Post, Trip } from '../types';
-import { initialPosts } from '../mockData';
 
 export const getPosts = async (trips: Trip[] = []): Promise<Post[]> => {
   if (!isSupabaseConfigured()) {

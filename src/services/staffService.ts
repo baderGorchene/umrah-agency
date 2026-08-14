@@ -1,6 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { Staff, Trip, DEFAULT_AVATAR_URL } from '../types';
-import { initialStaff } from '../mockData';
 
 export const getStaff = async (trips: Trip[] = []): Promise<Staff[]> => {
   if (!isSupabaseConfigured()) {

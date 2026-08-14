@@ -6,22 +6,18 @@ import {
   Plus,
   Tag,
   CreditCard,
-  CheckCircle2,
   Lock,
   FileSpreadsheet,
-  Building,
-  User,
   Sparkles,
   Scan,
 } from "lucide-react";
-import { Language, Trip, Pilgrim, Staff, AgencySettings } from "../types";
+import { Language, Trip, Pilgrim, AgencySettings } from "../types";
 import { PassportScannerModal } from "./PassportScannerModal";
 
 interface DocumentsViewProps {
   lang: Language;
   trips: Trip[];
   pilgrims: Pilgrim[];
-  staff: Staff[];
   agencySettings: AgencySettings;
   onAddPilgrim?: (
     newPilgrim: Omit<Pilgrim, "id">,
@@ -33,7 +29,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   lang,
   trips,
   pilgrims,
-  staff,
   agencySettings,
   onAddPilgrim,
 }) => {

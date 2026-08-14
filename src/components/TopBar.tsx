@@ -32,12 +32,10 @@ export const TopBar: React.FC<TopBarProps> = ({
   onSelectSearchResult,
   currentUser,
 }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-
-  const isAr = i18n.language === "ar";
 
   // Filter search results
   const filteredPilgrims = searchQuery.trim()

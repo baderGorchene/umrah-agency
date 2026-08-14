@@ -1,39 +1,13 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { UserProfile, UserRole } from '../types';
 
-export const INITIAL_MOCK_USERS: UserProfile[] = [
-  {
-    id: 'usr-1',
-    email: 'admin@misktiba.tn',
-    fullName: 'محمد علي — مدير الوكالة',
-    role: 'admin',
-    phone: '+216 71 123 456',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'usr-2',
-    email: 'agent@misktiba.tn',
-    fullName: 'ياسين الفرجاني — مرافق رحلات',
-    role: 'agent',
-    phone: '+216 98 765 432',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'usr-3',
-    email: 'pilgrim@misktiba.tn',
-    fullName: 'فاطمة التونسي — معتمرة',
-    role: 'pilgrim',
-    phone: '+216 55 443 322',
-    createdAt: new Date().toISOString(),
-  },
-];
-
 /**
  * Fetch all users from public.profiles table
  */
 export async function getUsers(): Promise<UserProfile[]> {
   if (!isSupabaseConfigured()) {
-    return INITIAL_MOCK_USERS;
+    // TODO: Connect real users API or local persistent store when offline/unconfigured
+    return [];
   }
 
   try {
@@ -42,9 +16,9 @@ export async function getUsers(): Promise<UserProfile[]> {
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (error || !data || data.length === 0) {
+    if (error || !data) {
       console.warn('No profiles found in Supabase or error occurred:', error?.message);
-      return INITIAL_MOCK_USERS;
+      return [];
     }
 
     return data.map((item) => ({
@@ -59,7 +33,7 @@ export async function getUsers(): Promise<UserProfile[]> {
     }));
   } catch (err) {
     console.error('Failed to load users:', err);
-    return INITIAL_MOCK_USERS;
+    return [];
   }
 }
 

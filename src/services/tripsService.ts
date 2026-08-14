@@ -1,6 +1,5 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { Trip } from "../types";
-import { initialTrips } from "../mockData";
 
 export const getTrips = async (): Promise<Trip[]> => {
   if (!isSupabaseConfigured()) {

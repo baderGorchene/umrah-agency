@@ -22,13 +22,12 @@ import { useTranslation } from "react-i18next";
 
 interface SidebarProps {
   onLogout: () => void;
-  lang: Language;
+  lang?: Language;
   currentUser: UserProfile | null;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   onLogout,
-  lang,
   currentUser,
 }) => {
   const { t, i18n } = useTranslation();

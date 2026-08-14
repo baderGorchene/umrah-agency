@@ -7,23 +7,20 @@ import {
   Copy,
   Edit,
   Trash2,
-  CheckCircle2,
-  User,
   Sparkles,
-  FileText,
   Camera,
   Upload,
-  RefreshCw,
   QrCode,
 } from "lucide-react";
 import { Language, Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
 import { PassportScannerModal } from "./PassportScannerModal";
+import { StatusBadge } from "./StatusBadge";
 import { QRPassModal } from "./QRPassModal";
 import { uploadAvatarToStorage } from "../services/documentsService";
 import { useTranslation } from "react-i18next";
 
 interface PilgrimsViewProps {
-  lang: Language;
+  lang?: Language;
   pilgrims: Pilgrim[];
   trips: Trip[];
   onAddPilgrim: (
@@ -42,7 +39,6 @@ interface PilgrimsViewProps {
 }
 
 export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
-  lang,
   pilgrims,
   trips,
   onAddPilgrim,
@@ -51,8 +47,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
   isAddModalOpen,
   setIsAddModalOpen,
 }) => {
-  const { t, i18n } = useTranslation();
-  const isAr = i18n.language === "ar";
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTripFilter, setSelectedTripFilter] = useState("ALL");
   const [revealedCodes, setRevealedCodes] = useState<Record<string, boolean>>(
@@ -359,9 +354,16 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
 
                       {/* Statut */}
                       <td className="py-4 px-6 text-center">
-                        <span className="inline-block px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100/80 text-emerald-800">
-                          {p.status}
-                        </span>
+                        <StatusBadge
+                          status={p.status}
+                          variant={
+                            p.status === "مؤكد"
+                              ? "emerald"
+                              : p.status === "في الانتظار"
+                              ? "amber"
+                              : "rose"
+                          }
+                        />
                       </td>
 
                       {/* Actions */}

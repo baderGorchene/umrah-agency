@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Newspaper, Send, Upload, Trash2, Bell, CheckCircle2, Inbox } from 'lucide-react';
+import { Newspaper, Send, Upload, Trash2, Inbox } from 'lucide-react';
 import { Language, Post, Trip } from '../types';
 
 interface NewsViewProps {

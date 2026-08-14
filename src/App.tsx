@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Routes,
   Route,
@@ -32,7 +32,6 @@ import {
   initialTrips,
   initialPosts,
   initialNotifications,
-  initialPassportEntries,
 } from "./mockData";
 
 import {
@@ -96,11 +95,10 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(
     DEFAULT_ADMIN_USER,
   );
-  const [jwtToken, setJwtToken] = useState<string | null>("session-token");
+  const [, setJwtToken] = useState<string | null>("session-token");
   const [isLoggedIn, setIsLoggedIn] = useState(true);
 
   const [lang, setLang] = useState<Language>("FR");
-  const [isLoadingData, setIsLoadingData] = useState(true);
 
   // Core Dynamic Data States
   const [agencySettings, setAgencySettings] = useState<AgencySettings>(
@@ -217,7 +215,6 @@ export default function App() {
     const path = location.pathname;
 
     async function loadRouteData() {
-      setIsLoadingData(true);
       try {
         // 1. Settings (Only fetch when settings or documents page is loaded)
         if (path === "/settings" || path === "/documents") {
@@ -267,8 +264,6 @@ export default function App() {
         }
       } catch (err) {
         console.error("Error loading route-specific data:", err);
-      } finally {
-        setIsLoadingData(false);
       }
     }
 
@@ -341,7 +336,7 @@ export default function App() {
       // If a document was provided (passport scan), save it linked to the created pilgrim
       if (pendingDocument) {
         try {
-          const doc = await saveDocumentRecord({
+          await saveDocumentRecord({
             pilgrimId: created.id,
             fileName:
               pendingDocument.fileName ||
@@ -351,7 +346,6 @@ export default function App() {
             fileUrl: pendingDocument.fileUrl,
             mimeType: pendingDocument.mimeType,
           });
-          // Optionally you could attach doc to the pilgrim locally or emit a notification
         } catch (err) {
           console.warn("Failed to save pending document for pilgrim", err);
         }
@@ -501,7 +495,6 @@ export default function App() {
   // Search result jump
   const handleSelectSearchResult = (
     type: "pilgrim" | "staff" | "trip",
-    id: string,
   ) => {
     if (type === "pilgrim") navigate("/pilgrims");
     else if (type === "staff") navigate("/staff");
@@ -706,7 +699,6 @@ export default function App() {
                       lang={lang}
                       trips={trips}
                       pilgrims={pilgrims}
-                      staff={staff}
                       agencySettings={agencySettings}
                       onAddPilgrim={handleAddPilgrim}
                     />

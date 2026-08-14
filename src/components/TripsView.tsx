@@ -1,20 +1,15 @@
 import React, { useState } from "react";
 import {
   Plus,
-  Plane,
   QrCode,
   Edit,
   Trash2,
-  Calendar,
-  Building2,
-  Users,
-  UserCheck,
 } from "lucide-react";
-import { Language, Trip, NavTab } from "../types";
+import { Language, Trip } from "../types";
 import { useTranslation } from "react-i18next";
 
 interface TripsViewProps {
-  lang: Language;
+  lang?: Language;
   trips: Trip[];
   onAddTrip: (newTrip: Omit<Trip, "id">) => void;
   onEditTrip: (updated: Trip) => void;
@@ -25,7 +20,6 @@ interface TripsViewProps {
 }
 
 export const TripsView: React.FC<TripsViewProps> = ({
-  lang,
   trips,
   onAddTrip,
   onEditTrip,
