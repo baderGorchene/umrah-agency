@@ -411,13 +411,17 @@ export const StaffView: React.FC<StaffViewProps> = ({
                   }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="Chef de Bus">Chef de Bus</option>
-                  <option value="Coordonnateur Administratif">
-                    Coordonnateur Administratif
+                  <option value="Chef de Bus">
+                    {isAr ? "رئيس مجموعة" : "Chef de Bus"}
                   </option>
-                  <option value="Guide Spirituel">Guide Spirituel</option>
+                  <option value="Coordonnateur Administratif">
+                    {isAr ? "مرافق" : "Coordonnateur Administratif"}
+                  </option>
+                  <option value="Guide Spirituel">
+                    {isAr ? "شيخ" : "Guide Spirituel"}
+                  </option>
                   <option value="Responsable Médical">
-                    Responsable Médical
+                    {isAr ? "مسؤول طبي" : "Responsable Médical"}
                   </option>
                 </select>
               </div>
