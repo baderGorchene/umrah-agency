@@ -28,7 +28,13 @@ import {
   ChevronDown,
   Info,
 } from "lucide-react";
-import { Language, PassportEntry, Trip, Pilgrim, DEFAULT_AVATAR_URL } from "../types";
+import {
+  Language,
+  PassportEntry,
+  Trip,
+  Pilgrim,
+  DEFAULT_AVATAR_URL,
+} from "../types";
 import { GoogleGenAI, Type } from "@google/genai";
 import { uploadPassportToStorage } from "../services/documentsService";
 import * as XLSX from "xlsx";
@@ -36,7 +42,11 @@ import * as XLSX from "xlsx";
 interface PassportsViewProps {
   lang: Language;
   passports: PassportEntry[];
-  onAddPassport: (entry: Omit<PassportEntry, "id" | "scannedAt">) => { success: boolean; duplicate?: boolean; existing?: PassportEntry };
+  onAddPassport: (entry: Omit<PassportEntry, "id" | "scannedAt">) => {
+    success: boolean;
+    duplicate?: boolean;
+    existing?: PassportEntry;
+  };
   onEditPassport: (entry: PassportEntry) => void;
   onDeletePassport: (id: string) => void;
   trips: Trip[];
@@ -47,7 +57,7 @@ interface PassportsViewProps {
       fileUrl?: string;
       mimeType?: string;
       fileName?: string;
-    }
+    },
   ) => void;
 }
 
@@ -74,9 +84,13 @@ export const PassportsView: React.FC<PassportsViewProps> = ({
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<PassportEntry | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [inspectingEntry, setInspectingEntry] = useState<PassportEntry | null>(null);
-  const [transferringEntry, setTransferringEntry] = useState<PassportEntry | null>(null);
-  const [selectedTripForTransfer, setSelectedTripForTransfer] = useState<string>(trips[0]?.id || "");
+  const [inspectingEntry, setInspectingEntry] = useState<PassportEntry | null>(
+    null,
+  );
+  const [transferringEntry, setTransferringEntry] =
+    useState<PassportEntry | null>(null);
+  const [selectedTripForTransfer, setSelectedTripForTransfer] =
+    useState<string>(trips[0]?.id || "");
 
   // Notification Toast State
   const [toastMessage, setToastMessage] = useState<{
@@ -108,7 +122,10 @@ export const PassportsView: React.FC<PassportsViewProps> = ({
     notes: "",
   });
 
-  const showToast = (text: string, type: "success" | "error" | "warning" = "success") => {
+  const showToast = (
+    text: string,
+    type: "success" | "error" | "warning" = "success",
+  ) => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 4000);
   };
@@ -130,14 +147,25 @@ export const PassportsView: React.FC<PassportsViewProps> = ({
   };
 
   // Check validity / expiry status of passport
-  const checkExpiryStatus = (expiryDateStr?: string): { status: "valid" | "warning" | "expired"; labelFr: string; labelAr: string } => {
-    if (!expiryDateStr) return { status: "valid", labelFr: "Inconnu", labelAr: "غير محدد" };
-    
+  const checkExpiryStatus = (
+    expiryDateStr?: string,
+  ): {
+    status: "valid" | "warning" | "expired";
+    labelFr: string;
+    labelAr: string;
+  } => {
+    if (!expiryDateStr)
+      return { status: "valid", labelFr: "Inconnu", labelAr: "غير محدد" };
+
     // Parse DD/MM/YYYY or YYYY-MM-DD
     let expDate: Date | null = null;
     const slash = expiryDateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (slash) {
-      expDate = new Date(parseInt(slash[3], 10), parseInt(slash[2], 10) - 1, parseInt(slash[1], 10));
+      expDate = new Date(
+        parseInt(slash[3], 10),
+        parseInt(slash[2], 10) - 1,
+        parseInt(slash[1], 10),
+      );
     } else {
       const parsed = Date.parse(expiryDateStr);
       if (!isNaN(parsed)) expDate = new Date(parsed);
@@ -148,13 +176,22 @@ export const PassportsView: React.FC<PassportsViewProps> = ({
     }
 
     const now = new Date();
-    const diffMonths = (expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30.4375);
+    const diffMonths =
+      (expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30.4375);
 
     if (diffMonths <= 0) {
-      return { status: "expired", labelFr: "Expiré", labelAr: "منتهي الصلاحية" };
+      return {
+        status: "expired",
+        labelFr: "Expiré",
+        labelAr: "منتهي الصلاحية",
+      };
     }
     if (diffMonths < 6) {
-      return { status: "warning", labelFr: "Expire dans < 6 mois", labelAr: "ينتهي قريباً (< 6 أشهر)" };
+      return {
+        status: "warning",
+        labelFr: "Expire dans < 6 mois",
+        labelAr: "ينتهي قريباً (< 6 أشهر)",
+      };
     }
     return { status: "valid", labelFr: "Valide", labelAr: "صالح" };
   };
@@ -170,7 +207,7 @@ export const PassportsView: React.FC<PassportsViewProps> = ({
         throw new Error(
           isAr
             ? "مفتاح Gemini API غير متوفر في متغيرات البيئة."
-            : "Clé API Gemini introuvable dans les variables d'environnement."
+            : "Clé API Gemini introuvable dans les variables d'environnement.",
         );
       }
 
@@ -246,14 +283,15 @@ Attention particulière pour les passeports tunisiens:
         throw new Error(
           isAr
             ? "لم يتم العثور على رقم جواز سفر صالح في المستند."
-            : "Numéro de passeport introuvable dans le document analysé."
+            : "Numéro de passeport introuvable dans le document analysé.",
         );
       }
 
       // Format Latin Name
       let resolvedLatinName = extracted.fullNameLatin || "";
       if (!resolvedLatinName) {
-        resolvedLatinName = `${extracted.surnameLatin || ""} ${extracted.givenNamesLatin || ""}`.trim();
+        resolvedLatinName =
+          `${extracted.surnameLatin || ""} ${extracted.givenNamesLatin || ""}`.trim();
       }
       if (!resolvedLatinName) {
         resolvedLatinName = "—";
@@ -262,9 +300,17 @@ Attention particulière pour les passeports tunisiens:
       // Format Gender
       let resolvedGender: "M" | "F" = "M";
       const rawSex = String(extracted.sex || "").toUpperCase();
-      if (rawSex.includes("F") || rawSex.includes("FEM") || rawSex.includes("أنثى")) {
+      if (
+        rawSex.includes("F") ||
+        rawSex.includes("FEM") ||
+        rawSex.includes("أنثى")
+      ) {
         resolvedGender = "F";
-      } else if (rawSex.includes("M") || rawSex.includes("HOM") || rawSex.includes("ذكر")) {
+      } else if (
+        rawSex.includes("M") ||
+        rawSex.includes("HOM") ||
+        rawSex.includes("ذكر")
+      ) {
         resolvedGender = "M";
       }
 
@@ -291,7 +337,9 @@ Attention particulière pour les passeports tunisiens:
         nationality: extracted.nationality || "TUNISIENNE",
         placeOfBirth: extracted.placeOfBirth || undefined,
         issuingAuthority: extracted.issuingAuthority || undefined,
-        avatarUrl: uploadedFileUrl || (file.type.startsWith("image/") ? base64Data : undefined),
+        avatarUrl:
+          uploadedFileUrl ||
+          (file.type.startsWith("image/") ? base64Data : undefined),
       };
 
       // Add to list with duplicate prevention
@@ -307,14 +355,14 @@ Attention particulière pour les passeports tunisiens:
           isAr
             ? `تنبيه: جواز السفر (${newEntryPayload.passportNumber}) مسجل مسبقاً في القائمة!`
             : `Ce passeport (${newEntryPayload.passportNumber}) existe déjà dans la liste !`,
-          "warning"
+          "warning",
         );
       } else {
         showToast(
           isAr
             ? `تم استخراج وإضافة جواز السفر (${newEntryPayload.passportNumber}) بنجاح!`
             : `Passeport ${newEntryPayload.passportNumber} extrait et ajouté avec succès !`,
-          "success"
+          "success",
         );
       }
 
@@ -324,8 +372,14 @@ Attention particulière pour les passeports tunisiens:
       setIsScannerModalOpen(false);
     } catch (err: any) {
       console.error("Passport OCR Error:", err);
-      setScanError(err.message || (isAr ? "فشل تحليل الجواز" : "Échec de l'analyse du passeport."));
-      showToast(err.message || (isAr ? "فشل التحليل" : "Échec de l'analyse"), "error");
+      setScanError(
+        err.message ||
+          (isAr ? "فشل تحليل الجواز" : "Échec de l'analyse du passeport."),
+      );
+      showToast(
+        err.message || (isAr ? "فشل التحليل" : "Échec de l'analyse"),
+        "error",
+      );
     } finally {
       setIsScanning(false);
     }
@@ -338,7 +392,7 @@ Attention particulière pour les passeports tunisiens:
       setScanError(
         isAr
           ? "الرجاء اختيار ملف صورة (JPG, PNG) أو ملف PDF."
-          : "Veuillez sélectionner une image (JPG, PNG, WEBP) ou un fichier PDF."
+          : "Veuillez sélectionner une image (JPG, PNG, WEBP) ou un fichier PDF.",
       );
       return;
     }
@@ -400,8 +454,12 @@ Attention particulière pour les passeports tunisiens:
   // Statistics
   const stats = useMemo(() => {
     const total = passports.length;
-    const maleCount = passports.filter((p) => p.gender.toUpperCase() === "M").length;
-    const femaleCount = passports.filter((p) => p.gender.toUpperCase() === "F").length;
+    const maleCount = passports.filter(
+      (p) => p.gender.toUpperCase() === "M",
+    ).length;
+    const femaleCount = passports.filter(
+      (p) => p.gender.toUpperCase() === "F",
+    ).length;
     const warningOrExpiredCount = passports.filter((p) => {
       const st = checkExpiryStatus(p.expiryDate).status;
       return st === "warning" || st === "expired";
@@ -415,7 +473,7 @@ Attention particulière pour les passeports tunisiens:
     if (filteredPassports.length === 0) {
       showToast(
         isAr ? "لا توجد بيانات لتصديرها" : "Aucune donnée à exporter",
-        "warning"
+        "warning",
       );
       return;
     }
@@ -424,7 +482,7 @@ Attention particulière pour les passeports tunisiens:
       "N°": index + 1,
       "Nom complet Ar": p.fullNameArabic,
       "Nom complet": p.fullNameLatin || "",
-      "GENRE": p.gender || "M",
+      GENRE: p.gender || "M",
       "N passeport": p.passportNumber || "",
       "Date Naiss": p.birthDate || "",
       "DATE D DÉLIBÉRATION": p.deliberationDate || "",
@@ -435,7 +493,7 @@ Attention particulière pour les passeports tunisiens:
 
     // Configure column widths for readability in Excel
     worksheet["!cols"] = [
-      { wch: 8 },  // N°
+      { wch: 8 }, // N°
       { wch: 25 }, // Nom complet Ar
       { wch: 25 }, // Nom complet
       { wch: 10 }, // GENRE
@@ -451,8 +509,10 @@ Attention particulière pour les passeports tunisiens:
     const dateStr = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(workbook, `Passeports_MiskTiba_${dateStr}.xlsx`);
     showToast(
-      isAr ? "تم تصدير ملف Excel (.xlsx) بنجاح" : "Fichier Excel (.xlsx) exporté avec succès",
-      "success"
+      isAr
+        ? "تم تصدير ملف Excel (.xlsx) بنجاح"
+        : "Fichier Excel (.xlsx) exporté avec succès",
+      "success",
     );
   };
 
@@ -478,14 +538,19 @@ Attention particulière pour les passeports tunisiens:
         p.birthDate,
         p.deliberationDate,
         p.expiryDate,
-      ].join("\t")
+      ].join("\t"),
     );
 
     const tsv = [headers.join("\t"), ...rows].join("\n");
     navigator.clipboard.writeText(tsv);
     setCopiedTable(true);
     setTimeout(() => setCopiedTable(false), 2000);
-    showToast(isAr ? "تم نسخ الجدول إلى الحافظة" : "Tableau copié dans le presse-papier", "success");
+    showToast(
+      isAr
+        ? "تم نسخ الجدول إلى الحافظة"
+        : "Tableau copié dans le presse-papier",
+      "success",
+    );
   };
 
   const handlePrint = () => {
@@ -494,8 +559,16 @@ Attention particulière pour les passeports tunisiens:
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualForm.fullNameArabic.trim() || !manualForm.passportNumber.trim()) {
-      showToast(isAr ? "يرجى ملء الحقول المطلوبة" : "Veuillez remplir les champs obligatoires", "error");
+    if (
+      !manualForm.fullNameArabic.trim() ||
+      !manualForm.passportNumber.trim()
+    ) {
+      showToast(
+        isAr
+          ? "يرجى ملء الحقول المطلوبة"
+          : "Veuillez remplir les champs obligatoires",
+        "error",
+      );
       return;
     }
 
@@ -513,7 +586,10 @@ Attention particulière pour les passeports tunisiens:
         placeOfBirth: manualForm.placeOfBirth.trim() || undefined,
         notes: manualForm.notes.trim() || undefined,
       });
-      showToast(isAr ? "تم تعديل بيانات الجواز بنجاح" : "Passeport modifié avec succès", "success");
+      showToast(
+        isAr ? "تم تعديل بيانات الجواز بنجاح" : "Passeport modifié avec succès",
+        "success",
+      );
       setEditingEntry(null);
     } else {
       const res = onAddPassport({
@@ -534,14 +610,19 @@ Attention particulière pour les passeports tunisiens:
           isAr
             ? `تنبيه: جواز السفر (${manualForm.passportNumber}) موجود مسبقاً في السجل!`
             : `Ce passeport (${manualForm.passportNumber}) existe déjà dans le registre !`,
-          "warning"
+          "warning",
         );
         if (res.existing) {
           setHighlightedRowId(res.existing.id);
           setTimeout(() => setHighlightedRowId(null), 5000);
         }
       } else {
-        showToast(isAr ? "تمت إضافة الجواز إلى السجل بنجاح" : "Passeport ajouté avec succès", "success");
+        showToast(
+          isAr
+            ? "تمت إضافة الجواز إلى السجل بنجاح"
+            : "Passeport ajouté avec succès",
+          "success",
+        );
       }
     }
 
@@ -574,7 +655,10 @@ Attention particulière pour les passeports tunisiens:
 
     onAddPilgrim({
       nameArabic: transferringEntry.fullNameArabic,
-      nameLatin: transferringEntry.fullNameLatin !== "—" ? transferringEntry.fullNameLatin : undefined,
+      nameLatin:
+        transferringEntry.fullNameLatin !== "—"
+          ? transferringEntry.fullNameLatin
+          : undefined,
       phone: "98000000",
       passportNumber: transferringEntry.passportNumber,
       birthDate: transferringEntry.birthDate,
@@ -583,7 +667,9 @@ Attention particulière pour les passeports tunisiens:
       tripName: chosenTrip ? chosenTrip.name : "—",
       uniqueCode: code,
       status: "مؤكد",
-      emergencyContact: transferringEntry.cinNumber ? `CIN: ${transferringEntry.cinNumber}` : undefined,
+      emergencyContact: transferringEntry.cinNumber
+        ? `CIN: ${transferringEntry.cinNumber}`
+        : undefined,
       avatarUrl: transferringEntry.avatarUrl || DEFAULT_AVATAR_URL,
     });
 
@@ -591,7 +677,7 @@ Attention particulière pour les passeports tunisiens:
       isAr
         ? `تم تحويل (${transferringEntry.fullNameArabic}) إلى قائمة المعتمرين بنجاح!`
         : `${transferringEntry.fullNameArabic} ajouté à la liste des pèlerins !`,
-      "success"
+      "success",
     );
     setTransferringEntry(null);
   };
@@ -607,13 +693,19 @@ Attention particulière pour les passeports tunisiens:
             toastMessage.type === "success"
               ? "bg-slate-900 text-emerald-400 border-slate-800"
               : toastMessage.type === "warning"
-              ? "bg-amber-950 text-amber-300 border-amber-800"
-              : "bg-red-950 text-red-300 border-red-800"
+                ? "bg-amber-950 text-amber-300 border-amber-800"
+                : "bg-red-950 text-red-300 border-red-800"
           }`}
         >
-          {toastMessage.type === "success" && <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />}
-          {toastMessage.type === "warning" && <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />}
-          {toastMessage.type === "error" && <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />}
+          {toastMessage.type === "success" && (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          )}
+          {toastMessage.type === "warning" && (
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+          )}
+          {toastMessage.type === "error" && (
+            <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+          )}
           <span>{toastMessage.text}</span>
         </div>
       )}
@@ -627,7 +719,9 @@ Attention particulière pour les passeports tunisiens:
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                {isAr ? "سجل استخراج الجوازات" : "Registre & Extraction Passeports"}
+                {isAr
+                  ? "سجل استخراج الجوازات"
+                  : "Registre & Extraction Passeports"}
                 <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                   OCR Gemini AI
                 </span>
@@ -649,7 +743,9 @@ Attention particulière pour les passeports tunisiens:
             title={isAr ? "تصدير Excel (.xlsx)" : "Exporter Excel (.xlsx)"}
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>{isAr ? "تصدير Excel (.xlsx)" : "Exporter Excel (.xlsx)"}</span>
+            <span>
+              {isAr ? "تصدير Excel (.xlsx)" : "Exporter Excel (.xlsx)"}
+            </span>
           </button>
 
           <button
@@ -662,7 +758,15 @@ Attention particulière pour les passeports tunisiens:
             ) : (
               <Copy className="w-4 h-4 text-slate-500" />
             )}
-            <span>{copiedTable ? (isAr ? "تم النسخ!" : "Copié !") : isAr ? "نسخ" : "Copier"}</span>
+            <span>
+              {copiedTable
+                ? isAr
+                  ? "تم النسخ!"
+                  : "Copié !"
+                : isAr
+                  ? "نسخ"
+                  : "Copier"}
+            </span>
           </button>
 
           <button
@@ -696,14 +800,6 @@ Attention particulière pour les passeports tunisiens:
             <Plus className="w-4 h-4 text-slate-500" />
             <span>{isAr ? "إدخال يدوي" : "Ajout manuel"}</span>
           </button>
-
-          <button
-            onClick={() => setIsScannerModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-black hover:bg-slate-900 text-white text-xs font-bold transition-all flex items-center gap-2 shadow-xs cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>{isAr ? "مسح ضوئي جديد" : "Scanner un passeport"}</span>
-          </button>
         </div>
       </div>
 
@@ -719,7 +815,9 @@ Attention particulière pour les passeports tunisiens:
           type="file"
           accept="image/jpeg,image/png,image/webp,application/pdf"
           className="hidden"
-          onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+          onChange={(e) =>
+            e.target.files?.[0] && handleFileSelect(e.target.files[0])
+          }
         />
 
         <div className="flex items-center gap-3.5">
@@ -737,8 +835,8 @@ Attention particulière pour les passeports tunisiens:
                   ? "جاري تحليل الجواز بالذكاء الاصطناعي..."
                   : "Analyse OCR en cours via Gemini AI..."
                 : isAr
-                ? "اسحب وأفلت صورة أو PDF لجواز السفر هنا للمسح السريع"
-                : "Glissez-déposez ici un passeport (Image ou PDF) pour extraction rapide"}
+                  ? "اسحب وأفلت صورة أو PDF لجواز السفر هنا للمسح السريع"
+                  : "Glissez-déposez ici un passeport (Image ou PDF) pour extraction rapide"}
             </h3>
             <p className="text-[11px] text-slate-500 mt-0.5">
               {isAr
@@ -751,7 +849,13 @@ Attention particulière pour les passeports tunisiens:
         <div className="flex items-center gap-2 shrink-0">
           <span className="px-3 py-1.5 rounded-lg bg-black text-white text-xs font-bold group-hover:bg-slate-800 transition-colors flex items-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            {isScanning ? (isAr ? "جاري المعالجة..." : "Traitement...") : isAr ? "اختر ملفاً" : "Parcourir"}
+            {isScanning
+              ? isAr
+                ? "جاري المعالجة..."
+                : "Traitement..."
+              : isAr
+                ? "اختر ملفاً"
+                : "Parcourir"}
           </span>
         </div>
       </div>
@@ -778,7 +882,9 @@ Attention particulière pour les passeports tunisiens:
             <p className="text-[11px] font-medium text-slate-500">
               {isAr ? "الرجال (M)" : "Hommes (M)"}
             </p>
-            <p className="text-lg font-bold text-slate-900">{stats.maleCount}</p>
+            <p className="text-lg font-bold text-slate-900">
+              {stats.maleCount}
+            </p>
           </div>
         </div>
 
@@ -790,7 +896,9 @@ Attention particulière pour les passeports tunisiens:
             <p className="text-[11px] font-medium text-slate-500">
               {isAr ? "النساء (F)" : "Femmes (F)"}
             </p>
-            <p className="text-lg font-bold text-slate-900">{stats.femaleCount}</p>
+            <p className="text-lg font-bold text-slate-900">
+              {stats.femaleCount}
+            </p>
           </div>
         </div>
 
@@ -802,7 +910,9 @@ Attention particulière pour les passeports tunisiens:
             <p className="text-[11px] font-medium text-slate-500">
               {isAr ? "تنتهي قريباً / منتهية" : "Expire bientôt / Expiré"}
             </p>
-            <p className="text-lg font-bold text-amber-700">{stats.warningOrExpiredCount}</p>
+            <p className="text-lg font-bold text-amber-700">
+              {stats.warningOrExpiredCount}
+            </p>
           </div>
         </div>
       </div>
@@ -849,7 +959,9 @@ Attention particulière pour les passeports tunisiens:
               onChange={(e) => setGenderFilter(e.target.value)}
               className="text-xs font-medium rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-700 focus:outline-hidden focus:border-black cursor-pointer shadow-2xs"
             >
-              <option value="ALL">{isAr ? "كل الأجناس" : "Tous les genres"}</option>
+              <option value="ALL">
+                {isAr ? "كل الأجناس" : "Tous les genres"}
+              </option>
               <option value="M">{isAr ? "رجال (M)" : "Hommes (M)"}</option>
               <option value="F">{isAr ? "نساء (F)" : "Femmes (F)"}</option>
             </select>
@@ -860,10 +972,18 @@ Attention particulière pour les passeports tunisiens:
               onChange={(e) => setExpiryFilter(e.target.value)}
               className="text-xs font-medium rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-700 focus:outline-hidden focus:border-black cursor-pointer shadow-2xs"
             >
-              <option value="ALL">{isAr ? "كل حالات الصلاحية" : "Toutes validités"}</option>
-              <option value="valid">{isAr ? "صالح (> 6 أشهر)" : "Valide (> 6 mois)"}</option>
-              <option value="warning">{isAr ? "ينتهي قريباً (< 6 أشهر)" : "Expire bientôt (< 6 mois)"}</option>
-              <option value="expired">{isAr ? "منتهي الصلاحية" : "Expiré"}</option>
+              <option value="ALL">
+                {isAr ? "كل حالات الصلاحية" : "Toutes validités"}
+              </option>
+              <option value="valid">
+                {isAr ? "صالح (> 6 أشهر)" : "Valide (> 6 mois)"}
+              </option>
+              <option value="warning">
+                {isAr ? "ينتهي قريباً (< 6 أشهر)" : "Expire bientôt (< 6 mois)"}
+              </option>
+              <option value="expired">
+                {isAr ? "منتهي الصلاحية" : "Expiré"}
+              </option>
             </select>
 
             {/* Sort Toggle */}
@@ -889,7 +1009,9 @@ Attention particulière pour les passeports tunisiens:
                 <th
                   onClick={() => {
                     setSortField("fullNameArabic");
-                    setSortAsc(sortField === "fullNameArabic" ? !sortAsc : true);
+                    setSortAsc(
+                      sortField === "fullNameArabic" ? !sortAsc : true,
+                    );
                   }}
                   className={`py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors ${
                     isAr ? "text-right" : "text-left"
@@ -898,7 +1020,9 @@ Attention particulière pour les passeports tunisiens:
                   <div className="flex items-center gap-1">
                     <span>Nom complet Ar</span>
                     {sortField === "fullNameArabic" && (
-                      <span className="text-slate-400 text-[10px]">{sortAsc ? "▲" : "▼"}</span>
+                      <span className="text-slate-400 text-[10px]">
+                        {sortAsc ? "▲" : "▼"}
+                      </span>
                     )}
                   </div>
                 </th>
@@ -915,7 +1039,9 @@ Attention particulière pour les passeports tunisiens:
                   <div className="flex items-center gap-1">
                     <span>Nom complet</span>
                     {sortField === "fullNameLatin" && (
-                      <span className="text-slate-400 text-[10px]">{sortAsc ? "▲" : "▼"}</span>
+                      <span className="text-slate-400 text-[10px]">
+                        {sortAsc ? "▲" : "▼"}
+                      </span>
                     )}
                   </div>
                 </th>
@@ -930,7 +1056,9 @@ Attention particulière pour les passeports tunisiens:
                   <div className="flex items-center justify-center gap-1">
                     <span>GENRE</span>
                     {sortField === "gender" && (
-                      <span className="text-slate-400 text-[10px]">{sortAsc ? "▲" : "▼"}</span>
+                      <span className="text-slate-400 text-[10px]">
+                        {sortAsc ? "▲" : "▼"}
+                      </span>
                     )}
                   </div>
                 </th>
@@ -938,7 +1066,9 @@ Attention particulière pour les passeports tunisiens:
                 <th
                   onClick={() => {
                     setSortField("passportNumber");
-                    setSortAsc(sortField === "passportNumber" ? !sortAsc : true);
+                    setSortAsc(
+                      sortField === "passportNumber" ? !sortAsc : true,
+                    );
                   }}
                   className={`py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors ${
                     isAr ? "text-right" : "text-left"
@@ -947,7 +1077,9 @@ Attention particulière pour les passeports tunisiens:
                   <div className="flex items-center gap-1">
                     <span>N passeport</span>
                     {sortField === "passportNumber" && (
-                      <span className="text-slate-400 text-[10px]">{sortAsc ? "▲" : "▼"}</span>
+                      <span className="text-slate-400 text-[10px]">
+                        {sortAsc ? "▲" : "▼"}
+                      </span>
                     )}
                   </div>
                 </th>
@@ -964,7 +1096,9 @@ Attention particulière pour les passeports tunisiens:
                   <div className="flex items-center gap-1">
                     <span>Date Naiss</span>
                     {sortField === "birthDate" && (
-                      <span className="text-slate-400 text-[10px]">{sortAsc ? "▲" : "▼"}</span>
+                      <span className="text-slate-400 text-[10px]">
+                        {sortAsc ? "▲" : "▼"}
+                      </span>
                     )}
                   </div>
                 </th>
@@ -972,7 +1106,9 @@ Attention particulière pour les passeports tunisiens:
                 <th
                   onClick={() => {
                     setSortField("deliberationDate");
-                    setSortAsc(sortField === "deliberationDate" ? !sortAsc : true);
+                    setSortAsc(
+                      sortField === "deliberationDate" ? !sortAsc : true,
+                    );
                   }}
                   className={`py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors ${
                     isAr ? "text-right" : "text-left"
@@ -981,7 +1117,9 @@ Attention particulière pour les passeports tunisiens:
                   <div className="flex items-center gap-1">
                     <span>DATE D DÉLIBÉRATION</span>
                     {sortField === "deliberationDate" && (
-                      <span className="text-slate-400 text-[10px]">{sortAsc ? "▲" : "▼"}</span>
+                      <span className="text-slate-400 text-[10px]">
+                        {sortAsc ? "▲" : "▼"}
+                      </span>
                     )}
                   </div>
                 </th>
@@ -998,7 +1136,9 @@ Attention particulière pour les passeports tunisiens:
                   <div className="flex items-center gap-1">
                     <span>DATE D EXPIRATION</span>
                     {sortField === "expiryDate" && (
-                      <span className="text-slate-400 text-[10px]">{sortAsc ? "▲" : "▼"}</span>
+                      <span className="text-slate-400 text-[10px]">
+                        {sortAsc ? "▲" : "▼"}
+                      </span>
                     )}
                   </div>
                 </th>
@@ -1016,7 +1156,9 @@ Attention particulière pour les passeports tunisiens:
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Scan className="w-8 h-8 text-slate-300 stroke-1" />
                       <p className="text-xs font-semibold text-slate-600">
-                        {isAr ? "لا توجد جوازات مسجلة حالياً" : "Aucun passeport trouvé"}
+                        {isAr
+                          ? "لا توجد جوازات مسجلة حالياً"
+                          : "Aucun passeport trouvé"}
                       </p>
                       <p className="text-[11px] text-slate-400 max-w-sm">
                         {isAr
@@ -1046,7 +1188,9 @@ Attention particulière pour les passeports tunisiens:
                       </td>
 
                       {/* Nom complet Ar */}
-                      <td className={`py-3 px-4 font-bold text-slate-900 ${isAr ? "text-right" : "text-left"}`}>
+                      <td
+                        className={`py-3 px-4 font-bold text-slate-900 ${isAr ? "text-right" : "text-left"}`}
+                      >
                         <div className="flex items-center gap-2">
                           {entry.avatarUrl && (
                             <img
@@ -1055,12 +1199,16 @@ Attention particulière pour les passeports tunisiens:
                               className="w-7 h-7 rounded-lg object-cover border border-slate-200 shrink-0"
                             />
                           )}
-                          <span className="font-arabic text-sm">{entry.fullNameArabic}</span>
+                          <span className="font-arabic text-sm">
+                            {entry.fullNameArabic}
+                          </span>
                         </div>
                       </td>
 
                       {/* Nom complet */}
-                      <td className={`py-3 px-4 font-semibold text-slate-800 uppercase ${isAr ? "text-right" : "text-left"}`}>
+                      <td
+                        className={`py-3 px-4 font-semibold text-slate-800 uppercase ${isAr ? "text-right" : "text-left"}`}
+                      >
                         {entry.fullNameLatin || "—"}
                       </td>
 
@@ -1078,45 +1226,57 @@ Attention particulière pour les passeports tunisiens:
                       </td>
 
                       {/* N passeport */}
-                      <td className={`py-3 px-4 font-mono font-bold text-slate-900 tracking-wider ${isAr ? "text-right" : "text-left"}`}>
+                      <td
+                        className={`py-3 px-4 font-mono font-bold text-slate-900 tracking-wider ${isAr ? "text-right" : "text-left"}`}
+                      >
                         <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-900 border border-slate-200/80">
                           {entry.passportNumber}
                         </span>
                       </td>
 
                       {/* Date Naiss */}
-                      <td className={`py-3 px-4 text-slate-600 font-mono ${isAr ? "text-right" : "text-left"}`}>
+                      <td
+                        className={`py-3 px-4 text-slate-600 font-mono ${isAr ? "text-right" : "text-left"}`}
+                      >
                         {entry.birthDate || "—"}
                       </td>
 
                       {/* DATE D DÉLIBÉRATION */}
-                      <td className={`py-3 px-4 text-slate-600 font-mono ${isAr ? "text-right" : "text-left"}`}>
+                      <td
+                        className={`py-3 px-4 text-slate-600 font-mono ${isAr ? "text-right" : "text-left"}`}
+                      >
                         {entry.deliberationDate || "—"}
                       </td>
 
                       {/* DATE D EXPIRATION */}
-                      <td className={`py-3 px-4 ${isAr ? "text-right" : "text-left"}`}>
+                      <td
+                        className={`py-3 px-4 ${isAr ? "text-right" : "text-left"}`}
+                      >
                         <div className="flex items-center gap-1.5">
                           <span
                             className={`font-mono font-bold ${
                               expStatus.status === "expired"
                                 ? "text-red-600"
                                 : expStatus.status === "warning"
-                                ? "text-amber-600"
-                                : "text-emerald-700"
+                                  ? "text-amber-600"
+                                  : "text-emerald-700"
                             }`}
                           >
                             {entry.expiryDate || "—"}
                           </span>
                           {expStatus.status === "warning" && (
                             <span
-                              title={isAr ? expStatus.labelAr : expStatus.labelFr}
+                              title={
+                                isAr ? expStatus.labelAr : expStatus.labelFr
+                              }
                               className="w-2 h-2 rounded-full bg-amber-500 shrink-0"
                             />
                           )}
                           {expStatus.status === "expired" && (
                             <span
-                              title={isAr ? expStatus.labelAr : expStatus.labelFr}
+                              title={
+                                isAr ? expStatus.labelAr : expStatus.labelFr
+                              }
                               className="w-2 h-2 rounded-full bg-red-500 shrink-0"
                             />
                           )}
@@ -1133,7 +1293,11 @@ Attention particulière pour les passeports tunisiens:
                                 setSelectedTripForTransfer(trips[0]?.id || "");
                               }}
                               className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 hover:text-emerald-800 transition-colors"
-                              title={isAr ? "إضافة إلى قائمة المعتمرين" : "Transférer vers pèlerins"}
+                              title={
+                                isAr
+                                  ? "إضافة إلى قائمة المعتمرين"
+                                  : "Transférer vers pèlerins"
+                              }
                             >
                               <UserPlus className="w-4 h-4" />
                             </button>
@@ -1181,7 +1345,9 @@ Attention particulière pour les passeports tunisiens:
           </span>
           <span className="text-[11px] text-slate-400 flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            {isAr ? "تحقق تلقائي ضد التكرار" : "Vérification anti-doublon active"}
+            {isAr
+              ? "تحقق تلقائي ضد التكرار"
+              : "Vérification anti-doublon active"}
           </span>
         </div>
       </div>
@@ -1198,10 +1364,14 @@ Attention particulière pour les passeports tunisiens:
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-white">
-                    {isAr ? "مسح واستخراج جواز سفر تونسي" : "Numériser un Passeport Tunisien"}
+                    {isAr
+                      ? "مسح واستخراج جواز سفر تونسي"
+                      : "Numériser un Passeport Tunisien"}
                   </h2>
                   <p className="text-[11px] text-slate-400">
-                    {isAr ? "استخراج فوري عبر Gemini 3.5 Flash" : "Extraction automatique par intelligence artificielle"}
+                    {isAr
+                      ? "استخراج فوري عبر Gemini 3.5 Flash"
+                      : "Extraction automatique par intelligence artificielle"}
                   </p>
                 </div>
               </div>
@@ -1235,7 +1405,9 @@ Attention particulière pour les passeports tunisiens:
                   type="file"
                   accept="image/jpeg,image/png,image/webp,application/pdf"
                   className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                  onChange={(e) =>
+                    e.target.files?.[0] && handleFileSelect(e.target.files[0])
+                  }
                 />
 
                 <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center border border-slate-200">
@@ -1251,8 +1423,8 @@ Attention particulière pour les passeports tunisiens:
                     {scanFile
                       ? scanFile.name
                       : isAr
-                      ? "اضغط لاختيار صورة أو PDF أو اسحب الملف هنا"
-                      : "Glissez-déposez la photo ou le PDF du passeport"}
+                        ? "اضغط لاختيار صورة أو PDF أو اسحب الملف هنا"
+                        : "Glissez-déposez la photo ou le PDF du passeport"}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-1">
                     {isAr
@@ -1303,8 +1475,8 @@ Attention particulière pour les passeports tunisiens:
                     ? "تعديل بيانات الجواز"
                     : "Modifier les données du passeport"
                   : isAr
-                  ? "إضافة جواز سفر يدوياً"
-                  : "Ajouter un passeport manuellement"}
+                    ? "إضافة جواز سفر يدوياً"
+                    : "Ajouter un passeport manuellement"}
               </h3>
               <button
                 onClick={() => setIsManualModalOpen(false)}
@@ -1314,7 +1486,10 @@ Attention particulière pour les passeports tunisiens:
               </button>
             </div>
 
-            <form onSubmit={handleManualSubmit} className="p-6 space-y-4 text-xs">
+            <form
+              onSubmit={handleManualSubmit}
+              className="p-6 space-y-4 text-xs"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
@@ -1325,7 +1500,10 @@ Attention particulière pour les passeports tunisiens:
                     required
                     value={manualForm.fullNameArabic}
                     onChange={(e) =>
-                      setManualForm({ ...manualForm, fullNameArabic: e.target.value })
+                      setManualForm({
+                        ...manualForm,
+                        fullNameArabic: e.target.value,
+                      })
                     }
                     placeholder="محمد بن علي"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 font-arabic text-sm focus:outline-hidden focus:border-black"
@@ -1340,7 +1518,10 @@ Attention particulière pour les passeports tunisiens:
                     type="text"
                     value={manualForm.fullNameLatin}
                     onChange={(e) =>
-                      setManualForm({ ...manualForm, fullNameLatin: e.target.value })
+                      setManualForm({
+                        ...manualForm,
+                        fullNameLatin: e.target.value,
+                      })
                     }
                     placeholder="BEN ALI MOHAMED"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 uppercase focus:outline-hidden focus:border-black"
@@ -1354,7 +1535,10 @@ Attention particulière pour les passeports tunisiens:
                   <select
                     value={manualForm.gender}
                     onChange={(e) =>
-                      setManualForm({ ...manualForm, gender: e.target.value as "M" | "F" })
+                      setManualForm({
+                        ...manualForm,
+                        gender: e.target.value as "M" | "F",
+                      })
                     }
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-hidden focus:border-black cursor-pointer"
                   >
@@ -1372,7 +1556,10 @@ Attention particulière pour les passeports tunisiens:
                     required
                     value={manualForm.passportNumber}
                     onChange={(e) =>
-                      setManualForm({ ...manualForm, passportNumber: e.target.value })
+                      setManualForm({
+                        ...manualForm,
+                        passportNumber: e.target.value,
+                      })
                     }
                     placeholder="N2891048"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 uppercase font-mono font-bold focus:outline-hidden focus:border-black"
@@ -1387,7 +1574,10 @@ Attention particulière pour les passeports tunisiens:
                     type="text"
                     value={manualForm.birthDate}
                     onChange={(e) =>
-                      setManualForm({ ...manualForm, birthDate: e.target.value })
+                      setManualForm({
+                        ...manualForm,
+                        birthDate: e.target.value,
+                      })
                     }
                     placeholder="15/04/1985"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 font-mono focus:outline-hidden focus:border-black"
@@ -1402,7 +1592,10 @@ Attention particulière pour les passeports tunisiens:
                     type="text"
                     value={manualForm.deliberationDate}
                     onChange={(e) =>
-                      setManualForm({ ...manualForm, deliberationDate: e.target.value })
+                      setManualForm({
+                        ...manualForm,
+                        deliberationDate: e.target.value,
+                      })
                     }
                     placeholder="10/01/2022"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 font-mono focus:outline-hidden focus:border-black"
@@ -1417,7 +1610,10 @@ Attention particulière pour les passeports tunisiens:
                     type="text"
                     value={manualForm.expiryDate}
                     onChange={(e) =>
-                      setManualForm({ ...manualForm, expiryDate: e.target.value })
+                      setManualForm({
+                        ...manualForm,
+                        expiryDate: e.target.value,
+                      })
                     }
                     placeholder="09/01/2027"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 font-mono focus:outline-hidden focus:border-black"
@@ -1442,8 +1638,8 @@ Attention particulière pour les passeports tunisiens:
                       ? "حفظ التعديلات"
                       : "Enregistrer"
                     : isAr
-                    ? "إضافة للسجل"
-                    : "Ajouter au registre"}
+                      ? "إضافة للسجل"
+                      : "Ajouter au registre"}
                 </button>
               </div>
             </form>
@@ -1481,40 +1677,68 @@ Attention particulière pour les passeports tunisiens:
 
               <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/70">
                 <div>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">Nom complet Ar</p>
-                  <p className="text-sm font-bold font-arabic text-slate-900">{inspectingEntry.fullNameArabic}</p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">Nom complet</p>
-                  <p className="text-xs font-bold text-slate-900 uppercase">{inspectingEntry.fullNameLatin || "—"}</p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">GENRE</p>
-                  <p className="text-xs font-bold text-slate-900">
-                    {inspectingEntry.gender === "F" ? "Féminin (أنثى)" : "Masculin (ذكر)"}
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">
+                    Nom complet Ar
+                  </p>
+                  <p className="text-sm font-bold font-arabic text-slate-900">
+                    {inspectingEntry.fullNameArabic}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">N passeport</p>
-                  <p className="text-xs font-bold font-mono text-slate-900">{inspectingEntry.passportNumber}</p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">
+                    Nom complet
+                  </p>
+                  <p className="text-xs font-bold text-slate-900 uppercase">
+                    {inspectingEntry.fullNameLatin || "—"}
+                  </p>
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">Date Naiss</p>
-                  <p className="text-xs font-mono text-slate-800">{inspectingEntry.birthDate || "—"}</p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">
+                    GENRE
+                  </p>
+                  <p className="text-xs font-bold text-slate-900">
+                    {inspectingEntry.gender === "F"
+                      ? "Féminin (أنثى)"
+                      : "Masculin (ذكر)"}
+                  </p>
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">DATE D DÉLIBÉRATION</p>
-                  <p className="text-xs font-mono text-slate-800">{inspectingEntry.deliberationDate || "—"}</p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">
+                    N passeport
+                  </p>
+                  <p className="text-xs font-bold font-mono text-slate-900">
+                    {inspectingEntry.passportNumber}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">
+                    Date Naiss
+                  </p>
+                  <p className="text-xs font-mono text-slate-800">
+                    {inspectingEntry.birthDate || "—"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">
+                    DATE D DÉLIBÉRATION
+                  </p>
+                  <p className="text-xs font-mono text-slate-800">
+                    {inspectingEntry.deliberationDate || "—"}
+                  </p>
                 </div>
 
                 <div className="col-span-2">
-                  <p className="text-[10px] text-slate-500 font-bold uppercase">DATE D EXPIRATION</p>
-                  <p className="text-xs font-mono font-bold text-slate-900">{inspectingEntry.expiryDate || "—"}</p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase">
+                    DATE D EXPIRATION
+                  </p>
+                  <p className="text-xs font-mono font-bold text-slate-900">
+                    {inspectingEntry.expiryDate || "—"}
+                  </p>
                 </div>
               </div>
 
@@ -1538,7 +1762,9 @@ Attention particulière pour les passeports tunisiens:
             <div className="bg-slate-900 text-white p-5 flex items-center justify-between">
               <h3 className="text-sm font-bold flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-emerald-400" />
-                {isAr ? "إضافة إلى قائمة المعتمرين" : "Transférer vers les Pèlerins"}
+                {isAr
+                  ? "إضافة إلى قائمة المعتمرين"
+                  : "Transférer vers les Pèlerins"}
               </h3>
               <button
                 onClick={() => setTransferringEntry(null)}
@@ -1622,7 +1848,12 @@ Attention particulière pour les passeports tunisiens:
                 onClick={() => {
                   onDeletePassport(deletingId);
                   setDeletingId(null);
-                  showToast(isAr ? "تم حذف الجواز من السجل" : "Passeport supprimé du registre", "success");
+                  showToast(
+                    isAr
+                      ? "تم حذف الجواز من السجل"
+                      : "Passeport supprimé du registre",
+                    "success",
+                  );
                 }}
                 className="px-4 py-2 rounded-xl bg-red-600 text-white font-bold text-xs hover:bg-red-700 cursor-pointer"
               >
