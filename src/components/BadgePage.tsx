@@ -141,8 +141,18 @@ export const BadgePage: React.FC = () => {
   useEffect(() => {
     const resolvePilgrimData = async () => {
       setLoading(true);
-      const searchCode = (code || "YELC9821").trim();
-      console.log("🔍 [BadgePage] Starting resolution for badge code:", searchCode, "From route param:", code);
+
+      if (!code) {
+        console.warn("⚠️ [BadgePage] No badge code parameter provided in URL.");
+        setLoading(false);
+        return;
+      }
+
+      const searchCode = code.trim();
+      console.log(
+        "🔍 [BadgePage] Resolving badge code from route:",
+        searchCode,
+      );
 
       // Default agency fallback
       let defaultAgencyName = "مسك طيبة للأسفار و العمرة";
@@ -166,7 +176,10 @@ export const BadgePage: React.FC = () => {
       // 1. Check saved badge generation records in local storage
       const storedRecord = findGeneratedBadgeByCode(searchCode);
       if (storedRecord) {
-        console.log("📦 [BadgePage] Found stored badge record in local storage:", storedRecord);
+        console.log(
+          "📦 [BadgePage] Found stored badge record in local storage:",
+          storedRecord,
+        );
         const payload =
           typeof storedRecord.payload === "string"
             ? JSON.parse(storedRecord.payload)
@@ -178,8 +191,6 @@ export const BadgePage: React.FC = () => {
           storedRecord.pilgrimName || payload.nameArabic,
           payload.avatarUrl,
         );
-
-        console.log("🖼️ [BadgePage] Resolved avatar from local record:", avatar?.substring(0, 50));
 
         setData({
           agencyName:
@@ -209,10 +220,16 @@ export const BadgePage: React.FC = () => {
 
       // 2. Query pilgrims database (Supabase & localStorage)
       try {
-        console.log("🌐 [BadgePage] Querying database for pilgrim:", searchCode);
+        console.log(
+          "🌐 [BadgePage] Querying database for pilgrim:",
+          searchCode,
+        );
         const pilgrim = await getPilgrimByUniqueCode(searchCode);
         if (pilgrim) {
-          console.log("✅ [BadgePage] Loaded pilgrim from database:", pilgrim.nameArabic, "Avatar:", pilgrim.avatarUrl ? `${pilgrim.avatarUrl.substring(0, 40)}...` : "NONE");
+          console.log(
+            "✅ [BadgePage] Loaded pilgrim from database:",
+            pilgrim.nameArabic,
+          );
           try {
             const staffList = await getStaff();
             const tripGuide = staffList.find(
@@ -258,11 +275,18 @@ export const BadgePage: React.FC = () => {
           return;
         }
       } catch (err) {
-        console.error("🔴 [BadgePage] Error resolving pilgrim for landing page:", err);
+        console.error(
+          "🔴 [BadgePage] Error resolving pilgrim for landing page:",
+          err,
+        );
       }
 
-      // 3. Fallback state (when pilgrim code not found in Supabase)
-      console.warn("⚠️ [BadgePage] Pilgrim not found for code:", searchCode, ". Rendering fallback demo card.");
+      // 3. Fallback state (when pilgrim code not found)
+      console.warn(
+        "⚠️ [BadgePage] Pilgrim not found for code:",
+        searchCode,
+        ". Rendering fallback demo card.",
+      );
       const fallbackAvatar = resolvePilgrimAvatarFromAnySource(
         searchCode,
         undefined,
@@ -304,15 +328,12 @@ export const BadgePage: React.FC = () => {
       digits = digits.slice(2);
     }
 
-    // If 8 digits (Tunisian local number like 25800884 or 98123456)
     if (digits.length === 8) {
       return `216${digits}`;
     }
-    // If Saudi domestic number starting with 05
     if (digits.startsWith("05") && digits.length === 10) {
       return `966${digits.slice(1)}`;
     }
-    // If French domestic number starting with 06 or 07
     if (
       (digits.startsWith("06") || digits.startsWith("07")) &&
       digits.length === 10
@@ -365,9 +386,8 @@ ${locationLink}`
     return `https://wa.me/${targetPhone}?text=${encodeURIComponent(messageText)}`;
   };
 
-  // The ONLY action button: activates GPS location, gets coordinates, and redirects to WhatsApp
+  // Activates GPS location, gets coordinates, and redirects to WhatsApp
   const handleLocateAndSendWhatsApp = () => {
-    // If coordinates already cached and valid, directly redirect
     if (coords) {
       const url = generateWhatsAppUrl(coords);
       window.location.href = url;
@@ -408,7 +428,9 @@ ${locationLink}`
             "تم رفض إذن الوصول إلى الموقع. سيتم فتح الواتساب بدون الإحداثيات.",
           );
         } else if (error.code === error.POSITION_UNAVAILABLE) {
-          setLocationErrorMessage("تعذر الحصول على إشارة الموقع الجغرافي حالياً.");
+          setLocationErrorMessage(
+            "تعذر الحصول على إشارة الموقع الجغرافي حالياً.",
+          );
         } else if (error.code === error.TIMEOUT) {
           setLocationErrorMessage(
             "انتهت مهلة انتظار إشارة الـ GPS. سيتم فتح الواتساب الآن.",
@@ -416,7 +438,6 @@ ${locationLink}`
         } else {
           setLocationErrorMessage("حدث خطأ أثناء تحديد الموقع الجغرافي.");
         }
-        // Redirect anyway so communication is not blocked
         const url = generateWhatsAppUrl(null);
         window.location.href = url;
       },
@@ -443,6 +464,22 @@ ${locationLink}`
         <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-600 rounded-full animate-spin mb-4" />
         <p className="text-sm font-bold text-slate-700">
           جاري تحميل بيانات المعتمر والرحلة...
+        </p>
+      </div>
+    );
+  }
+
+  if (!code && !data) {
+    return (
+      <div
+        dir="rtl"
+        className="min-h-screen bg-slate-50 text-slate-800 flex flex-col items-center justify-center p-6 font-sans text-center"
+      >
+        <AlertCircle className="w-12 h-12 text-amber-500 mb-3" />
+        <h2 className="text-lg font-bold text-slate-900">رمز الشارة مفقود</h2>
+        <p className="text-sm text-slate-600 mt-1">
+          يرجى التأكد من مسح رمز QR الصحبح أو استخدام رابط يحتوي على الرمز
+          التعريفى للمعتمر.
         </p>
       </div>
     );
@@ -526,11 +563,7 @@ ${locationLink}`
                 alt={pilgrimName}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  console.error("❌ [BadgePage] <img> failed to render avatar source:", data?.avatarUrl?.substring(0, 100));
                   (e.target as HTMLImageElement).src = DEFAULT_AVATAR_URL;
-                }}
-                onLoad={() => {
-                  console.log("✅ [BadgePage] <img> rendered avatar successfully.");
                 }}
               />
             </div>
@@ -563,7 +596,7 @@ ${locationLink}`
             </div>
           </div>
 
-          {/* Information Tiles (Hotels & Accompanist Info - NO CALL SECTION) */}
+          {/* Information Tiles */}
           <div className="grid grid-cols-1 gap-2.5">
             {/* Accompanist Tile */}
             <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
@@ -606,7 +639,13 @@ ${locationLink}`
                   </p>
                   {(data?.makkahHotel || data?.madinahHotel) && (
                     <p className="text-[11px] text-slate-500 mt-0.5 truncate max-w-[200px]">
-                      {data.makkahHotel ? data.makkahHotel.split("—")[0].trim() : "مكة"} / {data.madinahHotel ? data.madinahHotel.split("—")[0].trim() : "المدينة"}
+                      {data.makkahHotel
+                        ? data.makkahHotel.split("—")[0].trim()
+                        : "مكة"}{" "}
+                      /{" "}
+                      {data.madinahHotel
+                        ? data.madinahHotel.split("—")[0].trim()
+                        : "المدينة"}
                     </p>
                   )}
                 </div>
@@ -632,7 +671,9 @@ ${locationLink}`
                 </span>
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                إذا كنت تائهاً أو تحتاج للمساعدة، اضغط على الزر أدناه ليتم تحديد موقعك الجغرافي الحالي تلقائياً وإرساله فوراً للمرافق عبر واتساب لسرعة الوصول إليك.
+                إذا كنت تائهاً أو تحتاج للمساعدة، اضغط على الزر أدناه ليتم تحديد
+                موقعك الجغرافي الحالي تلقائياً وإرساله فوراً للمرافق عبر واتساب
+                لسرعة الوصول إليك.
               </p>
             </div>
           </div>
@@ -652,7 +693,9 @@ ${locationLink}`
             ) : (
               <>
                 <MessageCircle className="w-5 h-5 text-white shrink-0 fill-white" />
-                <span className="truncate">تحديد موقعي وإرساله للمرافق عبر واتساب</span>
+                <span className="truncate">
+                  تحديد موقعي وإرساله للمرافق عبر واتساب
+                </span>
               </>
             )}
           </button>
@@ -682,7 +725,9 @@ ${locationLink}`
           {locationStatus === "error" && locationErrorMessage && (
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2 animate-in fade-in duration-200">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-[11px] leading-tight">{locationErrorMessage}</p>
+              <p className="text-[11px] leading-tight">
+                {locationErrorMessage}
+              </p>
             </div>
           )}
         </div>
