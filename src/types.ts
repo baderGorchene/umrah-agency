@@ -25,12 +25,31 @@ export const DEFAULT_AVATAR_URL = `data:image/svg+xml;utf8,<svg xmlns="http://ww
 export type NavTab = 
   | 'dashboard'
   | 'pilgrims'
+  | 'passports'
   | 'staff'
   | 'trips'
   | 'qr-center'
   | 'documents'
   | 'news'
   | 'settings';
+
+export interface PassportEntry {
+  id: string;
+  fullNameArabic: string; // Nom complet Ar
+  fullNameLatin: string; // Nom complet
+  gender: 'M' | 'F' | string; // GENRE
+  passportNumber: string; // N passeport
+  birthDate: string; // Date Naiss
+  deliberationDate: string; // DATE D DÉLIBÉRATION (Issue Date)
+  expiryDate: string; // DATE D EXPIRATION
+  cinNumber?: string;
+  nationality?: string;
+  placeOfBirth?: string;
+  issuingAuthority?: string;
+  avatarUrl?: string;
+  scannedAt?: string;
+  notes?: string;
+}
 
 export interface Pilgrim {
   id: string;

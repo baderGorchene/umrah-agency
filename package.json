@@ -32,7 +32,8 @@
     "react-router-dom": "^7.18.2",
     "spdf": "^0.0.4",
     "tesseract.js": "^2.1.5",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

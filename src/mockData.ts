@@ -6,6 +6,7 @@ import {
   AgencySettings,
   AppNotification,
   BadgeTemplate,
+  PassportEntry,
 } from "./types";
 
 export const initialAgencySettings: AgencySettings = {
@@ -31,6 +32,8 @@ export const initialStaff: Staff[] = [];
 export const initialPosts: Post[] = [];
 
 export const initialNotifications: AppNotification[] = [];
+
+export const initialPassportEntries: PassportEntry[] = [];
 
 export const badgeTemplates: BadgeTemplate[] = [
   {

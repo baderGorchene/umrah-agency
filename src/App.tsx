@@ -13,6 +13,7 @@ import { Suspense, lazy } from "react";
 
 const DashboardView = lazy(() => import("./components/DashboardView").then(module => ({ default: module.DashboardView })));
 const PilgrimsView = lazy(() => import("./components/PilgrimsView").then(module => ({ default: module.PilgrimsView })));
+const PassportsView = lazy(() => import("./components/PassportsView").then(module => ({ default: module.PassportsView })));
 const StaffView = lazy(() => import("./components/StaffView").then(module => ({ default: module.StaffView })));
 const TripsView = lazy(() => import("./components/TripsView").then(module => ({ default: module.TripsView })));
 const QrCenterView = lazy(() => import("./components/QrCenterView").then(module => ({ default: module.QrCenterView })));
@@ -30,6 +31,7 @@ import {
   initialTrips,
   initialPosts,
   initialNotifications,
+  initialPassportEntries,
 } from "./mockData";
 
 import {
@@ -75,6 +77,7 @@ import {
   AppNotification,
   UserProfile,
   UserRole,
+  PassportEntry,
 } from "./types";
 
 const DEFAULT_ADMIN_USER: UserProfile = {
@@ -103,11 +106,34 @@ export default function App() {
     initialAgencySettings,
   );
   const [pilgrims, setPilgrims] = useState<Pilgrim[]>(initialPilgrims);
+  const [passports, setPassports] = useState<PassportEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem("umrah_passports_registry");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((p: any) => !p.id?.startsWith("pass-"));
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load saved passports registry:", e);
+    }
+    return [];
+  });
   const [staff, setStaff] = useState<Staff[]>(initialStaff);
   const [trips, setTrips] = useState<Trip[]>(initialTrips);
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [notifications, setNotifications] =
     useState<AppNotification[]>(initialNotifications);
+
+  // Sync passports to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem("umrah_passports_registry", JSON.stringify(passports));
+    } catch (e) {
+      console.warn("Failed to persist passports registry:", e);
+    }
+  }, [passports]);
 
   // Modals & Drawers
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
@@ -345,6 +371,40 @@ export default function App() {
     await deletePilgrim(id);
   };
 
+  // Handlers for Passports
+  const handleAddPassport = (
+    entryData: Omit<PassportEntry, "id" | "scannedAt">,
+  ): { success: boolean; duplicate?: boolean; existing?: PassportEntry } => {
+    const normalizedIncoming = entryData.passportNumber.trim().toUpperCase();
+    const existing = passports.find(
+      (p) => p.passportNumber.trim().toUpperCase() === normalizedIncoming,
+    );
+
+    if (existing) {
+      return { success: false, duplicate: true, existing };
+    }
+
+    const newEntry: PassportEntry = {
+      ...entryData,
+      id: `pass_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      passportNumber: normalizedIncoming,
+      scannedAt: new Date().toISOString(),
+    };
+
+    setPassports((prev) => [newEntry, ...prev]);
+    return { success: true };
+  };
+
+  const handleEditPassport = (updated: PassportEntry) => {
+    setPassports((prev) =>
+      prev.map((p) => (p.id === updated.id ? updated : p)),
+    );
+  };
+
+  const handleDeletePassport = (id: string) => {
+    setPassports((prev) => prev.filter((p) => p.id !== id));
+  };
+
   // Handlers for Staff
   const handleAddStaff = async (newStaffData: Omit<Staff, "id">) => {
     const created = await createStaff(newStaffData, trips);
@@ -520,6 +580,26 @@ export default function App() {
                       onDeletePilgrim={handleDeletePilgrim}
                       isAddModalOpen={isAddPilgrimModalOpen}
                       setIsAddModalOpen={setIsAddPilgrimModalOpen}
+                    />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+
+              {/* Passports Extraction & Registry View: Admin & Agent */}
+              <Route
+                path="/passports"
+                element={
+                  ["admin", "agent"].includes(userRole) ? (
+                    <PassportsView
+                      lang={lang}
+                      passports={passports}
+                      onAddPassport={handleAddPassport}
+                      onEditPassport={handleEditPassport}
+                      onDeletePassport={handleDeletePassport}
+                      trips={trips}
+                      onAddPilgrim={handleAddPilgrim}
                     />
                   ) : (
                     <Navigate to="/" replace />

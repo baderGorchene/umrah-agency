@@ -2,6 +2,7 @@
   "menu": {
     "dashboard": "Tableau de bord",
     "pilgrims": "Gestion des pèlerins",
+    "passports": "Registre Passeports",
     "staff": "Accompagnateurs",
     "trips": "Gestion des voyages",
     "qr_center": "Centre QR",

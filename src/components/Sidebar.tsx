@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
+  Scan,
   UserCheck,
   Plane,
   QrCode,
@@ -56,6 +57,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       labelAr: "المعتمرون",
       labelFr: "Pèlerins",
       icon: Users,
+      allowedRoles: ["admin", "agent"],
+    },
+    {
+      path: "/passports",
+      labelAr: "استخراج الجوازات",
+      labelFr: "Registre Passeports",
+      icon: Scan,
       allowedRoles: ["admin", "agent"],
     },
     {
