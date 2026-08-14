@@ -1,15 +1,35 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { ShieldCheck, Copy, Check, Printer } from "lucide-react";
-import { QRCodeView } from "./QRCodeView";
+import {
+  MapPin,
+  MessageCircle,
+  Phone,
+  ShieldCheck,
+  User,
+  Building2,
+  UserCheck,
+  Navigation,
+  Compass,
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+  Hotel,
+  Share2,
+  Copy,
+  Check,
+  RefreshCw,
+  Info,
+} from "lucide-react";
 import { findGeneratedBadgeByCode } from "../services/generatedBadgesService";
 import { getPilgrimByUniqueCode } from "../services/pilgrimsService";
-import { Pilgrim, DEFAULT_AVATAR_URL } from "../types";
-import { initialPilgrims } from "../mockData";
-import { buildBadgePublicUrl } from "../lib/qrCode";
+import { getAgencySettings } from "../services/agencyService";
+import { getStaff } from "../services/staffService";
+import { DEFAULT_AVATAR_URL, AgencySettings, Staff } from "../types";
 
-interface ExtendedBadgeData {
+interface PilgrimLandingData {
   agencyName: string;
+  agencyPhone: string;
+  agencyLogo?: string;
   uniqueCode: string;
   nameArabic: string;
   nameLatin?: string;
@@ -19,275 +39,560 @@ interface ExtendedBadgeData {
   makkahHotel?: string;
   madinahHotel?: string;
   avatarUrl?: string;
-  guide1Name?: string;
-  guide1Phone?: string;
-  guide2Name?: string;
-  guide2Phone?: string;
+  accompanistName: string;
+  accompanistPhone: string;
+  accompanistRole?: string;
   emergencyContact?: string;
   status?: string;
 }
 
 export const BadgePage: React.FC = () => {
   const { code } = useParams<{ code: string }>();
-  const [badgeData, setBadgeData] = useState<ExtendedBadgeData | null>(null);
+  const [data, setData] = useState<PilgrimLandingData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
+
+  // Geolocation states
+  const [locationStatus, setLocationStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [coords, setCoords] = useState<{
+    latitude: number;
+    longitude: number;
+    accuracy?: number;
+  } | null>(null);
+  const [locationErrorMessage, setLocationErrorMessage] = useState<string>("");
+  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
-    const resolveBadge = async () => {
+    const resolvePilgrimData = async () => {
       setLoading(true);
       const searchCode = (code || "YELC9821").trim();
 
-      // 1) Check localStorage saved generated badges
+      // Default agency fallback
+      let defaultAgencyName = "مسك طيبة للأسفار و العمرة";
+      let defaultAgencyPhone = "+216 73 481 100";
+      let agencyLogo = `${import.meta.env.BASE_URL}logob.jpeg`;
+
+      try {
+        const agency = await getAgencySettings();
+        if (agency?.name) defaultAgencyName = agency.name;
+        if (agency?.phone) defaultAgencyPhone = agency.phone;
+        if (agency?.logoUrl) agencyLogo = agency.logoUrl;
+      } catch (err) {
+        console.warn("Could not fetch agency settings:", err);
+      }
+
+      // Default accompanist fallback
+      let defaultAccompanistName = "نادر قويعة";
+      let defaultAccompanistPhone = "25800884";
+      let defaultAccompanistRole = "مرافق الرحلة / دليل المعتمرين";
+
+      // 1. Check saved badge generation records
       const storedRecord = findGeneratedBadgeByCode(searchCode);
       if (storedRecord) {
         const payload =
           typeof storedRecord.payload === "string"
             ? JSON.parse(storedRecord.payload)
-            : storedRecord.payload;
+            : storedRecord.payload || {};
 
-        setBadgeData({
-          agencyName: payload.agency || "مسك طيبة للأسفار و السياحة",
+        setData({
+          agencyName: storedRecord.payload?.agency || payload.agency || defaultAgencyName,
+          agencyPhone: defaultAgencyPhone,
+          agencyLogo,
           uniqueCode: storedRecord.uniqueCode,
           nameArabic: storedRecord.pilgrimName || payload.nameArabic || "معتمر",
           nameLatin: payload.nameLatin || "",
           passportNumber: payload.passportNumber || "N2891048",
           birthDate: payload.birthDate || "",
-          tripName: storedRecord.tripName || payload.tripName || "عمرة المولد",
-          guide1Name: storedRecord.guide1Name || "نادر قويعة",
-          guide1Phone: storedRecord.guide1Phone || "25800884",
-          guide2Name: storedRecord.guide2Name || "منير بن صالح",
-          guide2Phone: storedRecord.guide2Phone || "98765432",
-          makkahHotel: "الماسـة — مكة المكرمة",
-          madinahHotel: "الكيان العالمي — المدينة المنورة",
+          tripName: storedRecord.tripName || payload.tripName || "رحلة العمرة المباركة",
+          makkahHotel: payload.makkahHotel || "فندق الماسة — مكة المكرمة",
+          madinahHotel: payload.madinahHotel || "فندق الكيان العالمي — المدينة المنورة",
+          accompanistName: storedRecord.guide1Name || defaultAccompanistName,
+          accompanistPhone: storedRecord.guide1Phone || defaultAccompanistPhone,
+          accompanistRole: defaultAccompanistRole,
+          emergencyContact: defaultAgencyPhone,
           status: "مؤكد",
+          avatarUrl: payload.avatarUrl || DEFAULT_AVATAR_URL,
         });
         setLoading(false);
         return;
       }
 
-      // 2) Query database / mock pilgrims
+      // 2. Query pilgrims database
       try {
         const pilgrim = await getPilgrimByUniqueCode(searchCode);
         if (pilgrim) {
-          setBadgeData({
-            agencyName: "مسك طيبة للأسفار و السياحة",
+          // Attempt to match accompanist / staff for the pilgrim's trip
+          try {
+            const staffList = await getStaff();
+            const tripGuide = staffList.find(
+              (s) => s.tripId === pilgrim.tripId || s.tripName === pilgrim.tripName
+            );
+            if (tripGuide) {
+              defaultAccompanistName = tripGuide.nameArabic;
+              defaultAccompanistPhone = tripGuide.whatsapp || tripGuide.phone;
+              defaultAccompanistRole = tripGuide.role;
+            }
+          } catch (e) {
+            console.warn("Could not query staff list:", e);
+          }
+
+          setData({
+            agencyName: defaultAgencyName,
+            agencyPhone: defaultAgencyPhone,
+            agencyLogo,
             uniqueCode: pilgrim.uniqueCode,
             nameArabic: pilgrim.nameArabic,
             nameLatin: pilgrim.nameLatin || "",
-            passportNumber: pilgrim.passportNumber || "N2891048",
+            passportNumber: pilgrim.passportNumber || "",
             birthDate: pilgrim.birthDate || "",
-            tripName: pilgrim.tripName || "عمرة المولد",
+            tripName: pilgrim.tripName || "رحلة العمرة المباركة",
+            makkahHotel: "فندق الماسة — مكة المكرمة",
+            madinahHotel: "فندق الكيان العالمي — المدينة المنورة",
             avatarUrl: pilgrim.avatarUrl || DEFAULT_AVATAR_URL,
-            emergencyContact: pilgrim.emergencyContact || "+216 73 481 100",
-            guide1Name: "نادر قويعة",
-            guide1Phone: "25800884",
-            guide2Name: "منير بن صالح",
-            guide2Phone: "98765432",
-            makkahHotel: "الماسـة — مكة المكرمة",
-            madinahHotel: "الكيان العالمي — المدينة المنورة",
+            accompanistName: defaultAccompanistName,
+            accompanistPhone: defaultAccompanistPhone,
+            accompanistRole: defaultAccompanistRole,
+            emergencyContact: pilgrim.emergencyContact || defaultAgencyPhone,
             status: pilgrim.status || "مؤكد",
           });
           setLoading(false);
           return;
         }
       } catch (err) {
-        console.warn("Error resolving pilgrim for badge page:", err);
+        console.warn("Error resolving pilgrim for landing page:", err);
       }
 
-      // 3) Fallback if not found
-      setBadgeData({
-        agencyName: "",
+      // 3. Fallback state
+      setData({
+        agencyName: defaultAgencyName,
+        agencyPhone: defaultAgencyPhone,
+        agencyLogo,
         uniqueCode: searchCode.toUpperCase(),
         nameArabic: "معتمر",
         nameLatin: "",
         passportNumber: "",
         birthDate: "",
-        tripName: "",
+        tripName: "رحلة العمرة المباركة",
+        accompanistName: defaultAccompanistName,
+        accompanistPhone: defaultAccompanistPhone,
+        accompanistRole: defaultAccompanistRole,
+        makkahHotel: "مكة المكرمة",
+        madinahHotel: "المدينة المنورة",
         avatarUrl: DEFAULT_AVATAR_URL,
-        guide1Name: "",
-        guide1Phone: "",
-        guide2Name: "",
-        guide2Phone: "",
-        makkahHotel: "",
-        madinahHotel: "",
-        status: "",
+        status: "مؤكد",
       });
       setLoading(false);
     };
 
-    resolveBadge();
+    resolvePilgrimData();
   }, [code]);
 
-  const publicUrl = buildBadgePublicUrl(
-    badgeData?.uniqueCode || code || "YELC9821",
-  );
+  // Request user's current GPS location
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus("error");
+      setLocationErrorMessage("خدمة تحديد الموقع غير مدعومة على هذا الجهاز.");
+      return;
+    }
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(publicUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setLocationStatus("loading");
+    setLocationErrorMessage("");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCoords({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        });
+        setLocationStatus("success");
+      },
+      (error) => {
+        console.warn("Geolocation error:", error);
+        setLocationStatus("error");
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationErrorMessage(
+            "تم رفض إذن الوصول إلى الموقع. يرجى تفعيل الـ GPS في إعدادات المتصفح."
+          );
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          setLocationErrorMessage("تعذر الحصول على إشارة الموقع الجغرافي حالياً.");
+        } else if (error.code === error.TIMEOUT) {
+          setLocationErrorMessage("انتهت مهلة انتظار إشارة الـ GPS. يرجى المحاولة ثانية.");
+        } else {
+          setLocationErrorMessage("حدث خطأ أثناء تحديد الموقع الجغرافي.");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 0,
+      }
+    );
   };
 
-  const displayName = badgeData?.nameArabic || badgeData?.nameLatin || "معتمر";
-  const avatarInitial = displayName.slice(0, 1).toUpperCase();
+  // Clean and format phone number for WhatsApp
+  const cleanPhoneForWhatsApp = (rawPhone?: string): string => {
+    if (!rawPhone) return "21625800884";
+    const digits = rawPhone.replace(/\D/g, "");
+    if (!digits) return "21625800884";
+    // If Tunisian 8-digit number (e.g. 25800884 or 98123456)
+    if (digits.length === 8) {
+      return `216${digits}`;
+    }
+    // If Saudi number starting with 05
+    if (digits.startsWith("05") && digits.length === 10) {
+      return `966${digits.slice(1)}`;
+    }
+    // If starts with 00, remove 00
+    if (digits.startsWith("00")) {
+      return digits.slice(2);
+    }
+    return digits;
+  };
 
-  const InfoRow = ({ label, value }: { label: string; value?: string }) => (
-    <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-right">
-      <span className="text-[16px] font-bold text-slate-800">
-        {value || "—"}
-      </span>
-      <span className="text-[16px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-        {label}
-      </span>
-    </div>
-  );
+  // Build the pre-filled Arabic WhatsApp message with location link
+  const generateWhatsAppUrl = (currentCoords?: { latitude: number; longitude: number } | null): string => {
+    const targetPhone = cleanPhoneForWhatsApp(data?.accompanistPhone);
+
+    const pilgrimName = data?.nameArabic || "معتمر";
+    const agencyName = data?.agencyName || "مسك طيبة للأسفار و العمرة";
+    const accompanistName = data?.accompanistName || "المرافق المسؤول";
+    const pilgrimCode = data?.uniqueCode || code || "—";
+
+    let locationLink = "";
+    if (currentCoords) {
+      locationLink = `https://maps.google.com/?q=${currentCoords.latitude.toFixed(6)},${currentCoords.longitude.toFixed(6)}`;
+    } else if (coords) {
+      locationLink = `https://maps.google.com/?q=${coords.latitude.toFixed(6)},${coords.longitude.toFixed(6)}`;
+    }
+
+    const messageText = `السلام عليكم ورحمة الله وبركاته،
+
+📌 *بيانات المعتمر المسجل:*
+• *اسم المعتمر:* ${pilgrimName}
+• *الرمز التعريفي:* ${pilgrimCode}
+• *الوكالة التابع لها:* ${agencyName}
+• *المرافق المسؤول:* ${accompanistName}
+
+${
+  locationLink
+    ? `📍 *الموقع الجغرافي الحالي عبر خرائط Google:*
+${locationLink}`
+    : `📍 *تنبيه موقع:* يرجى التواصل لتحديد الموقع وتقديم المساعدة.`
+}
+
+الرجاء التواصل لتقديم المساعدة والتنسيق. شكراً جزيلاً.`;
+
+    return `https://wa.me/${targetPhone}?text=${encodeURIComponent(messageText)}`;
+  };
+
+  // Handle click on WhatsApp button: trigger location if not done yet then redirect
+  const handleWhatsAppAction = () => {
+    if (coords) {
+      const url = generateWhatsAppUrl(coords);
+      window.open(url, "_blank");
+      return;
+    }
+
+    // If geolocation is available and not fetched, try to get position before redirecting
+    if (navigator.geolocation && locationStatus !== "error") {
+      setLocationStatus("loading");
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const newCoords = {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          };
+          setCoords(newCoords);
+          setLocationStatus("success");
+          const url = generateWhatsAppUrl(newCoords);
+          window.open(url, "_blank");
+        },
+        () => {
+          // On error, open WhatsApp anyway with identification details
+          const url = generateWhatsAppUrl(null);
+          window.open(url, "_blank");
+        },
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    } else {
+      const url = generateWhatsAppUrl(null);
+      window.open(url, "_blank");
+    }
+  };
+
+  const handleCopyShareLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  if (loading) {
+    return (
+      <div
+        dir="rtl"
+        className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-6 font-sans"
+      >
+        <div className="w-12 h-12 border-4 border-amber-400/30 border-t-amber-400 rounded-full animate-spin mb-4" />
+        <p className="text-sm font-bold text-slate-300">جاري تحميل بيانات المعتمر والرحلة...</p>
+      </div>
+    );
+  }
+
+  const pilgrimName = data?.nameArabic || "معتمر";
+  const agencyName = data?.agencyName || "مسك طيبة للأسفار و العمرة";
+  const accompanistName = data?.accompanistName || "نادر قويعة";
+  const accompanistPhone = data?.accompanistPhone || "25800884";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 font-sans selection:bg-amber-400 selection:text-black">
-      {/* Background glow effects */}
-      <div className="fixed -top-40 -left-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="fixed -bottom-40 -right-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div
+      dir="rtl"
+      className="min-h-screen bg-linear-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex flex-col items-center justify-start p-4 sm:p-6 font-sans selection:bg-amber-400 selection:text-black"
+    >
+      {/* Ambient background glow */}
+      <div className="fixed -top-40 right-1/2 translate-x-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="fixed bottom-0 right-1/2 translate-x-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Main Container Wrapper */}
-      <div className="w-full max-w-md space-y-4 relative z-10">
-        {/* Top Bar Info */}
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-400 px-2 print:hidden">
-          <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-            <ShieldCheck className="w-4 h-4" />
-            <span>بطاقة معتمر رقمية رسمية</span>
-          </div>
-          <span className="bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full border border-slate-700 text-[10px] font-mono">
-            {badgeData?.uniqueCode || code}
-          </span>
-        </div>
-
-        {/* ── Badge Artwork ── */}
-        <div className="relative mx-auto flex flex-col overflow-hidden rounded-[24px] border border-amber-500/30 bg-white text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] print:border-none print:shadow-none">
-          {/* Header Banner */}
-          <div className="relative h-24 w-full flex items-center justify-between bg-black px-6">
-            <div
-              className="flex items-center justify-center"
-              style={{ width: "100px", height: "100%" }}
-            >
+      {/* Main Container */}
+      <div className="w-full max-w-md space-y-4 relative z-10 my-4">
+        
+        {/* Top Header Card */}
+        <header className="bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-800 p-4 shadow-xl flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-black border border-amber-500/30 overflow-hidden flex items-center justify-center shrink-0">
               <img
                 src={`${import.meta.env.BASE_URL}logob.jpeg`}
                 alt="Logo"
-                className="h-20 w-auto"
+                className="w-full h-full object-contain p-1"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
               />
             </div>
-            <div
-              className="flex items-center justify-center"
-              style={{ width: "70px", height: "100%" }}
-            >
-              <svg
-                width="100"
-                height="67"
-                viewBox="-60 -40 120 80"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="#e70013"
+            <div>
+              <div className="flex items-center gap-1.5 text-amber-400 text-xs font-bold">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>بطاقة تعريف المعتمر الرقمية</span>
+              </div>
+              <h2 className="text-sm font-black text-white">{agencyName}</h2>
+            </div>
+          </div>
+
+          <button
+            onClick={handleCopyShareLink}
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors cursor-pointer"
+            title="مشاركة الصفحة"
+          >
+            {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+          </button>
+        </header>
+
+        {/* ── 1. PILGRIM INFO CARD (MAIN STATEMENT) ── */}
+        <div className="bg-white text-slate-900 rounded-3xl p-5 shadow-2xl border border-slate-200/80 space-y-5">
+          
+          {/* Main Statement Banner */}
+          <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/15 to-emerald-500/10 border border-amber-500/30 rounded-2xl p-4 text-center">
+            <p className="text-sm leading-relaxed text-slate-800 font-medium">
+              المعتمر <span className="font-black text-slate-950 text-base underline decoration-amber-500 decoration-2">{pilgrimName}</span> مسجل رسمياً لدى وكالة{" "}
+              <span className="font-bold text-amber-900">{agencyName}</span>، بمرافقة{" "}
+              <span className="font-black text-emerald-800 text-base">{accompanistName}</span>.
+            </p>
+          </div>
+
+          {/* Pilgrim Profile Block */}
+          <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200/70">
+            <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-amber-500/40 bg-slate-200 shrink-0 shadow-xs">
+              <img
+                src={data?.avatarUrl || DEFAULT_AVATAR_URL}
+                alt={pilgrimName}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = DEFAULT_AVATAR_URL;
+                }}
+              />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[10px] border border-emerald-200">
+                  {data?.status || "معتمر مؤكد"}
+                </span>
+                <span className="px-2 py-0.5 rounded-md bg-slate-200/80 text-slate-700 font-mono text-[10px]">
+                  {data?.uniqueCode || code}
+                </span>
+              </div>
+              <h1 className="text-base font-black text-slate-900 truncate mt-1">
+                {pilgrimName}
+              </h1>
+              {data?.nameLatin && (
+                <p className="text-xs text-slate-500 uppercase tracking-wide truncate">
+                  {data.nameLatin}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Accompanist & Agency Information Box */}
+          <div className="grid grid-cols-1 gap-2.5">
+            {/* Accompanist Tile */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-slate-500">المرافق المسؤول / المرشد</p>
+                  <p className="text-xs font-bold text-slate-900">{accompanistName}</p>
+                </div>
+              </div>
+              <a
+                href={`tel:${accompanistPhone}`}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-2xs"
               >
-                <path d="M-60-40H60v80H-60z" />
-                <circle fill="#fff" r="20" />
-                <circle r="15" />
-                <circle fill="#fff" cx="4" r="12" />
-                <path d="M-5 0l16.281-5.29L1.22 8.56V-8.56L11.28 5.29z" />
-              </svg>
+                <Phone className="w-3.5 h-3.5" />
+                <span>اتصال</span>
+              </a>
+            </div>
+
+            {/* Trip / Hotels Tile */}
+            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/80">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <Hotel className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-slate-500">الرحلة ومقر الإقامة</p>
+                  <p className="text-xs font-bold text-slate-900">{data?.tripName}</p>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-slate-600 bg-white px-2.5 py-1 rounded-md border border-slate-200">
+                مكة / المدينة
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 2. LOCATION CALLOUT CARD ── */}
+        <div className="bg-slate-900/95 backdrop-blur-md rounded-3xl p-5 border border-amber-500/30 shadow-2xl space-y-4">
+          
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center shrink-0 mt-0.5">
+              <MapPin className="w-5 h-5 animate-bounce" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                <span>تحديد ومشاركة موقعك الحالي</span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-normal">
+                  GPS مباشر
+                </span>
+              </h3>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                إذا كنت تائهاً أو تحتاج للمساعدة، يرجى الضغط أدناه لتحديد موقعك الجغرافي الحالي وإرساله مباشرة للمرافق عبر واتساب لسرعة الوصول إليك.
+              </p>
             </div>
           </div>
 
-          {/* Avatar Container */}
-          <div className="relative flex w-full shrink-0 justify-center bg-slate-50 px-6 pt-5 pb-3">
-            <div
-              className="relative overflow-hidden rounded-2xl p-[3px] shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
-              style={{
-                width: "70%",
-                minWidth: "72px",
-                aspectRatio: "9 / 9",
-                background: "linear-gradient(135deg, #d97706, #f59e0b)",
-              }}
-            >
-              <div className="relative h-full w-full overflow-hidden rounded-[13px] ring-1 ring-inset ring-white/60">
-                {badgeData?.avatarUrl ? (
-                  <img
-                    src={badgeData.avatarUrl}
-                    alt={displayName}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = DEFAULT_AVATAR_URL;
-                    }}
-                  />
+          {/* Location Trigger & Feedback Box */}
+          <div className="bg-slate-950/80 rounded-2xl p-3.5 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                disabled={locationStatus === "loading"}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md ${
+                  locationStatus === "success"
+                    ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-600/40"
+                    : "bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
+                }`}
+              >
+                {locationStatus === "loading" ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
+                    <span>جاري تحديد موقعك عبر الأقمار الصناعية...</span>
+                  </>
+                ) : locationStatus === "success" ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>تم تحديد موقعك بدقة (تحديث)</span>
+                  </>
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-slate-100 text-2xl font-black text-slate-400">
-                    {avatarInitial}
-                  </div>
+                  <>
+                    <Navigation className="w-4 h-4 text-amber-400" />
+                    <span>تحديد موقعي الجغرافي الآن</span>
+                  </>
                 )}
-              </div>
+              </button>
             </div>
-          </div>
 
-          {/* Pilgrim Information Section */}
-          <div className="px-4 py-3 text-right">
-            <InfoRow label="الاسم" value={displayName} />
-            <InfoRow label="فندق مكة المكرمة" value={badgeData?.makkahHotel} />
-            <InfoRow
-              label="فندق المدينة المنورة"
-              value={badgeData?.madinahHotel}
-            />
-            <InfoRow label="رئيس المجموعة" value={badgeData?.guide1Name} />
-            <InfoRow label="رقم الهاتف" value={badgeData?.guide1Phone} />
-
-            {/* Scannable QR Code Block */}
-            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-right">
-              <div className="flex shrink-0 justify-center rounded-xl border border-slate-200/70 bg-white p-2">
-                <QRCodeView payload={publicUrl} size={144} />
+            {/* GPS Result details */}
+            {coords && locationStatus === "success" && (
+              <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center justify-between gap-2 animate-in fade-in duration-200">
+                <div className="flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span className="font-mono text-[11px]">
+                    {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
+                  </span>
+                </div>
+                <a
+                  href={`https://maps.google.com/?q=${coords.latitude},${coords.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] font-bold text-amber-400 hover:underline flex items-center gap-1"
+                >
+                  <span>عرض الخريطة</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[16px] font-bold text-slate-700">
-                  امسح الرمز للمساعدة والدعم
-                </p>
-                <p className="mt-0.5 text-[16px] text-slate-400">
-                  نرافقكم في رحلة الإيمان
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Badge Footer */}
-          <div className="border-t border-slate-100 py-2 text-[16px] font-semibold text-amber-600">
-            {badgeData?.agencyName || "مسك طيبة للأسفار و السياحة"}
-          </div>
-        </div>
-
-        {/* User Actions */}
-        <div className="grid grid-cols-2 gap-2 print:hidden">
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-2xl text-xs flex items-center justify-center gap-2 border border-slate-700 transition-all cursor-pointer shadow-md"
-          >
-            <Printer className="w-4 h-4 text-amber-400" />
-            <span>طباعة البطاقة</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="bg-amber-400 hover:bg-amber-300 text-slate-950 font-black py-3 px-4 rounded-2xl text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 text-slate-950" />
-                <span>تم نسخ الرابط!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4 text-slate-950" />
-                <span>مشاركة الرابط</span>
-              </>
             )}
-          </button>
+
+            {/* Error Message */}
+            {locationStatus === "error" && (
+              <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/30 text-xs text-red-300 flex items-start gap-2 animate-in fade-in duration-200">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] leading-tight">{locationErrorMessage}</p>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* ── 3. WHATSAPP ACTION BUTTON ── */}
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={handleWhatsAppAction}
+            className="w-full py-4 px-6 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] text-slate-950 font-black text-sm flex items-center justify-center gap-3 transition-all shadow-[0_12px_30px_rgba(16,185,129,0.35)] cursor-pointer"
+          >
+            <MessageCircle className="w-6 h-6 fill-slate-950 text-emerald-500" />
+            <span>إرسال رسالة واتساب مع الموقع إلى المرافق</span>
+          </button>
+
+          {/* Quick Call Fallback */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <a
+              href={`tel:${accompanistPhone}`}
+              className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+            >
+              <Phone className="w-4 h-4 text-emerald-400" />
+              <span>اتصال بالمرافق</span>
+            </a>
+
+            <a
+              href={`tel:${data?.emergencyContact || "+21673481100"}`}
+              className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 hover:text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors"
+            >
+              <Building2 className="w-4 h-4 text-amber-400" />
+              <span>طوارئ الوكالة</span>
+            </a>
+          </div>
+        </div>
+
+        {/* Footer info note */}
+        <footer className="text-center text-slate-500 text-xs py-3 space-y-1">
+          <p>{agencyName} — في خدمة ضيوف الرحمن</p>
+          <p className="text-[10px] text-slate-600 font-mono">الرمز: {data?.uniqueCode || code}</p>
+        </footer>
+
       </div>
     </div>
   );
