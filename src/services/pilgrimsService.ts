@@ -2,6 +2,25 @@ import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
 import { initialPilgrims } from "../mockData";
 
+export const normalizeAvatarUrl = (rawUrl?: string | null): string => {
+  if (!rawUrl || rawUrl.trim() === "") return DEFAULT_AVATAR_URL;
+  const trimmed = rawUrl.trim();
+  if (trimmed.includes("unsplash.com")) return DEFAULT_AVATAR_URL;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://") || trimmed.startsWith("data:")) {
+    return trimmed;
+  }
+  if (isSupabaseConfigured()) {
+    try {
+      const cleanPath = trimmed.startsWith("avatars/") ? trimmed.replace(/^avatars\//, "") : trimmed;
+      const { data } = supabase.storage.from("avatars").getPublicUrl(cleanPath);
+      if (data?.publicUrl) return data.publicUrl;
+    } catch {
+      // ignore
+    }
+  }
+  return trimmed;
+};
+
 export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
   if (!isSupabaseConfigured()) {
     return [];
@@ -23,25 +42,24 @@ export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
 
     const tripsMap = new Map(trips.map((t) => [t.id, t.name]));
 
-    return data.map((p) => {
-      const isUnsplash = p.avatar_url && p.avatar_url.includes("unsplash.com");
-      const avatarUrl =
-        !p.avatar_url || isUnsplash ? DEFAULT_AVATAR_URL : p.avatar_url;
+    return data.map((p: any) => {
+      const rawAvatar = p.avatar_url || p.avatarUrl || p.photo_url || p.image_url;
+      const avatarUrl = normalizeAvatarUrl(rawAvatar);
 
       return {
         id: p.id,
-        nameArabic: p.name_arabic,
-        nameLatin: p.name_latin,
-        phone: p.phone,
-        tripId: p.trip_id || "",
-        tripName: p.trip_id ? tripsMap.get(p.trip_id) || "—" : "—",
-        uniqueCode: p.unique_code,
+        nameArabic: p.name_arabic || p.nameArabic || "معتمر",
+        nameLatin: p.name_latin || p.nameLatin,
+        phone: p.phone || "",
+        tripId: p.trip_id || p.tripId || "",
+        tripName: (p.trip_id ? tripsMap.get(p.trip_id) : undefined) || "—",
+        uniqueCode: p.unique_code || p.uniqueCode || "",
         status: p.status || "في الانتظار",
-        passportNumber: p.passport_number,
+        passportNumber: p.passport_number || p.passportNumber,
         avatarUrl: avatarUrl,
-        emergencyContact: p.emergency_contact,
+        emergencyContact: p.emergency_contact || p.emergencyContact,
         gender: p.gender,
-        birthDate: p.birth_date,
+        birthDate: p.birth_date || p.birthDate,
       };
     });
   } catch (err) {
@@ -191,20 +209,22 @@ export const getPilgrimByUniqueCode = async (
           }
         }
 
+        const rawAvatar = data.avatar_url || data.avatarUrl || data.photo_url || data.image_url;
+
         return {
           id: data.id,
-          nameArabic: data.name_arabic,
-          nameLatin: data.name_latin,
-          phone: data.phone,
-          tripId: data.trip_id || "",
+          nameArabic: data.name_arabic || data.nameArabic || "معتمر",
+          nameLatin: data.name_latin || data.nameLatin,
+          phone: data.phone || "",
+          tripId: data.trip_id || data.tripId || "",
           tripName: tripName || "—",
-          uniqueCode: data.unique_code,
+          uniqueCode: data.unique_code || data.uniqueCode || normCode,
           status: data.status || "مؤكد",
-          passportNumber: data.passport_number,
-          avatarUrl: data.avatar_url,
-          emergencyContact: data.emergency_contact,
+          passportNumber: data.passport_number || data.passportNumber,
+          avatarUrl: normalizeAvatarUrl(rawAvatar),
+          emergencyContact: data.emergency_contact || data.emergencyContact,
           gender: data.gender,
-          birthDate: data.birth_date,
+          birthDate: data.birth_date || data.birthDate,
         };
       }
     } catch (err) {
