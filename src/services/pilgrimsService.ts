@@ -191,41 +191,63 @@ export const getPilgrimByUniqueCode = async (
   const normCode = uniqueCodeOrId.trim();
   const upperCode = normCode.toUpperCase();
 
+  // Helper to validate UUID format before passing to PostgreSQL
+  const isValidUUID = (s: string) =>
+    /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+      s,
+    );
+
   console.log("🔍 [pilgrimsService] Resolving pilgrim by Code/ID:", normCode);
 
   if (isSupabaseConfigured()) {
     try {
       let data: any = null;
 
-      // 1. First, attempt direct ID lookup on `pilgrims`
-      console.log(
-        "📡 [Supabase] Checking direct ID match on pilgrims table...",
-      );
-      const idRes = await supabase
-        .from("pilgrims")
-        .select("*")
-        .eq("id", normCode)
-        .maybeSingle();
+      // 1. Check direct ID match on pilgrims ONLY if normCode is a valid UUID
+      if (isValidUUID(normCode)) {
+        console.log(
+          "📡 [Supabase] Checking direct UUID match on pilgrims table...",
+        );
+        const idRes = await supabase
+          .from("pilgrims")
+          .select("*")
+          .eq("id", normCode)
+          .maybeSingle();
 
-      if (idRes.data) {
-        data = idRes.data;
-        console.log("✅ [Supabase] Pilgrim matched directly by ID:", data.id);
+        if (idRes.data) {
+          data = idRes.data;
+          console.log(
+            "✅ [Supabase] Pilgrim matched directly by UUID:",
+            data.id,
+          );
+        }
       }
 
-      // 2. If not found by ID, check badge_generations table
+      // 2. If not matched by UUID, check badge_generations table for short codes (e.g. YELC9821)
       if (!data) {
         console.log(
           "📡 [Supabase] Checking badge_generations for code:",
           upperCode,
         );
-        const { data: badgeRecord } = await supabase
+        const { data: badgeRecord, error: badgeErr } = await supabase
           .from("badge_generations")
           .select("pilgrim_id")
           .ilike("unique_code", upperCode)
           .limit(1)
           .maybeSingle();
 
+        if (badgeErr) {
+          console.warn(
+            "⚠️ [Supabase] badge_generations query warning:",
+            badgeErr,
+          );
+        }
+
         if (badgeRecord?.pilgrim_id) {
+          console.log(
+            "✅ [Supabase] Matched badge_generations! Pilgrim ID:",
+            badgeRecord.pilgrim_id,
+          );
           const res = await supabase
             .from("pilgrims")
             .select("*")
@@ -235,9 +257,11 @@ export const getPilgrimByUniqueCode = async (
         }
       }
 
-      // 3. Fallback: Query pilgrims table by unique_code or passport_number
+      // 3. Fallback: Query pilgrims table directly by unique_code or passport_number
       if (!data) {
-        console.log("📡 [Supabase] Checking unique_code or passport_number...");
+        console.log(
+          "📡 [Supabase] Checking unique_code or passport_number on pilgrims table...",
+        );
         const codeRes = await supabase
           .from("pilgrims")
           .select("*")
@@ -297,7 +321,7 @@ export const getPilgrimByUniqueCode = async (
     }
   }
 
-  // LocalStorage Fallback (checks id, uniqueCode, and passportNumber)
+  // LocalStorage Fallback
   if (typeof window !== "undefined") {
     try {
       const rawPilgrims = window.localStorage.getItem(
