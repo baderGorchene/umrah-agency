@@ -115,23 +115,14 @@ import {
   PassportEntry,
 } from "./types";
 
-const DEFAULT_ADMIN_USER: UserProfile = {
-  id: "admin-default",
-  email: "misktibajammel@gmail.com",
-  fullName: "محمد علي — مدير الوكالة",
-  role: "admin",
-};
-
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
   // Auth State
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(
-    DEFAULT_ADMIN_USER,
-  );
-  const [, setJwtToken] = useState<string | null>("session-token");
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [, setJwtToken] = useState<string | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const [lang, setLang] = useState<Language>("FR");
 
@@ -340,11 +331,39 @@ export default function App() {
   // Unread notifications count
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
 
+  // Restore session from localStorage if within 1 week (604,800,000 ms)
+  useEffect(() => {
+    try {
+      const savedSession = localStorage.getItem("umrah_user_session");
+      if (savedSession) {
+        const { user, token, timestamp } = JSON.parse(savedSession);
+        const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+        if (Date.now() - timestamp < ONE_WEEK_MS) {
+          setCurrentUser(user);
+          setJwtToken(token);
+          setIsLoggedIn(true);
+        } else {
+          localStorage.removeItem("umrah_user_session");
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load saved session:", e);
+    }
+  }, []);
+
   // Handlers for Auth
   const handleLoginSuccess = (user: UserProfile, token: string | null) => {
     setCurrentUser(user);
     setJwtToken(token);
     setIsLoggedIn(true);
+    try {
+      localStorage.setItem(
+        "umrah_user_session",
+        JSON.stringify({ user, token, timestamp: Date.now() }),
+      );
+    } catch (e) {
+      console.warn("Failed to persist user session:", e);
+    }
   };
 
   const handleLogout = async () => {
@@ -352,6 +371,11 @@ export default function App() {
     setIsLoggedIn(false);
     setCurrentUser(null);
     setJwtToken(null);
+    try {
+      localStorage.removeItem("umrah_user_session");
+    } catch (e) {
+      console.warn("Failed to clear saved session:", e);
+    }
   };
 
   // Handlers for Agency Settings
