@@ -41,6 +41,10 @@ CREATE POLICY "Allow service role or user insert profile"
     ON public.profiles FOR INSERT 
     WITH CHECK (true);
 
+CREATE POLICY "Allow delete on profiles" 
+    ON public.profiles FOR DELETE 
+    USING (role <> 'admin');
+
 -- 5. Trigger to automatically populate profiles table upon user sign-up in auth.users
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -66,3 +70,38 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 6. RPC Function to completely delete a user (both auth.users and public.profiles)
+CREATE OR REPLACE FUNCTION public.delete_user_by_admin(target_user_id UUID)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    target_role TEXT;
+BEGIN
+    -- Check role of user to prevent deleting admin
+    SELECT role INTO target_role FROM public.profiles WHERE id = target_user_id;
+
+    IF target_role = 'admin' THEN
+        RAISE EXCEPTION 'Cannot delete admin account.';
+    END IF;
+
+    -- Delete from public.profiles
+    DELETE FROM public.profiles WHERE id = target_user_id;
+
+    -- Delete from auth.users (cascades to profiles if not already deleted)
+    BEGIN
+        DELETE FROM auth.users WHERE id = target_user_id;
+    EXCEPTION
+        WHEN OTHERS THEN
+            NULL;
+    END;
+
+    RETURN true;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.delete_user_by_admin(UUID) TO authenticated, anon;
+

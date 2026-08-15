@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   FileText,
   Printer,
@@ -9,9 +9,18 @@ import {
   FileSpreadsheet,
   Sparkles,
   Scan,
+  Search,
+  CheckCircle2,
+  User,
+  Calculator,
+  Save,
+  Check,
+  ChevronDown,
+  X,
 } from "lucide-react";
-import { Language, Trip, Pilgrim, AgencySettings } from "../types";
+import { Language, Trip, Pilgrim, AgencySettings, DEFAULT_AVATAR_URL } from "../types";
 import { PassportScannerModal } from "./PassportScannerModal";
+import { updatePilgrim } from "../services/pilgrimsService";
 import { useTranslation } from "react-i18next";
 
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.jpeg`;
@@ -30,6 +39,7 @@ interface DocumentsViewProps {
       fileName?: string;
     },
   ) => void;
+  onEditPilgrim?: (updated: Pilgrim) => void;
 }
 
 const DocumentLogoHeader: React.FC<{ subtitle?: string; logoUrl?: string }> = ({
@@ -67,18 +77,40 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   pilgrims,
   agencySettings,
   onAddPilgrim,
+  onEditPilgrim,
 }) => {
   const { t } = useTranslation();
   const [selectedTripId, setSelectedTripId] = useState(trips[0]?.id || "");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [isPassportScannerOpen, setIsPassportScannerOpen] = useState(false);
 
-  // Receipt form state
+  // Receipt form state & payment tracking
+  const [receiptPilgrimSearch, setReceiptPilgrimSearch] = useState("");
+  const [isReceiptPilgrimDropdownOpen, setIsReceiptPilgrimDropdownOpen] =
+    useState(false);
+  const [isSavingPilgrimPayment, setIsSavingPilgrimPayment] = useState(false);
+  const [pilgrimPaymentSavedSuccess, setPilgrimPaymentSavedSuccess] =
+    useState(false);
+  const [receiptNumber, setReceiptNumber] = useState(
+    `REC-${Date.now().toString().slice(-6)}`,
+  );
+
   const [receiptForm, setReceiptForm] = useState({
+    pilgrimId: "",
     pilgrimName: "انوار زقاب",
-    amount: "3800",
+    pilgrimNameLatin: "",
+    phone: "",
+    passportNumber: "",
+    tripName: "",
+    uniqueCode: "",
+    totalAmount: 3800,
+    alreadyPaid: 0,
+    paymentNow: 3800,
+    newTotalPaid: 3800,
+    remainingUnpaid: 0,
     currency: "TND",
-    date: "2026-08-07",
+    date: new Date().toISOString().split("T")[0],
+    paymentMethod: "نقداً / Espèces",
     notes: "تسديد القسط الأول لعمرة المولد النبوي",
   });
 
@@ -109,6 +141,160 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   const tripPilgrims = pilgrims.filter(
     (p) => p.tripId === selectedTripId || selectedTripId === "",
   );
+
+  // Search filtered pilgrims for receipt modal
+  const searchedReceiptPilgrims = useMemo(() => {
+    if (!receiptPilgrimSearch.trim()) return pilgrims;
+    const q = receiptPilgrimSearch.toLowerCase().trim();
+    return pilgrims.filter(
+      (p) =>
+        p.nameArabic.toLowerCase().includes(q) ||
+        (p.nameLatin && p.nameLatin.toLowerCase().includes(q)) ||
+        p.phone.includes(q) ||
+        (p.passportNumber && p.passportNumber.toLowerCase().includes(q)) ||
+        p.uniqueCode.toLowerCase().includes(q),
+    );
+  }, [pilgrims, receiptPilgrimSearch]);
+
+  const handleSelectReceiptPilgrim = (p: Pilgrim) => {
+    const paid = Number(p.paidAmount) || 0;
+    const unpaid = Number(p.unpaidAmount) || 0;
+    const total = paid + unpaid > 0 ? paid + unpaid : 3800;
+    const defaultPayment = unpaid > 0 ? unpaid : 0;
+    const newTotal = paid + defaultPayment;
+    const rem = Math.max(0, total - newTotal);
+
+    setReceiptForm({
+      pilgrimId: p.id,
+      pilgrimName: p.nameArabic || p.nameLatin || "معتمر",
+      pilgrimNameLatin: p.nameLatin || "",
+      phone: p.phone || "",
+      passportNumber: p.passportNumber || "",
+      tripName: p.tripName || selectedTrip?.name || "—",
+      uniqueCode: p.uniqueCode || "",
+      totalAmount: total,
+      alreadyPaid: paid,
+      paymentNow: defaultPayment,
+      newTotalPaid: newTotal,
+      remainingUnpaid: rem,
+      currency: "TND",
+      date: new Date().toISOString().split("T")[0],
+      paymentMethod: "نقداً / Espèces",
+      notes: `تسديد قسط لعمرة ${p.tripName || selectedTrip?.name || "المباركة"}`,
+    });
+    setReceiptPilgrimSearch("");
+    setIsReceiptPilgrimDropdownOpen(false);
+    setPilgrimPaymentSavedSuccess(false);
+  };
+
+  const handleOpenReceiptModal = () => {
+    setReceiptNumber(`REC-${Date.now().toString().slice(-6)}`);
+    const defaultPilgrim = tripPilgrims[0] || pilgrims[0];
+    if (defaultPilgrim && !receiptForm.pilgrimId) {
+      handleSelectReceiptPilgrim(defaultPilgrim);
+    }
+    setActiveModal("receipt");
+  };
+
+  const handleReceiptPaymentNowChange = (valStr: string) => {
+    const payment = valStr === "" ? 0 : Number(valStr);
+    const newTotal = Number(receiptForm.alreadyPaid || 0) + payment;
+    const rem = Math.max(0, Number(receiptForm.totalAmount || 0) - newTotal);
+    setReceiptForm((prev) => ({
+      ...prev,
+      paymentNow: valStr as any,
+      newTotalPaid: newTotal,
+      remainingUnpaid: rem,
+    }));
+  };
+
+  const handleReceiptTotalAmountChange = (valStr: string) => {
+    const total = valStr === "" ? 0 : Number(valStr);
+    const newTotal =
+      Number(receiptForm.alreadyPaid || 0) +
+      Number(receiptForm.paymentNow || 0);
+    const rem = Math.max(0, total - newTotal);
+    setReceiptForm((prev) => ({
+      ...prev,
+      totalAmount: valStr as any,
+      newTotalPaid: newTotal,
+      remainingUnpaid: rem,
+    }));
+  };
+
+  const handleReceiptAlreadyPaidChange = (valStr: string) => {
+    const already = valStr === "" ? 0 : Number(valStr);
+    const newTotal = already + Number(receiptForm.paymentNow || 0);
+    const rem = Math.max(0, Number(receiptForm.totalAmount || 0) - newTotal);
+    setReceiptForm((prev) => ({
+      ...prev,
+      alreadyPaid: valStr as any,
+      newTotalPaid: newTotal,
+      remainingUnpaid: rem,
+    }));
+  };
+
+  const handleReceiptRemainingUnpaidChange = (valStr: string) => {
+    const rem = valStr === "" ? 0 : Number(valStr);
+    const total = Number(receiptForm.totalAmount || 0);
+    const newTotal = Math.max(0, total - rem);
+    const payment = Math.max(
+      0,
+      newTotal - Number(receiptForm.alreadyPaid || 0),
+    );
+    setReceiptForm((prev) => ({
+      ...prev,
+      remainingUnpaid: valStr as any,
+      newTotalPaid: newTotal,
+      paymentNow: payment,
+    }));
+  };
+
+  const handleSaveReceiptAndPilgrim = async (
+    triggerPrint: boolean = false,
+  ) => {
+    if (!receiptForm.pilgrimId) {
+      if (triggerPrint) handlePrint();
+      return;
+    }
+
+    setIsSavingPilgrimPayment(true);
+    setPilgrimPaymentSavedSuccess(false);
+
+    try {
+      const targetPilgrim = pilgrims.find(
+        (p) => p.id === receiptForm.pilgrimId,
+      );
+      if (targetPilgrim) {
+        const finalPaid = Number(receiptForm.newTotalPaid) || 0;
+        const finalUnpaid = Number(receiptForm.remainingUnpaid) || 0;
+
+        const updatedPilgrim: Pilgrim = {
+          ...targetPilgrim,
+          paidAmount: finalPaid,
+          unpaidAmount: finalUnpaid,
+        };
+
+        // 1. Update in Supabase
+        await updatePilgrim(updatedPilgrim);
+
+        // 2. Update React parent state
+        if (onEditPilgrim) {
+          onEditPilgrim(updatedPilgrim);
+        }
+
+        setPilgrimPaymentSavedSuccess(true);
+        setTimeout(() => setPilgrimPaymentSavedSuccess(false), 5000);
+      }
+    } catch (err) {
+      console.error("Error saving payment to database:", err);
+    } finally {
+      setIsSavingPilgrimPayment(false);
+      if (triggerPrint) {
+        setTimeout(() => handlePrint(), 200);
+      }
+    }
+  };
 
   const handleExportCSV = () => {
     const headers = [
@@ -326,7 +512,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   </p>
                 </div>
                 <button
-                  onClick={() => setActiveModal("receipt")}
+                  onClick={handleOpenReceiptModal}
                   className="w-full bg-slate-100 hover:bg-black hover:text-white text-slate-800 text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -562,86 +748,317 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       {/* Payment Receipt Modal */}
       {activeModal === "receipt" && (
         <div className="print-modal-overlay fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="print-modal-box bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+          <div className="print-modal-box bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
-              <h2 className="font-bold text-slate-900 text-base">
-                {t("documents.issue_receipt")}
-              </h2>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-slate-900 text-base leading-tight">
+                    {t("documents.issue_receipt")}
+                  </h2>
+                  <p className="text-[11px] text-slate-500 font-medium">
+                    {receiptNumber}
+                  </p>
+                </div>
+              </div>
               <button
                 onClick={() => setActiveModal(null)}
                 aria-label={t("buttons.close")}
-                className="text-slate-400 font-bold"
+                className="text-slate-400 hover:text-slate-700 font-bold p-1"
               >
                 ✕
               </button>
             </div>
 
-            <div className="space-y-3 print:hidden">
-              <div>
-                <label className="text-xs font-semibold text-slate-700">
-                  {t("pilgrims.table_header_pilgrim")}
-                </label>
-                <input
-                  type="text"
-                  value={receiptForm.pilgrimName}
-                  onChange={(e) =>
-                    setReceiptForm({
-                      ...receiptForm,
-                      pilgrimName: e.target.value,
-                    })
-                  }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
-                />
+            <div className="space-y-4 print:hidden text-start">
+              {/* 1. Pilgrim Search & Select */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-slate-500" />
+                    <span>{t("documents.selected_pilgrim")}</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setIsReceiptPilgrimDropdownOpen(
+                        !isReceiptPilgrimDropdownOpen,
+                      )
+                    }
+                    className="text-[11px] font-semibold text-amber-600 hover:text-amber-700 flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>{t("documents.change_pilgrim")}</span>
+                    <ChevronDown
+                      className={`w-3 h-3 transition-transform ${isReceiptPilgrimDropdownOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                </div>
+
+                {/* Selected Pilgrim Card */}
+                {receiptForm.pilgrimId && (
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-slate-200 overflow-hidden shrink-0 border border-slate-300">
+                        <img
+                          src={
+                            pilgrims.find((p) => p.id === receiptForm.pilgrimId)
+                              ?.avatarUrl || DEFAULT_AVATAR_URL
+                          }
+                          alt="Avatar"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src =
+                              DEFAULT_AVATAR_URL;
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-xs">
+                          {receiptForm.pilgrimName}
+                          {receiptForm.pilgrimNameLatin && (
+                            <span className="text-slate-500 font-normal text-[11px] ml-1.5 rtl:mr-1.5">
+                              ({receiptForm.pilgrimNameLatin})
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-[11px] text-slate-500 font-mono">
+                          {receiptForm.phone}{" "}
+                          {receiptForm.passportNumber &&
+                            `• Pass: ${receiptForm.passportNumber}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-end shrink-0 font-mono text-[11px]">
+                      <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md font-semibold inline-block">
+                        Payé: {Number(receiptForm.alreadyPaid || 0).toLocaleString()} د.ت
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dropdown search container */}
+                {isReceiptPilgrimDropdownOpen && (
+                  <div className="border border-slate-200 rounded-xl p-3 bg-white shadow-lg space-y-2 animate-in fade-in zoom-in-95">
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 rtl:left-auto rtl:right-3 top-2.5" />
+                      <input
+                        type="text"
+                        value={receiptPilgrimSearch}
+                        onChange={(e) => setReceiptPilgrimSearch(e.target.value)}
+                        placeholder={t("documents.search_pilgrim")}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 rtl:pl-3 rtl:pr-8 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-black/5"
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="max-h-48 overflow-y-auto divide-y divide-slate-100">
+                      {searchedReceiptPilgrims.length === 0 ? (
+                        <p className="text-xs text-slate-400 text-center py-4">
+                          {t("pilgrims.no_pilgrims")}
+                        </p>
+                      ) : (
+                        searchedReceiptPilgrims.map((p) => (
+                          <div
+                            key={p.id}
+                            onClick={() => handleSelectReceiptPilgrim(p)}
+                            className="p-2 hover:bg-amber-50/60 rounded-lg cursor-pointer flex items-center justify-between gap-2 transition-colors text-xs"
+                          >
+                            <div>
+                              <p className="font-bold text-slate-900">
+                                {p.nameArabic}
+                                {p.nameLatin && (
+                                  <span className="text-slate-500 font-normal text-[11px] ml-1.5 rtl:mr-1.5">
+                                    ({p.nameLatin})
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-[10px] text-slate-500 font-mono">
+                                {p.phone} • {p.tripName || "—"}
+                              </p>
+                            </div>
+                            <div className="text-end font-mono text-[10px]">
+                              <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 mr-1 rtl:ml-1">
+                                {Number(p.paidAmount || 0).toLocaleString()} د.ت
+                              </span>
+                              <span className="text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                Rest: {Number(p.unpaidAmount || 0).toLocaleString()} د.ت
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700">
-                    {t("documents.amount")}
-                  </label>
-                  <input
-                    type="text"
-                    value={receiptForm.amount}
-                    onChange={(e) =>
-                      setReceiptForm({ ...receiptForm, amount: e.target.value })
-                    }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold"
-                  />
+              {/* 2. Financial Breakdown & Calculations */}
+              <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 border-b border-slate-200/60 pb-2">
+                  <Calculator className="w-4 h-4 text-amber-500" />
+                  <span>{t("documents.payment_summary")}</span>
                 </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700">
-                    {t("documents.currency")}
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Total Trip Amount */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-700">
+                      {t("documents.total_package_amount")}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={receiptForm.totalAmount}
+                      onChange={(e) =>
+                        handleReceiptTotalAmountChange(e.target.value)
+                      }
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none focus:ring-2 focus:ring-black/5"
+                    />
+                  </div>
+
+                  {/* Already Paid */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-semibold text-slate-700">
+                      {t("documents.already_paid_amount")}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={receiptForm.alreadyPaid}
+                      onChange={(e) =>
+                        handleReceiptAlreadyPaidChange(e.target.value)
+                      }
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-600 focus:outline-none focus:ring-2 focus:ring-black/5"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Payment Now (Current Receipt) */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-emerald-800">
+                      {t("documents.payment_now")}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={receiptForm.paymentNow}
+                      onChange={(e) =>
+                        handleReceiptPaymentNowChange(e.target.value)
+                      }
+                      className="w-full bg-emerald-50/70 border-2 border-emerald-400 rounded-xl px-3 py-2 text-xs font-mono font-bold text-emerald-950 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+
+                  {/* Remaining Unpaid Amount */}
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-amber-800">
+                      {t("documents.remaining_unpaid")}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={receiptForm.remainingUnpaid}
+                      onChange={(e) =>
+                        handleReceiptRemainingUnpaidChange(e.target.value)
+                      }
+                      className={`w-full border rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none ${
+                        Number(receiptForm.remainingUnpaid) > 0
+                          ? "bg-amber-50/70 border-amber-300 text-amber-950"
+                          : "bg-emerald-50/50 border-emerald-200 text-emerald-800"
+                      }`}
+                    />
+                  </div>
+                </div>
+
+                {/* Calculation Summary Bar */}
+                <div className="bg-white border border-slate-200/80 rounded-xl p-2.5 text-[11px] space-y-1 font-mono">
+                  <div className="flex justify-between items-center text-slate-500">
+                    <span>{t("documents.total_cost")}</span>
+                    <span className="font-semibold text-slate-800">
+                      {Number(receiptForm.totalAmount || 0).toLocaleString()} TND
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-500">
+                    <span>{t("documents.previous_payments")}</span>
+                    <span>{Number(receiptForm.alreadyPaid || 0).toLocaleString()} TND</span>
+                  </div>
+                  <div className="flex justify-between items-center text-emerald-700 font-bold">
+                    <span>{t("documents.current_payment")}</span>
+                    <span>+ {Number(receiptForm.paymentNow || 0).toLocaleString()} TND</span>
+                  </div>
+                  <div className="border-t border-slate-100 pt-1 flex justify-between items-center font-bold">
+                    <span className="text-slate-800">{t("documents.total_paid_after")}</span>
+                    <span className="text-emerald-700">
+                      {Number(receiptForm.newTotalPaid || 0).toLocaleString()} TND
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center font-bold">
+                    <span className="text-amber-800">{t("documents.solde_restant")}</span>
+                    <span
+                      className={
+                        Number(receiptForm.remainingUnpaid) > 0
+                          ? "text-amber-700"
+                          : "text-emerald-600"
+                      }
+                    >
+                      {Number(receiptForm.remainingUnpaid || 0).toLocaleString()} TND
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Date, Mode & Notes */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-700">
+                    Date
                   </label>
                   <input
-                    type="text"
-                    value={receiptForm.currency}
+                    type="date"
+                    value={receiptForm.date}
                     onChange={(e) =>
-                      setReceiptForm({
-                        ...receiptForm,
-                        currency: e.target.value,
-                      })
+                      setReceiptForm({ ...receiptForm, date: e.target.value })
                     }
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                   />
                 </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-slate-700">
+                    Mode de Règlement
+                  </label>
+                  <select
+                    value={receiptForm.paymentMethod}
+                    onChange={(e) =>
+                      setReceiptForm({
+                        ...receiptForm,
+                        paymentMethod: e.target.value,
+                      })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
+                  >
+                    <option value="نقداً / Espèces">نقداً / Espèces</option>
+                    <option value="تحويل بنكي / Virement">
+                      تحويل بنكي / Virement
+                    </option>
+                    <option value="شيك / Chèque">شيك / Chèque</option>
+                    <option value="بطاقة بنكية / Carte">
+                      بطاقة بنكية / Carte
+                    </option>
+                  </select>
+                </div>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-700">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  value={receiptForm.date}
-                  onChange={(e) =>
-                    setReceiptForm({ ...receiptForm, date: e.target.value })
-                  }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700">
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-slate-700">
                   {t("documents.notes")}
                 </label>
                 <textarea
@@ -649,70 +1066,166 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   onChange={(e) =>
                     setReceiptForm({ ...receiptForm, notes: e.target.value })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs h-20"
+                  rows={2}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 />
               </div>
+
+              {/* Success Notification */}
+              {pilgrimPaymentSavedSuccess && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold p-3 rounded-xl flex items-center gap-2 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{t("documents.updated_success")}</span>
+                </div>
+              )}
             </div>
 
+            {/* Print Area (#print-area) */}
             <div
               id="print-area"
-              className="hidden print:block space-y-4 font-sans text-slate-900"
+              className="hidden print:block space-y-4 font-sans text-slate-900 text-start"
             >
               <DocumentLogoHeader
                 logoUrl={agencySettings?.logoUrl}
                 subtitle={agencySettings?.subtitle}
               />
-              <div className="text-center space-y-1 border-b border-slate-200 pb-4">
+              <div className="text-center space-y-1 border-b border-slate-200 pb-3">
                 <h1 className="text-xl font-extrabold text-slate-900">
                   {agencySettings.name}
                 </h1>
-                <p className="text-xs font-bold text-slate-600">
+                <p className="text-xs font-bold text-slate-700">
                   {t("documents.official_receipt")}
                 </p>
+                <p className="text-[10px] text-slate-500 font-mono">
+                  {t("documents.receipt_no")}: {receiptNumber} • Date: {receiptForm.date}
+                </p>
               </div>
+
+              {/* Pilgrim Details */}
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs grid grid-cols-2 gap-2">
+                <div>
+                  <span className="font-semibold text-slate-500">المعتمر / Pèlerin :</span>{" "}
+                  <span className="font-bold text-slate-900">
+                    {receiptForm.pilgrimName}
+                  </span>
+                  {receiptForm.pilgrimNameLatin && (
+                    <span className="text-slate-600 block text-[11px]">
+                      {receiptForm.pilgrimNameLatin}
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <span className="font-semibold text-slate-500">الهاتف / Tél :</span>{" "}
+                  <span className="font-bold">{receiptForm.phone || "—"}</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-slate-500">جواز السفر / N° Pass :</span>{" "}
+                  <span className="font-mono font-bold">
+                    {receiptForm.passportNumber || "—"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-semibold text-slate-500">الرحلة / Voyage :</span>{" "}
+                  <span className="font-bold">{receiptForm.tripName}</span>
+                </div>
+              </div>
+
+              {/* Financial Breakdown Table */}
               <table className="w-full text-xs border border-slate-200 border-collapse">
                 <tbody>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 font-semibold bg-slate-50 w-1/3">
-                      {t("pilgrims.table_header_pilgrim")}
+                    <td className="p-2.5 font-semibold bg-slate-50 w-1/2">
+                      {t("documents.total_package_amount")}
                     </td>
-                    <td className="p-2">{receiptForm.pilgrimName}</td>
-                  </tr>
-                  <tr className="border-b border-slate-200">
-                    <td className="p-2 font-semibold bg-slate-50">{t("documents.amount")}</td>
-                    <td className="p-2 font-bold">
-                      {receiptForm.amount} {receiptForm.currency}
+                    <td className="p-2.5 font-bold font-mono">
+                      {Number(receiptForm.totalAmount).toLocaleString()} TND
                     </td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 font-semibold bg-slate-50">Date</td>
-                    <td className="p-2">{receiptForm.date}</td>
+                    <td className="p-2.5 font-semibold bg-slate-50">
+                      {t("documents.already_paid_amount")}
+                    </td>
+                    <td className="p-2.5 font-mono text-slate-700">
+                      {Number(receiptForm.alreadyPaid).toLocaleString()} TND
+                    </td>
+                  </tr>
+                  <tr className="border-b-2 border-slate-300 bg-emerald-50/50">
+                    <td className="p-2.5 font-bold text-emerald-900">
+                      {t("documents.payment_now")}
+                    </td>
+                    <td className="p-2.5 font-bold font-mono text-emerald-800 text-sm">
+                      {Number(receiptForm.paymentNow).toLocaleString()} TND
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-200">
+                    <td className="p-2.5 font-semibold bg-slate-50">
+                      {t("documents.new_total_paid")}
+                    </td>
+                    <td className="p-2.5 font-bold font-mono text-emerald-700">
+                      {Number(receiptForm.newTotalPaid).toLocaleString()} TND
+                    </td>
+                  </tr>
+                  <tr className="bg-amber-50/50 border-b border-slate-200">
+                    <td className="p-2.5 font-bold text-amber-900">
+                      {t("documents.remaining_unpaid")}
+                    </td>
+                    <td className="p-2.5 font-bold font-mono text-amber-800 text-sm">
+                      {Number(receiptForm.remainingUnpaid).toLocaleString()} TND
+                    </td>
+                  </tr>
+                  <tr className="border-b border-slate-200">
+                    <td className="p-2 font-semibold bg-slate-50">Mode de Règlement</td>
+                    <td className="p-2 font-medium">{receiptForm.paymentMethod}</td>
                   </tr>
                   <tr>
                     <td className="p-2 font-semibold bg-slate-50">{t("documents.notes")}</td>
-                    <td className="p-2">{receiptForm.notes}</td>
+                    <td className="p-2 text-slate-700">{receiptForm.notes || "—"}</td>
                   </tr>
                 </tbody>
               </table>
-              <div className="flex justify-between pt-8 text-[11px] text-slate-500">
-                <span>{t("documents.agency_signature")} ____________</span>
-                <span>{t("documents.pilgrim_signature")} ____________</span>
+
+              <div className="flex justify-between pt-8 text-[11px] text-slate-600">
+                <div className="text-center">
+                  <p className="font-bold">{t("documents.agency_signature")}</p>
+                  <p className="text-[10px] text-slate-400 mt-10">ختم وإمضاء الوكالة</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-bold">{t("documents.pilgrim_signature")}</p>
+                  <p className="text-[10px] text-slate-400 mt-10">إمضاء المعتمر</p>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 print:hidden">
+            {/* Modal Buttons */}
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-3 border-t border-slate-100 print:hidden">
               <button
+                type="button"
                 onClick={() => setActiveModal(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
               >
                 {t("buttons.cancel")}
               </button>
               <button
-                onClick={handlePrint}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 flex items-center gap-2"
+                type="button"
+                disabled={isSavingPilgrimPayment}
+                onClick={() => handleSaveReceiptAndPilgrim(false)}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>
+                  {isSavingPilgrimPayment
+                    ? t("documents.updating")
+                    : t("documents.update_pilgrim_db")}
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={isSavingPilgrimPayment}
+                onClick={() => handleSaveReceiptAndPilgrim(true)}
+                className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
               >
                 <Printer className="w-4 h-4" />
-                <span>{t("documents.print_receipt")}</span>
+                <span>{t("documents.update_and_print")}</span>
               </button>
             </div>
           </div>

@@ -860,6 +860,7 @@ export default function App() {
                       pilgrims={pilgrims}
                       agencySettings={agencySettings}
                       onAddPilgrim={handleAddPilgrim}
+                      onEditPilgrim={handleEditPilgrim}
                     />
                   ) : (
                     <Navigate to="/" replace />

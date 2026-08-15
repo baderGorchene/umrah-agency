@@ -159,7 +159,10 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
     if (ok) {
       setUsers((prev) => prev.filter((u) => u.id !== id));
       setSuccessMsg(t('users.user_deleted'));
-      setTimeout(() => setSuccessMsg(null), 3000);
+      setTimeout(() => setSuccessMsg(null), 3500);
+    } else {
+      setErrorMsg(t('users.delete_failed'));
+      setTimeout(() => setErrorMsg(null), 5000);
     }
   };
 

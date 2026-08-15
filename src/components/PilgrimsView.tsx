@@ -74,6 +74,8 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
     phone: "",
     passportNumber: "",
     birthDate: "",
+    paidAmount: "",
+    unpaidAmount: "",
     tripId: trips[0]?.id || "",
     emergencyContact: "",
     gender: "F" as "M" | "F",
@@ -139,6 +141,9 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
       phone: formData.phone,
       passportNumber: formData.passportNumber,
       birthDate: formData.birthDate || undefined,
+      paidAmount: formData.paidAmount !== "" ? Number(formData.paidAmount) : 0,
+      unpaidAmount:
+        formData.unpaidAmount !== "" ? Number(formData.unpaidAmount) : 0,
       tripId: formData.tripId,
       tripName: selectedTrip ? selectedTrip.name : "—",
       uniqueCode: generateUniqueCode(),
@@ -154,6 +159,8 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
       phone: "",
       passportNumber: "",
       birthDate: "",
+      paidAmount: "",
+      unpaidAmount: "",
       tripId: trips[0]?.id || "",
       emergencyContact: "",
       gender: "F",
@@ -168,6 +175,14 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
     onEditPilgrim({
       ...editingPilgrim,
       tripName: selectedTrip ? selectedTrip.name : editingPilgrim.tripName,
+      paidAmount:
+        editingPilgrim.paidAmount != null
+          ? Number(editingPilgrim.paidAmount)
+          : 0,
+      unpaidAmount:
+        editingPilgrim.unpaidAmount != null
+          ? Number(editingPilgrim.unpaidAmount)
+          : 0,
     });
     setEditingPilgrim(null);
   };
@@ -259,6 +274,12 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                   {t("pilgrims.table_header_trip")}
                 </th>
                 <th className="py-3.5 px-6 text-center">
+                  {t("pilgrims.table_header_paid_amount")}
+                </th>
+                <th className="py-3.5 px-6 text-center">
+                  {t("pilgrims.table_header_unpaid_amount")}
+                </th>
+                <th className="py-3.5 px-6 text-center">
                   {t("pilgrims.table_header_code")}
                 </th>
                 <th className="py-3.5 px-6 text-center">
@@ -272,7 +293,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
             <tbody className="divide-y divide-slate-100 text-xs">
               {filteredPilgrims.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-400">
+                  <td colSpan={7} className="py-8 text-center text-slate-400">
                     {t("pilgrims.no_pilgrims")}
                   </td>
                 </tr>
@@ -323,6 +344,32 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                       <td className="py-4 px-6">
                         <span className="font-semibold text-slate-800">
                           {p.tripName}
+                        </span>
+                      </td>
+
+                      {/* Montant Payé */}
+                      <td className="py-4 px-6 text-center">
+                        <span className="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-md text-xs font-mono">
+                          {Number(p.paidAmount || 0).toLocaleString()}{" "}
+                          <span className="text-[10px] font-sans font-bold text-emerald-800">
+                            د.ت
+                          </span>
+                        </span>
+                      </td>
+
+                      {/* Montant non Payé */}
+                      <td className="py-4 px-6 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1 font-semibold text-xs font-mono px-2.5 py-1 rounded-md ${
+                            (p.unpaidAmount || 0) > 0
+                              ? "text-amber-800 bg-amber-50 border border-amber-200/80"
+                              : "text-slate-600 bg-slate-50 border border-slate-200/80"
+                          }`}
+                        >
+                          {Number(p.unpaidAmount || 0).toLocaleString()}{" "}
+                          <span className="text-[10px] font-sans font-bold text-slate-500">
+                            د.ت
+                          </span>
                         </span>
                       </td>
 
@@ -560,6 +607,45 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1 text-start">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {t("pilgrims.form_paid_amount")}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={formData.paidAmount}
+                    onChange={(e) =>
+                      setFormData({ ...formData, paidAmount: e.target.value })
+                    }
+                    placeholder="0"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                  />
+                </div>
+
+                <div className="space-y-1 text-start">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {t("pilgrims.form_unpaid_amount")}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={formData.unpaidAmount}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        unpaidAmount: e.target.value,
+                      })
+                    }
+                    placeholder="0"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
                   {t("pilgrims.form_trip")}
@@ -680,36 +766,118 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
 
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {t("pilgrims.form_phone")}
+                  {t("pilgrims.form_name_latin")}
                 </label>
                 <input
                   type="text"
-                  value={editingPilgrim.phone}
+                  value={editingPilgrim.nameLatin || ""}
                   onChange={(e) =>
                     setEditingPilgrim({
                       ...editingPilgrim,
-                      phone: e.target.value,
+                      nameLatin: e.target.value,
                     })
                   }
+                  placeholder="Ex: Mohamed Ben Ali"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1 text-start">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {t("pilgrims.form_phone")}
+                  </label>
+                  <input
+                    type="text"
+                    value={editingPilgrim.phone}
+                    onChange={(e) =>
+                      setEditingPilgrim({
+                        ...editingPilgrim,
+                        phone: e.target.value,
+                      })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                  />
+                </div>
+
+                <div className="space-y-1 text-start">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {t("pilgrims.form_birthdate")}
+                  </label>
+                  <input
+                    type="date"
+                    value={editingPilgrim.birthDate || ""}
+                    onChange={(e) =>
+                      setEditingPilgrim({
+                        ...editingPilgrim,
+                        birthDate: e.target.value,
+                      })
+                    }
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
-                  {t("pilgrims.form_birthdate")}
+                  {t("pilgrims.form_passport")}
                 </label>
                 <input
-                  type="date"
-                  value={editingPilgrim.birthDate || ""}
+                  type="text"
+                  value={editingPilgrim.passportNumber || ""}
                   onChange={(e) =>
                     setEditingPilgrim({
                       ...editingPilgrim,
-                      birthDate: e.target.value,
+                      passportNumber: e.target.value,
                     })
                   }
+                  placeholder="N2891048"
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1 text-start">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {t("pilgrims.form_paid_amount")}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={editingPilgrim.paidAmount ?? ""}
+                    onChange={(e) =>
+                      setEditingPilgrim({
+                        ...editingPilgrim,
+                        paidAmount:
+                          e.target.value === "" ? 0 : Number(e.target.value),
+                      })
+                    }
+                    placeholder="0"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                  />
+                </div>
+
+                <div className="space-y-1 text-start">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {t("pilgrims.form_unpaid_amount")}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={editingPilgrim.unpaidAmount ?? ""}
+                    onChange={(e) =>
+                      setEditingPilgrim({
+                        ...editingPilgrim,
+                        unpaidAmount:
+                          e.target.value === "" ? 0 : Number(e.target.value),
+                      })
+                    }
+                    placeholder="0"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1 text-start">

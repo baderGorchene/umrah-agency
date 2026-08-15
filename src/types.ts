@@ -65,6 +65,8 @@ export interface Pilgrim {
   emergencyContact?: string;
   gender?: 'M' | 'F';
   birthDate?: string;
+  paidAmount?: number;
+  unpaidAmount?: number;
 }
 
 export interface Staff {

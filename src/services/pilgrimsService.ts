@@ -83,6 +83,18 @@ export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
         emergencyContact: p.emergency_contact || p.emergencyContact,
         gender: p.gender,
         birthDate: p.birth_date || p.birthDate,
+        paidAmount:
+          p.paid_amount != null
+            ? Number(p.paid_amount)
+            : p.paidAmount != null
+              ? Number(p.paidAmount)
+              : 0,
+        unpaidAmount:
+          p.unpaid_amount != null
+            ? Number(p.unpaid_amount)
+            : p.unpaidAmount != null
+              ? Number(p.unpaidAmount)
+              : 0,
       };
     });
 
@@ -129,6 +141,8 @@ export const createPilgrim = async (
       emergency_contact: pilgrimData.emergencyContact,
       gender: pilgrimData.gender,
       birth_date: pilgrimData.birthDate,
+      paid_amount: Number(pilgrimData.paidAmount) || 0,
+      unpaid_amount: Number(pilgrimData.unpaidAmount) || 0,
     };
 
     const { data, error } = await supabase
@@ -155,6 +169,8 @@ export const createPilgrim = async (
       emergencyContact: data.emergency_contact,
       gender: data.gender,
       birthDate: data.birth_date,
+      paidAmount: data.paid_amount != null ? Number(data.paid_amount) : 0,
+      unpaidAmount: data.unpaid_amount != null ? Number(data.unpaid_amount) : 0,
     };
   } catch (err) {
     console.error("Error creating pilgrim in Supabase:", err);
@@ -184,6 +200,8 @@ export const updatePilgrim = async (pilgrim: Pilgrim): Promise<boolean> => {
       emergency_contact: pilgrim.emergencyContact,
       gender: pilgrim.gender,
       birth_date: pilgrim.birthDate,
+      paid_amount: Number(pilgrim.paidAmount) || 0,
+      unpaid_amount: Number(pilgrim.unpaidAmount) || 0,
       updated_at: new Date().toISOString(),
     };
 
@@ -341,6 +359,8 @@ export const getPilgrimByUniqueCode = async (
           emergencyContact: data.emergency_contact || data.emergencyContact,
           gender: data.gender,
           birthDate: data.birth_date || data.birthDate,
+          paidAmount: data.paid_amount != null ? Number(data.paid_amount) : 0,
+          unpaidAmount: data.unpaid_amount != null ? Number(data.unpaid_amount) : 0,
         };
       }
     } catch (err) {

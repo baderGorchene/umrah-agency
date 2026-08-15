@@ -255,7 +255,6 @@ export async function updateUser(updated: UserProfile): Promise<boolean> {
  * Delete a user profile
  */
 export async function deleteUser(id: string): Promise<boolean> {
-  // Always update local storage
   const currentLocal = getStoredLocalUsers();
   const target = currentLocal.find((u) => u.id === id);
   if (target?.role === 'admin') {
@@ -263,24 +262,56 @@ export async function deleteUser(id: string): Promise<boolean> {
     return false;
   }
 
-  const filteredLocal = currentLocal.filter((u) => u.id !== id);
-  saveStoredLocalUsers(filteredLocal);
-
-  if (!isSupabaseConfigured() || !IS_UUID_REGEX.test(id)) {
+  if (!isSupabaseConfigured()) {
+    const filteredLocal = currentLocal.filter((u) => u.id !== id);
+    saveStoredLocalUsers(filteredLocal);
     return true;
   }
 
   try {
-    const { error } = await supabase
+    // 1. Attempt to delete via RPC delete_user_by_admin (removes from auth.users and public.profiles)
+    const { data: rpcResult, error: rpcError } = await supabase.rpc(
+      'delete_user_by_admin',
+      { target_user_id: id }
+    );
+
+    if (!rpcError && rpcResult === true) {
+      const filteredLocal = currentLocal.filter((u) => u.id !== id);
+      saveStoredLocalUsers(filteredLocal);
+      return true;
+    }
+
+    // 2. Fallback: Direct table delete on `public.profiles` with `.select()` to verify
+    const { data: deletedRows, error: deleteError } = await supabase
       .from('profiles')
       .delete()
       .eq('id', id)
-      .neq('role', 'admin');
+      .neq('role', 'admin')
+      .select();
 
-    if (error) {
-      console.error('Failed to delete user profile:', error.message);
+    if (deleteError) {
+      console.error('Failed to delete user profile from Supabase:', deleteError.message);
       return false;
     }
+
+    // If RLS blocked the deletion (0 rows deleted despite matching ID)
+    if (!deletedRows || deletedRows.length === 0) {
+      const { data: stillExists } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (stillExists) {
+        console.error(
+          'Supabase RLS prevented deletion of profile. Please add a DELETE policy for public.profiles or execute the delete_user_by_admin RPC script.'
+        );
+        return false;
+      }
+    }
+
+    const filteredLocal = currentLocal.filter((u) => u.id !== id);
+    saveStoredLocalUsers(filteredLocal);
     return true;
   } catch (err) {
     console.error('Error deleting user profile:', err);
