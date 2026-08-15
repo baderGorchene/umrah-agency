@@ -149,6 +149,16 @@
   },
   "passports": {
     "title": "Extraction et Registre des Passeports",
+    "table_headers": {
+      "number": "N°",
+      "fullname_ar": "Nom complet Ar",
+      "fullname_latin": "Nom complet",
+      "gender": "GENRE",
+      "passport_number": "N° passeport",
+      "birth_date": "Date Naiss",
+      "issue_date": "DATE D DÉLIBÉRATION",
+      "expiry_date": "DATE D EXPIRATION"
+    },
     "subtitle": "Scannez des passeports par IA ou gérez les informations d'identification des pèlerins.",
     "ocr_title": "Numérisation Rapide par IA",
     "ocr_desc": "Glissez-déposez la photo du passeport d'un pèlerin. L'intelligence artificielle en extraira automatiquement toutes les informations.",

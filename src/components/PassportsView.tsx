@@ -416,14 +416,14 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
     }
 
     const rows = filteredPassports.map((p, index) => ({
-      "N°": index + 1,
-      "Nom complet Ar": p.fullNameArabic,
-      "Nom complet": p.fullNameLatin || "",
-      GENRE: p.gender || "M",
-      "N passeport": p.passportNumber || "",
-      "Date Naiss": p.birthDate || "",
-      "DATE D DÉLIBÉRATION": p.deliberationDate || "",
-      "DATE D EXPIRATION": p.expiryDate || "",
+      [t("passports.table_headers.number")]: index + 1,
+      [t("passports.table_headers.fullname_ar")]: p.fullNameArabic,
+      [t("passports.table_headers.fullname_latin")]: p.fullNameLatin || "",
+      [t("passports.table_headers.gender")]: p.gender || "M",
+      [t("passports.table_headers.passport_number")]: p.passportNumber || "",
+      [t("passports.table_headers.birth_date")]: p.birthDate || "",
+      [t("passports.table_headers.issue_date")]: p.deliberationDate || "",
+      [t("passports.table_headers.expiry_date")]: p.expiryDate || "",
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(rows);
@@ -448,14 +448,14 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
 
   const handleCopyTable = () => {
     const headers = [
-      "N°",
-      "Nom complet Ar",
-      "Nom complet",
-      "GENRE",
-      "N passeport",
-      "Date Naiss",
-      "DATE D DÉLIBÉRATION",
-      "DATE D EXPIRATION",
+      t("passports.table_headers.number"),
+      t("passports.table_headers.fullname_ar"),
+      t("passports.table_headers.fullname_latin"),
+      t("passports.table_headers.gender"),
+      t("passports.table_headers.passport_number"),
+      t("passports.table_headers.birth_date"),
+      t("passports.table_headers.issue_date"),
+      t("passports.table_headers.expiry_date"),
     ];
     const rows = filteredPassports.map((p, index) =>
       [
@@ -857,7 +857,7 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
             <thead>
               <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider text-[11px] select-none">
                 <th className="py-3.5 px-3 text-center w-12 text-slate-500">
-                  <span>N°</span>
+                  <span>{t("passports.table_headers.number")}</span>
                 </th>
                 <th
                   onClick={() => {
@@ -866,10 +866,10 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
                       sortField === "fullNameArabic" ? !sortAsc : true,
                     );
                   }}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-left"
+                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-start"
                 >
                   <div className="flex items-center gap-1">
-                    <span>Nom complet Ar</span>
+                    <span>{t("passports.table_headers.fullname_ar")}</span>
                     {sortField === "fullNameArabic" && (
                       <span className="text-slate-400 text-[10px]">
                         {sortAsc ? "▲" : "▼"}
@@ -882,10 +882,10 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
                     setSortField("fullNameLatin");
                     setSortAsc(sortField === "fullNameLatin" ? !sortAsc : true);
                   }}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-left"
+                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-start"
                 >
                   <div className="flex items-center gap-1">
-                    <span>Nom complet</span>
+                    <span>{t("passports.table_headers.fullname_latin")}</span>
                     {sortField === "fullNameLatin" && (
                       <span className="text-slate-400 text-[10px]">
                         {sortAsc ? "▲" : "▼"}
@@ -901,7 +901,7 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
                   className="py-3.5 px-4 text-center cursor-pointer hover:bg-slate-200/60 transition-colors"
                 >
                   <div className="flex items-center justify-center gap-1">
-                    <span>GENRE</span>
+                    <span>{t("passports.table_headers.gender")}</span>
                     {sortField === "gender" && (
                       <span className="text-slate-400 text-[10px]">
                         {sortAsc ? "▲" : "▼"}
@@ -916,10 +916,10 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
                       sortField === "passportNumber" ? !sortAsc : true,
                     );
                   }}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-left"
+                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-start"
                 >
                   <div className="flex items-center gap-1">
-                    <span>N passeport</span>
+                    <span>{t("passports.table_headers.passport_number")}</span>
                     {sortField === "passportNumber" && (
                       <span className="text-slate-400 text-[10px]">
                         {sortAsc ? "▲" : "▼"}
@@ -932,10 +932,10 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
                     setSortField("birthDate");
                     setSortAsc(sortField === "birthDate" ? !sortAsc : true);
                   }}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-left"
+                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-start"
                 >
                   <div className="flex items-center gap-1">
-                    <span>Date Naiss</span>
+                    <span>{t("passports.table_headers.birth_date")}</span>
                     {sortField === "birthDate" && (
                       <span className="text-slate-400 text-[10px]">
                         {sortAsc ? "▲" : "▼"}
@@ -950,10 +950,10 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
                       sortField === "deliberationDate" ? !sortAsc : true,
                     );
                   }}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-left"
+                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-start"
                 >
                   <div className="flex items-center gap-1">
-                    <span>DATE D DÉLIBÉRATION</span>
+                    <span>{t("passports.table_headers.issue_date")}</span>
                     {sortField === "deliberationDate" && (
                       <span className="text-slate-400 text-[10px]">
                         {sortAsc ? "▲" : "▼"}
@@ -966,10 +966,10 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
                     setSortField("expiryDate");
                     setSortAsc(sortField === "expiryDate" ? !sortAsc : true);
                   }}
-                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-left"
+                  className="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors text-start"
                 >
                   <div className="flex items-center gap-1">
-                    <span>DATE D EXPIRATION</span>
+                    <span>{t("passports.table_headers.expiry_date")}</span>
                     {sortField === "expiryDate" && (
                       <span className="text-slate-400 text-[10px]">
                         {sortAsc ? "▲" : "▼"}
@@ -1250,7 +1250,7 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
 
                 <div>
                   <label className="block font-bold text-slate-700 mb-1">
-                    DATE D DÉLIBÉRATION
+                    {t("passports.table_headers.issue_date")}
                   </label>
                   <input
                     type="text"
@@ -1337,7 +1337,7 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
               <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200/70">
                 <div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase">
-                    Nom complet Ar
+                    {t("passports.table_headers.fullname_ar")}
                   </p>
                   <p className="text-sm font-bold font-arabic text-slate-900">
                     {inspectingEntry.fullNameArabic}
@@ -1346,7 +1346,7 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
 
                 <div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase">
-                    Nom complet
+                    {t("passports.table_headers.fullname_latin")}
                   </p>
                   <p className="text-xs font-bold text-slate-900 uppercase">
                     {inspectingEntry.fullNameLatin || "—"}
@@ -1355,7 +1355,7 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
 
                 <div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase">
-                    GENRE
+                    {t("passports.table_headers.gender")}
                   </p>
                   <p className="text-xs font-bold text-slate-900">
                     {inspectingEntry.gender === "F" ? t("scanner.female") : t("scanner.male")}
@@ -1364,7 +1364,7 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
 
                 <div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase">
-                    N passeport
+                    {t("passports.table_headers.passport_number")}
                   </p>
                   <p className="text-xs font-bold font-mono text-slate-900">
                     {inspectingEntry.passportNumber}
@@ -1373,7 +1373,7 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
 
                 <div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase">
-                    Date Naiss
+                    {t("passports.table_headers.birth_date")}
                   </p>
                   <p className="text-xs font-mono text-slate-800">
                     {inspectingEntry.birthDate || "—"}
@@ -1382,7 +1382,7 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
 
                 <div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase">
-                    DATE D DÉLIBÉRATION
+                    {t("passports.table_headers.issue_date")}
                   </p>
                   <p className="text-xs font-mono text-slate-800">
                     {inspectingEntry.deliberationDate || "—"}
@@ -1391,7 +1391,7 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
 
                 <div className="col-span-2">
                   <p className="text-[10px] text-slate-500 font-bold uppercase">
-                    DATE D EXPIRATION
+                    {t("passports.table_headers.expiry_date")}
                   </p>
                   <p className="text-xs font-mono font-bold text-slate-900">
                     {inspectingEntry.expiryDate || "—"}
