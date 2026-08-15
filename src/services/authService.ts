@@ -53,8 +53,9 @@ export async function loginWithSupabase(
   password: string
 ): Promise<{ success: boolean; user: UserProfile | null; token: string | null; error?: string }> {
   // Infer role based on email credentials when Supabase is not configured (offline demo mode)
-  let inferredRole: UserRole = 'admin';
-  if (email.toLowerCase().includes('agent')) inferredRole = 'agent';
+  // Default to lowest privilege role ('agent') following principle of least privilege
+  let inferredRole: UserRole = 'agent';
+  if (email.toLowerCase().includes('admin')) inferredRole = 'admin';
   else if (email.toLowerCase().includes('pilgrim')) inferredRole = 'pilgrim';
 
   if (!isSupabaseConfigured()) {
