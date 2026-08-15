@@ -4,10 +4,37 @@ import { UserProfile, UserRole } from '../types';
 /**
  * Fetch all users from public.profiles table
  */
+const getStoredLocalUsers = (): UserProfile[] => {
+  if (typeof window === "undefined") return [];
+  try {
+    const saved = localStorage.getItem("umrah_users_registry");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn("Failed to load local users registry:", e);
+  }
+  return [];
+};
+
+const saveStoredLocalUsers = (users: UserProfile[]) => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem("umrah_users_registry", JSON.stringify(users));
+  } catch (e) {
+    console.warn("Failed to save local users registry:", e);
+  }
+};
+
+/**
+ * Fetch all users from public.profiles table merged with local storage registry
+ */
 export async function getUsers(): Promise<UserProfile[]> {
+  const localUsers = getStoredLocalUsers();
+
   if (!isSupabaseConfigured()) {
-    // TODO: Connect real users API or local persistent store when offline/unconfigured
-    return [];
+    return localUsers;
   }
 
   try {
@@ -18,10 +45,10 @@ export async function getUsers(): Promise<UserProfile[]> {
 
     if (error || !data) {
       console.warn('No profiles found in Supabase or error occurred:', error?.message);
-      return [];
+      return localUsers;
     }
 
-    return data.map((item) => ({
+    const dbUsers: UserProfile[] = data.map((item) => ({
       id: item.id,
       email: item.email,
       fullName: item.full_name || item.email,
@@ -31,9 +58,15 @@ export async function getUsers(): Promise<UserProfile[]> {
       tripId: item.trip_id,
       createdAt: item.created_at,
     }));
+
+    // Merge DB users with local users, preferring DB records by ID
+    const dbIds = new Set(dbUsers.map((u) => u.id));
+    const uniqueLocals = localUsers.filter((u) => !dbIds.has(u.id));
+
+    return [...dbUsers, ...uniqueLocals];
   } catch (err) {
     console.error('Failed to load users:', err);
-    return [];
+    return localUsers;
   }
 }
 
@@ -52,6 +85,10 @@ export async function createUser(
     phone: newUser.phone,
     createdAt: new Date().toISOString(),
   };
+
+  // Always persist locally
+  const currentLocal = getStoredLocalUsers();
+  saveStoredLocalUsers([created, ...currentLocal]);
 
   if (!isSupabaseConfigured()) {
     return created;
@@ -93,7 +130,7 @@ export async function createUser(
       console.error('Failed to create profile in Postgres:', error.message);
     }
 
-    return data
+    const finalUser = data
       ? {
           id: data.id,
           email: data.email,
@@ -103,6 +140,14 @@ export async function createUser(
           createdAt: data.created_at,
         }
       : created;
+
+    // Update local storage with final ID
+    const updatedLocal = getStoredLocalUsers().map((u) =>
+      u.id === generatedId ? finalUser : u,
+    );
+    saveStoredLocalUsers(updatedLocal);
+
+    return finalUser;
   } catch (err) {
     console.error('Error creating user profile:', err);
     return created;
