@@ -57,6 +57,11 @@ const SettingsView = lazy(() =>
     default: module.SettingsView,
   })),
 );
+const UsersView = lazy(() =>
+  import("./components/UsersView").then((module) => ({
+    default: module.UsersView,
+  })),
+);
 import { SecurityModal } from "./components/SecurityModal";
 import { NotificationDrawer } from "./components/NotificationDrawer";
 
@@ -272,8 +277,13 @@ export default function App() {
 
     async function loadRouteData() {
       try {
-        // 1. Settings (Only fetch when settings or documents page is loaded)
-        if (path === "/settings" || path === "/documents") {
+        // 1. Settings (Fetch when settings, users, or documents page is loaded)
+        if (
+          path === "/settings" ||
+          path.startsWith("/settings") ||
+          path === "/users" ||
+          path === "/documents"
+        ) {
           const fetchedSettings = await getAgencySettings();
           setAgencySettings(fetchedSettings);
         }
@@ -779,7 +789,7 @@ export default function App() {
                 }
               />
 
-              {/* Settings View: Admin only */}
+              {/* Agency Profile / Settings: Admin only */}
               <Route
                 path="/settings"
                 element={
@@ -793,6 +803,26 @@ export default function App() {
                     <Navigate to="/" replace />
                   )
                 }
+              />
+              <Route
+                path="/settings/agency"
+                element={<Navigate to="/settings" replace />}
+              />
+
+              {/* Users Management: Admin only */}
+              <Route
+                path="/users"
+                element={
+                  userRole === "admin" ? (
+                    <UsersView lang={lang} />
+                  ) : (
+                    <Navigate to="/" replace />
+                  )
+                }
+              />
+              <Route
+                path="/settings/users"
+                element={<Navigate to="/users" replace />}
               />
 
               <Route path="*" element={<Navigate to="/" replace />} />

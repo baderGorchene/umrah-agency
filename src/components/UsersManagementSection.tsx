@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, ShieldCheck, UserCheck, User, Edit3, Trash2, Loader2, CheckCircle2, Phone, Mail, AlertCircle } from 'lucide-react';
+import { Users, UserPlus, UserCheck, User, Edit3, Trash2, Loader2, CheckCircle2, Phone, Mail, AlertCircle } from 'lucide-react';
 import { Language, UserProfile, UserRole } from '../types';
 import { getUsers, createUser, updateUser, deleteUser } from '../services/usersService';
 import { useTranslation } from 'react-i18next';
@@ -9,8 +9,7 @@ interface UsersManagementSectionProps {
 }
 
 export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () => {
-  const { t, i18n } = useTranslation();
-  const isAr = i18n.language === 'ar';
+  const { t } = useTranslation();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,12 +25,13 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Load Users
+  // Load Users (Admin excluded)
   const loadUsersList = async () => {
     setLoading(true);
     try {
       const data = await getUsers();
-      setUsers(data);
+      // Ensure admin users are excluded from the managed users list
+      setUsers(data.filter((u) => u.role !== 'admin'));
     } catch (err) {
       console.error('Error loading users list:', err);
     } finally {
@@ -59,6 +59,10 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
   };
 
   const handleOpenEditModal = (u: UserProfile) => {
+    if (u.role === 'admin') {
+      alert(t('users.admin_cannot_be_deleted'));
+      return;
+    }
     setEditingUser(u);
     setFullName(u.fullName || '');
     setEmail(u.email || '');
@@ -76,53 +80,84 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
 
     try {
       if (editingUser) {
+        if (editingUser.role === 'admin') {
+          setErrorMsg(t('users.admin_cannot_be_deleted'));
+          setIsSubmitting(false);
+          return;
+        }
+
         const updated: UserProfile = {
           ...editingUser,
-          fullName,
+          fullName: fullName.trim(),
           role,
-          phone,
+          phone: phone.trim(),
         };
         const ok = await updateUser(updated);
         if (ok) {
-          setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
+          setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
           setSuccessMsg(t('users.user_updated'));
           setIsModalOpen(false);
         } else {
-          setErrorMsg('Échec de la mise à jour.');
+          setErrorMsg(t('users.creation_failed') || 'Échec de la mise à jour.');
         }
       } else {
+        const normalizedEmail = email.trim().toLowerCase();
+
+        if (!normalizedEmail || !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+          setErrorMsg('Veuillez saisir une adresse e-mail valide.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        // Frontend duplicate email check
+        const emailExists = users.some(
+          (u) => u.email?.trim().toLowerCase() === normalizedEmail
+        );
+        if (emailExists) {
+          setErrorMsg(t('users.email_already_exists'));
+          setIsSubmitting(false);
+          return;
+        }
+
         const newU = await createUser({
-          email,
-          fullName,
+          email: normalizedEmail,
+          fullName: fullName.trim(),
           role,
-          phone,
+          phone: phone.trim(),
           password,
         });
 
         if (newU) {
-          setUsers(prev => [newU, ...prev]);
+          setUsers((prev) => [newU, ...prev]);
           setSuccessMsg(t('users.user_added'));
           setIsModalOpen(false);
         } else {
-          setErrorMsg('Échec de la création.');
+          setErrorMsg(t('users.creation_failed') || 'Échec de la création.');
         }
       }
     } catch (err: any) {
-      setErrorMsg(err?.message || 'Erreur inattendue.');
+      console.error('Error submitting user:', err);
+      setErrorMsg(err?.message || t('users.creation_failed') || 'Erreur inattendue.');
     } finally {
       setIsSubmitting(false);
-      setTimeout(() => setSuccessMsg(null), 3000);
+      setTimeout(() => setSuccessMsg(null), 3500);
     }
   };
 
   const handleDeleteUser = async (id: string, name: string) => {
+    const target = users.find((u) => u.id === id);
+    if (target?.role === 'admin') {
+      alert(t('users.admin_cannot_be_deleted'));
+      return;
+    }
+
     if (!window.confirm(`Supprimer ${name} ?`)) {
       return;
     }
 
     const ok = await deleteUser(id);
     if (ok) {
-      setUsers(prev => prev.filter(u => u.id !== id));
+      setUsers((prev) => prev.filter((u) => u.id !== id));
       setSuccessMsg(t('users.user_deleted'));
       setTimeout(() => setSuccessMsg(null), 3000);
     }
@@ -132,7 +167,7 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
     admin: {
       labelKey: 'roles.admin',
       bg: 'bg-amber-100 border-amber-300 text-amber-900',
-      icon: ShieldCheck,
+      icon: UserCheck,
     },
     agent: {
       labelKey: 'roles.agent',
@@ -203,7 +238,7 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
             </thead>
             <tbody className="divide-y divide-slate-100">
               {users.map((u) => {
-                const badge = roleBadges[u.role || 'agent'];
+                const badge = roleBadges[u.role || 'agent'] || roleBadges.agent;
                 const Icon = badge.icon;
                 return (
                   <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
@@ -372,7 +407,6 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
                   onChange={(e) => setRole(e.target.value as UserRole)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-black/5"
                 >
-                  <option value="admin">{t('roles.admin')}</option>
                   <option value="agent">{t('roles.agent')}</option>
                   <option value="pilgrim">{t('roles.pilgrim')}</option>
                 </select>

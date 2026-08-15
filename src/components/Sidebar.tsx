@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +15,8 @@ import {
   UserCheck as StaffIcon,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Building,
 } from "lucide-react";
 import { Language, UserProfile, UserRole } from "../types";
 import { useTranslation } from "react-i18next";
@@ -27,9 +29,23 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const isAr = i18n.language === "ar";
   const userRole: UserRole = currentUser?.role || "admin";
+
+  const isConfigActive =
+    location.pathname.startsWith("/settings") ||
+    location.pathname.startsWith("/users");
+
+  const [isConfigExpanded, setIsConfigExpanded] = useState(true);
+
+  // Auto-expand configuration menu if currently on a configuration route
+  useEffect(() => {
+    if (isConfigActive) {
+      setIsConfigExpanded(true);
+    }
+  }, [isConfigActive]);
 
   const toggleSidebar = () => {
     setIsCollapsed((prev) => !prev);
@@ -83,12 +99,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
       icon: FileText,
       allowedRoles: ["admin", "agent"],
     },
-    {
-      path: "/settings",
-      labelKey: "menu.settings",
-      icon: Settings,
-      allowedRoles: ["admin"],
-    },
   ];
 
   const visibleMenuItems = menuItems.filter((item) =>
@@ -138,12 +148,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
     >
       <button
         onClick={toggleSidebar}
-        title={
-          isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")
-        }
-        aria-label={
-          isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")
-        }
+        title={isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}
+        aria-label={isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")}
         className={`absolute top-1/2 -translate-y-1/2 ${
           isAr ? "-left-3.5" : "-right-3.5"
         } flex items-center justify-center bg-white border border-slate-200 rounded-full p-1 shadow-md hover:bg-slate-50 transition-colors cursor-pointer z-40`}
@@ -151,7 +157,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
         {renderCollapseIcon()}
       </button>
 
-      <div>
+      <div className="overflow-y-auto overflow-x-hidden flex-1">
         <div className="p-4 flex items-center justify-center">
           <div
             className={`rounded-xl flex items-center justify-center overflow-hidden shrink-0 transition-all duration-300 ${
@@ -199,6 +205,159 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
               </NavLink>
             );
           })}
+
+          {/* Expandable Configuration Section for Admin */}
+          {userRole === "admin" && (
+            <div className="pt-1">
+              {!isCollapsed ? (
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsConfigExpanded((prev) => !prev)}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium transition-all cursor-pointer rounded-lg ${
+                      isConfigActive && !isConfigExpanded
+                        ? "bg-slate-100 text-slate-900 font-semibold"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Settings
+                        className={`w-5 h-5 shrink-0 ${
+                          isConfigActive ? "text-slate-900" : "text-slate-500"
+                        }`}
+                      />
+                      <span className="truncate">{t("menu.configuration")}</span>
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                        isConfigExpanded ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {isConfigExpanded && (
+                    <div className="ps-4 ms-3 border-s-2 border-slate-100 space-y-1 mt-1">
+                      {/* Agency Profile */}
+                      <NavLink
+                        to="/settings"
+                        end
+                        className={({ isActive }) =>
+                          `w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-all ${
+                            isActive
+                              ? "bg-black text-white rounded-lg shadow-xs font-bold"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg"
+                          }`
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <Building
+                              className={`w-4 h-4 shrink-0 ${
+                                isActive ? "text-white" : "text-slate-400"
+                              }`}
+                            />
+                            <span className="truncate">
+                              {t("menu.agency_profile")}
+                            </span>
+                          </>
+                        )}
+                      </NavLink>
+
+                      {/* Users Management */}
+                      <NavLink
+                        to="/users"
+                        className={({ isActive }) =>
+                          `w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium transition-all ${
+                            isActive
+                              ? "bg-black text-white rounded-lg shadow-xs font-bold"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-lg"
+                          }`
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <ShieldCheck
+                              className={`w-4 h-4 shrink-0 ${
+                                isActive ? "text-white" : "text-slate-400"
+                              }`}
+                            />
+                            <span className="truncate">
+                              {t("menu.users_management")}
+                            </span>
+                          </>
+                        )}
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Collapsed Sidebar mode */
+                <div className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsConfigExpanded((prev) => !prev)}
+                    title={t("menu.configuration")}
+                    className={`w-full flex items-center justify-center px-2 py-2.5 text-sm font-medium transition-all cursor-pointer rounded-lg ${
+                      isConfigActive
+                        ? "bg-slate-100 text-slate-900"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Settings
+                      className={`w-5 h-5 shrink-0 ${
+                        isConfigActive ? "text-slate-900" : "text-slate-500"
+                      }`}
+                    />
+                  </button>
+
+                  {isConfigExpanded && (
+                    <div className="space-y-1 pt-1 border-t border-slate-100 flex flex-col items-center">
+                      <NavLink
+                        to="/settings"
+                        end
+                        title={t("menu.agency_profile")}
+                        className={({ isActive }) =>
+                          `w-10 h-10 flex items-center justify-center text-xs font-medium transition-all rounded-lg ${
+                            isActive
+                              ? "bg-black text-white shadow-xs"
+                              : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                          }`
+                        }
+                      >
+                        {({ isActive }) => (
+                          <Building
+                            className={`w-4 h-4 shrink-0 ${
+                              isActive ? "text-white" : "text-slate-500"
+                            }`}
+                          />
+                        )}
+                      </NavLink>
+
+                      <NavLink
+                        to="/users"
+                        title={t("menu.users_management")}
+                        className={({ isActive }) =>
+                          `w-10 h-10 flex items-center justify-center text-xs font-medium transition-all rounded-lg ${
+                            isActive
+                              ? "bg-black text-white shadow-xs"
+                              : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                          }`
+                        }
+                      >
+                        {({ isActive }) => (
+                          <ShieldCheck
+                            className={`w-4 h-4 shrink-0 ${
+                              isActive ? "text-white" : "text-slate-500"
+                            }`}
+                          />
+                        )}
+                      </NavLink>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
       </div>
 

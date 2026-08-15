@@ -7,13 +7,10 @@ import {
   MapPin,
   Phone,
   Mail,
-  Building,
   Palette,
   Globe,
-  Users,
 } from "lucide-react";
 import { Language, AgencySettings } from "../types";
-import { UsersManagementSection } from "./UsersManagementSection";
 import { useTranslation } from "react-i18next";
 
 interface ExtendedSettingsFields {
@@ -100,7 +97,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const isAr = i18n.language === "ar";
-  const [activeTab, setActiveTab] = useState<"agency" | "users">("agency");
   const [formData, setFormData] = useState<AgencySettings>(settings);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -142,46 +138,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Header */}
       <div className="text-center space-y-1">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          {t("settings.title")}
+          {t("settings.agency_profile_title")}
         </h1>
         <p className="text-xs text-slate-500 font-medium">
-          {t("settings.subtitle")}
+          {t("settings.agency_profile_subtitle")}
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex justify-center border-b border-slate-200 gap-2 text-xs font-bold">
-        <button
-          type="button"
-          onClick={() => setActiveTab("agency")}
-          className={`pb-3 px-4 border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
-            activeTab === "agency"
-              ? "border-black text-slate-900"
-              : "border-transparent text-slate-400 hover:text-slate-700"
-          }`}
-        >
-          <Building className="w-4 h-4" />
-          <span>{t("settings.tab_agency")}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("users")}
-          className={`pb-3 px-4 border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
-            activeTab === "users"
-              ? "border-black text-slate-900"
-              : "border-transparent text-slate-400 hover:text-slate-700"
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          <span>{t("settings.tab_users")}</span>
-        </button>
-      </div>
-
-      {activeTab === "users" ? (
-        <UsersManagementSection />
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 gap-6">
             {/* Section 1: General Profile */}
             <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-6">
@@ -473,7 +437,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </button>
           </div>
         </form>
-      )}
     </div>
   );
 };

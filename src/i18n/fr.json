@@ -8,7 +8,10 @@
     "qr_center": "Centre QR",
     "documents": "Documents de voyage",
     "news": "Actualités & Publications",
-    "settings": "Configuration Agence"
+    "settings": "Configuration Agence",
+    "configuration": "Configuration",
+    "agency_profile": "Profil de l'agence",
+    "users_management": "Gestion des utilisateurs"
   },
   "roles": {
     "admin": "Directeur d'Agence",
@@ -428,8 +431,10 @@
     }
   },
   "settings": {
-    "title": "Configuration & Identité Agence",
-    "subtitle": "Gérez les informations de l'agence, votre logo et la liste des utilisateurs.",
+    "title": "Profil & Identité de l'Agence",
+    "subtitle": "Gérez les informations officielles de l'agence, votre logo et votre charte graphique.",
+    "agency_profile_title": "Profil & Identité de l'Agence",
+    "agency_profile_subtitle": "Gérez les informations officielles de l'agence, votre logo et votre charte graphique.",
     "tab_agency": "Profil & Identité Agence",
     "tab_users": "Gestion des Utilisateurs",
     "agency_profile": "Profil Général de l'Agence",
@@ -471,7 +476,10 @@
     "create_user": "Nouveau Compte Utilisateur",
     "user_updated": "Utilisateur mis à jour avec succès !",
     "user_added": "Utilisateur ajouté avec succès !",
-    "user_deleted": "Utilisateur supprimé"
+    "user_deleted": "Utilisateur supprimé",
+    "email_already_exists": "Cette adresse e-mail est déjà enregistrée.",
+    "admin_cannot_be_deleted": "Le compte administrateur principal ne peut pas être modifié ou supprimé.",
+    "creation_failed": "Échec de la création de l'utilisateur."
   },
   "sidebar": {
     "expand": "Déplier",

@@ -28,10 +28,11 @@ const saveStoredLocalUsers = (users: UserProfile[]) => {
 };
 
 /**
- * Fetch all users from public.profiles table merged with local storage registry
+ * Fetch all users from public.profiles table merged with local storage registry.
+ * Admin account is excluded from the returned managed users list.
  */
 export async function getUsers(): Promise<UserProfile[]> {
-  const localUsers = getStoredLocalUsers();
+  const localUsers = getStoredLocalUsers().filter((u) => u.role !== 'admin');
 
   if (!isSupabaseConfigured()) {
     return localUsers;
@@ -41,6 +42,7 @@ export async function getUsers(): Promise<UserProfile[]> {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
+      .neq('role', 'admin')
       .order('created_at', { ascending: false });
 
     if (error || !data) {
@@ -61,7 +63,7 @@ export async function getUsers(): Promise<UserProfile[]> {
 
     // Merge DB users with local users, preferring DB records by ID
     const dbIds = new Set(dbUsers.map((u) => u.id));
-    const uniqueLocals = localUsers.filter((u) => !dbIds.has(u.id));
+    const uniqueLocals = localUsers.filter((u) => !dbIds.has(u.id) && u.role !== 'admin');
 
     return [...dbUsers, ...uniqueLocals];
   } catch (err) {
@@ -78,97 +80,126 @@ const IS_UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]
 export async function createUser(
   newUser: Omit<UserProfile, 'id'> & { password?: string }
 ): Promise<UserProfile | null> {
-  const generatedId = typeof crypto !== 'undefined' && crypto.randomUUID
-    ? crypto.randomUUID()
-    : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0');
+  const normalizedEmail = newUser.email.trim().toLowerCase();
 
-  const created: UserProfile = {
-    id: generatedId,
-    email: newUser.email,
-    fullName: newUser.fullName,
-    role: newUser.role,
-    phone: newUser.phone,
-    createdAt: new Date().toISOString(),
-  };
+  // 1. Enforce that admin accounts cannot be created via the user management section
+  if (newUser.role === 'admin') {
+    throw new Error("La création d'un compte administrateur n'est pas autorisée ici.");
+  }
 
-  // Always persist locally
+  // 2. Check local duplicate
   const currentLocal = getStoredLocalUsers();
-  saveStoredLocalUsers([created, ...currentLocal]);
+  const existsLocal = currentLocal.some(
+    (u) => u.email?.trim().toLowerCase() === normalizedEmail
+  );
+  if (existsLocal) {
+    throw new Error('Cette adresse e-mail est déjà enregistrée.');
+  }
 
+  // If Supabase is offline / not configured
   if (!isSupabaseConfigured()) {
+    const generatedId = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0');
+
+    const created: UserProfile = {
+      id: generatedId,
+      email: normalizedEmail,
+      fullName: newUser.fullName.trim(),
+      role: newUser.role,
+      phone: newUser.phone?.trim() || '',
+      createdAt: new Date().toISOString(),
+    };
+
+    saveStoredLocalUsers([created, ...currentLocal]);
     return created;
   }
 
   try {
-    let authUserCreated = false;
+    // 3. Check if email already exists in Supabase profiles
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .ilike('email', normalizedEmail)
+      .maybeSingle();
 
-    // Attempt Auth signup if password provided
+    if (existingProfile) {
+      throw new Error('Cette adresse e-mail est déjà enregistrée.');
+    }
+
+    let authUserId: string | null = null;
+
+    // 4. Attempt Auth signup if password provided
     if (newUser.password) {
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newUser.email,
+        email: normalizedEmail,
         password: newUser.password,
         options: {
           data: {
-            full_name: newUser.fullName,
+            full_name: newUser.fullName.trim(),
             role: newUser.role,
           },
         },
       });
 
-      if (!authError && authData?.user) {
-        created.id = authData.user.id;
-        authUserCreated = true;
-      } else if (authError) {
+      if (authError) {
         console.warn('Supabase auth.signUp notice:', authError.message);
+        if (
+          authError.message.toLowerCase().includes('already registered') ||
+          authError.message.toLowerCase().includes('user already') ||
+          authError.status === 422
+        ) {
+          throw new Error('Cette adresse e-mail est déjà enregistrée.');
+        }
+        throw new Error(authError.message || 'Erreur lors de la création du compte.');
+      }
+
+      if (authData?.user) {
+        authUserId = authData.user.id;
       }
     }
 
-    let data: any = null;
-    let error: any = null;
+    const profileId = authUserId || (typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0'));
 
-    // Only insert/upsert into `profiles` table if an `auth.users` record was successfully linked/created
-    // or if no password was supplied and an auth user was verified, to avoid `profiles_id_fkey` constraint violation.
-    if (authUserCreated) {
-      const res = await supabase
-        .from('profiles')
-        .upsert({
-          id: created.id,
-          email: created.email,
-          full_name: created.fullName,
-          role: created.role,
-          phone: created.phone,
-        })
-        .select()
-        .single();
-      data = res.data;
-      error = res.error;
-    }
+    // Insert into `profiles` table
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert({
+        id: profileId,
+        email: normalizedEmail,
+        full_name: newUser.fullName.trim(),
+        role: newUser.role,
+        phone: newUser.phone?.trim() || '',
+      })
+      .select()
+      .single();
 
     if (error) {
       console.warn('Failed to create profile in Postgres:', error.message);
+      if (error.message.includes('unique') || error.code === '23505') {
+        throw new Error('Cette adresse e-mail est déjà enregistrée.');
+      }
+      throw new Error(error.message || 'Erreur lors de la sauvegarde du profil.');
     }
 
-    const finalUser = data
-      ? {
-          id: data.id,
-          email: data.email,
-          fullName: data.full_name,
-          role: data.role as UserRole,
-          phone: data.phone,
-          createdAt: data.created_at,
-        }
-      : created;
+    const finalUser: UserProfile = {
+      id: data?.id || profileId,
+      email: data?.email || normalizedEmail,
+      fullName: data?.full_name || newUser.fullName.trim(),
+      role: (data?.role as UserRole) || newUser.role,
+      phone: data?.phone || newUser.phone || '',
+      createdAt: data?.created_at || new Date().toISOString(),
+    };
 
-    // Update local storage with final ID
-    const updatedLocal = getStoredLocalUsers().map((u) =>
-      u.id === generatedId ? finalUser : u,
-    );
-    saveStoredLocalUsers(updatedLocal);
+    // Update local storage with final user
+    saveStoredLocalUsers([finalUser, ...currentLocal]);
 
     return finalUser;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Error creating user profile:', err);
-    return created;
+    throw err;
   }
 }
 
@@ -176,8 +207,20 @@ export async function createUser(
  * Update an existing user profile
  */
 export async function updateUser(updated: UserProfile): Promise<boolean> {
+  // Prevent altering admin accounts
+  if (updated.role === 'admin') {
+    console.warn('Cannot alter admin account.');
+    return false;
+  }
+
   // Always update local storage
   const currentLocal = getStoredLocalUsers();
+  const targetLocal = currentLocal.find((u) => u.id === updated.id);
+  if (targetLocal?.role === 'admin') {
+    console.warn('Cannot alter admin account.');
+    return false;
+  }
+
   const updatedLocal = currentLocal.map((u) => (u.id === updated.id ? updated : u));
   saveStoredLocalUsers(updatedLocal);
 
@@ -194,7 +237,8 @@ export async function updateUser(updated: UserProfile): Promise<boolean> {
         phone: updated.phone,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', updated.id);
+      .eq('id', updated.id)
+      .neq('role', 'admin');
 
     if (error) {
       console.error('Failed to update user profile:', error.message);
@@ -213,6 +257,12 @@ export async function updateUser(updated: UserProfile): Promise<boolean> {
 export async function deleteUser(id: string): Promise<boolean> {
   // Always update local storage
   const currentLocal = getStoredLocalUsers();
+  const target = currentLocal.find((u) => u.id === id);
+  if (target?.role === 'admin') {
+    console.warn('Cannot delete admin account.');
+    return false;
+  }
+
   const filteredLocal = currentLocal.filter((u) => u.id !== id);
   saveStoredLocalUsers(filteredLocal);
 
@@ -221,7 +271,12 @@ export async function deleteUser(id: string): Promise<boolean> {
   }
 
   try {
-    const { error } = await supabase.from('profiles').delete().eq('id', id);
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', id)
+      .neq('role', 'admin');
+
     if (error) {
       console.error('Failed to delete user profile:', error.message);
       return false;
