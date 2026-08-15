@@ -18,16 +18,17 @@ import {
   ChevronDown,
   Building,
 } from "lucide-react";
-import { Language, UserProfile, UserRole } from "../types";
+import { Language, UserProfile, UserRole, AgencySettings } from "../types";
 import { useTranslation } from "react-i18next";
 
 interface SidebarProps {
   onLogout: () => void;
   lang?: Language;
   currentUser: UserProfile | null;
+  agencySettings?: AgencySettings;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser, agencySettings }) => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -165,9 +166,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
             }`}
           >
             <img
-              src={`${import.meta.env.BASE_URL}logo.jpeg`}
-              alt="Agency logo"
-              className="w-full h-full object-cover"
+              src={
+                agencySettings?.logoUrl || `${import.meta.env.BASE_URL}logo.jpeg`
+              }
+              alt={agencySettings?.name || "Agency logo"}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = `${
+                  import.meta.env.BASE_URL
+                }logo.jpeg`;
+              }}
             />
           </div>
         </div>

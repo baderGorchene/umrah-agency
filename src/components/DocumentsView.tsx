@@ -32,9 +32,19 @@ interface DocumentsViewProps {
   ) => void;
 }
 
-const DocumentLogoHeader: React.FC<{ subtitle?: string }> = ({ subtitle }) => (
+const DocumentLogoHeader: React.FC<{ subtitle?: string; logoUrl?: string }> = ({
+  subtitle,
+  logoUrl,
+}) => (
   <div className="flex flex-col items-center gap-1 mb-2">
-    <img src={LOGO_SRC} alt="Logo" className="h-28 w-auto object-contain" />
+    <img
+      src={logoUrl || LOGO_SRC}
+      alt="Logo"
+      className="h-28 w-auto object-contain"
+      onError={(e) => {
+        (e.target as HTMLImageElement).src = LOGO_SRC;
+      }}
+    />
     {subtitle && (
       <p className="text-[10px] font-semibold text-slate-500 dir-rtl">
         {subtitle}
@@ -470,7 +480,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             </div>
 
             <div id="print-area" className="space-y-4 font-sans text-slate-900">
-              <DocumentLogoHeader />
+              <DocumentLogoHeader
+                logoUrl={agencySettings?.logoUrl}
+                subtitle={agencySettings?.subtitle}
+              />
               <div className="text-center space-y-1 border-b border-slate-200 pb-4">
                 <h1 className="text-xl font-extrabold text-slate-900 dir-rtl">
                   {agencySettings.name}
@@ -645,7 +658,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               id="print-area"
               className="hidden print:block space-y-4 font-sans text-slate-900"
             >
-              <DocumentLogoHeader />
+              <DocumentLogoHeader
+                logoUrl={agencySettings?.logoUrl}
+                subtitle={agencySettings?.subtitle}
+              />
               <div className="text-center space-y-1 border-b border-slate-200 pb-4">
                 <h1 className="text-xl font-extrabold text-slate-900">
                   {agencySettings.name}
@@ -894,7 +910,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               id="print-area"
               className="hidden print:block space-y-4 font-sans text-slate-900"
             >
-              <DocumentLogoHeader />
+              <DocumentLogoHeader
+                logoUrl={agencySettings?.logoUrl}
+                subtitle={agencySettings?.subtitle}
+              />
               <div className="text-center space-y-1 border-b border-slate-200 pb-4">
                 <h1 className="text-xl font-extrabold text-slate-900">
                   {agencySettings.name}
@@ -1146,7 +1165,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               id="print-area"
               className="hidden print:block space-y-4 font-sans text-slate-900"
             >
-              <DocumentLogoHeader />
+              <DocumentLogoHeader
+                logoUrl={agencySettings?.logoUrl}
+                subtitle={agencySettings?.subtitle}
+              />
               <div className="text-center space-y-1 border-b border-slate-200 pb-4">
                 <h1 className="text-xl font-extrabold text-slate-900">
                   {agencySettings.name}
