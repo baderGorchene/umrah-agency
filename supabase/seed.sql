@@ -61,7 +61,7 @@ VALUES
     'Nader Kouiaa',
     '25800884',
     '+21625800884',
-    'Chef de Bus',
+    'رئيس مجموعة',
     'KCF32091',
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><rect width="128" height="128" rx="64" fill="%23E2E8F0"/><circle cx="64" cy="46" r="22" fill="%2364748B"/><path d="M28 106c0-19.882 16.118-36 36-36s36 16.118 36 36Z" fill="%2364748B"/></svg>'
 ),
@@ -72,7 +72,7 @@ VALUES
     'Nader Kouiaa (Admin)',
     '25800884',
     '25800884',
-    'Coordonnateur Administratif',
+    'مرافق(ة)',
     'Q44U8812',
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><rect width="128" height="128" rx="64" fill="%23E2E8F0"/><circle cx="64" cy="46" r="22" fill="%2364748B"/><path d="M28 106c0-19.882 16.118-36 36-36s36 16.118 36 36Z" fill="%2364748B"/></svg>'
 ),
@@ -83,7 +83,7 @@ VALUES
     'Karima Chaker',
     '21805829',
     '21805829',
-    'Chef de Bus',
+    'رئيس مجموعة',
     'FH659912',
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><rect width="128" height="128" rx="64" fill="%23E2E8F0"/><circle cx="64" cy="46" r="22" fill="%2364748B"/><path d="M28 106c0-19.882 16.118-36 36-36s36 16.118 36 36Z" fill="%2364748B"/></svg>'
 ),
@@ -94,7 +94,7 @@ VALUES
     'Hanan Attia',
     '99048768',
     '99048768',
-    'Chef de Bus',
+    'رئيس مجموعة',
     '3TUA4492',
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><rect width="128" height="128" rx="64" fill="%23E2E8F0"/><circle cx="64" cy="46" r="22" fill="%2364748B"/><path d="M28 106c0-19.882 16.118-36 36-36s36 16.118 36 36Z" fill="%2364748B"/></svg>'
 ) ON CONFLICT DO NOTHING;

@@ -40,7 +40,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
     nameLatin: "",
     phone: "",
     whatsapp: "",
-    role: "Chef de Bus" as Staff["role"],
+    role: "رئيس مجموعة" as Staff["role"],
     tripId: "",
     avatarUrl: DEFAULT_AVATAR_URL,
   });
@@ -106,7 +106,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
       nameLatin: "",
       phone: "",
       whatsapp: "",
-      role: "Chef de Bus",
+      role: "رئيس مجموعة",
       tripId: "",
       avatarUrl: DEFAULT_AVATAR_URL,
     });
@@ -125,6 +125,19 @@ export const StaffView: React.FC<StaffViewProps> = ({
           : "—",
     });
     setEditingStaff(null);
+  };
+
+  const getRoleLabel = (role: Staff["role"]) => {
+    switch (role) {
+      case "رئيس مجموعة":
+        return t("staff.roles.group_leader");
+      case "شيخ":
+        return t("staff.roles.sheikh");
+      case "مرافق(ة)":
+        return t("staff.roles.guide");
+      default:
+        return role;
+    }
   };
 
   return (
@@ -225,7 +238,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
 
                       <td className="py-4 px-6 text-start">
                         <span className="inline-block px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-50 border border-amber-200/80 text-amber-900">
-                          {s.role}
+                          {getRoleLabel(s.role)}
                         </span>
                       </td>
 
@@ -385,17 +398,14 @@ export const StaffView: React.FC<StaffViewProps> = ({
                   }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="Chef de Bus">
-                    {t("staff.roles.chef_de_bus")}
+                  <option value="رئيس مجموعة">
+                    {t("staff.roles.group_leader")}
                   </option>
-                  <option value="Coordonnateur Administratif">
-                    {t("staff.roles.coordonnateur")}
+                  <option value="شيخ">
+                    {t("staff.roles.sheikh")}
                   </option>
-                  <option value="Guide Spirituel">
+                  <option value="مرافق(ة)">
                     {t("staff.roles.guide")}
-                  </option>
-                  <option value="Responsable Médical">
-                    {t("staff.roles.medical")}
                   </option>
                 </select>
               </div>
@@ -533,17 +543,14 @@ export const StaffView: React.FC<StaffViewProps> = ({
                   }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="Chef de Bus">
-                    {t("staff.roles.chef_de_bus")}
+                  <option value="رئيس مجموعة">
+                    {t("staff.roles.group_leader")}
                   </option>
-                  <option value="Coordonnateur Administratif">
-                    {t("staff.roles.coordonnateur")}
+                  <option value="شيخ">
+                    {t("staff.roles.sheikh")}
                   </option>
-                  <option value="Guide Spirituel">
+                  <option value="مرافق(ة)">
                     {t("staff.roles.guide")}
-                  </option>
-                  <option value="Responsable Médical">
-                    {t("staff.roles.medical")}
                   </option>
                 </select>
               </div>

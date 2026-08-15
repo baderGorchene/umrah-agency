@@ -69,13 +69,15 @@ export interface Pilgrim {
   unpaidAmount?: number;
 }
 
+export type StaffRole = 'رئيس مجموعة' | 'شيخ' | 'مرافق(ة)';
+
 export interface Staff {
   id: string;
   nameArabic: string;
   nameLatin?: string;
   phone: string;
   whatsapp: string;
-  role: 'Chef de Bus' | 'Coordonnateur Administratif' | 'Guide Spirituel' | 'Responsable Médical';
+  role: StaffRole;
   uniqueCode: string;
   tripId?: string;
   tripName?: string;
