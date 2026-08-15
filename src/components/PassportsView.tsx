@@ -1017,9 +1017,9 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
                       </td>
                       <td className="py-3 px-4 font-bold text-slate-900 text-left">
                         <div className="flex items-center gap-2">
-                          {entry.avatarUrl && (
+                          {Boolean(entry.avatarUrl) && (
                             <img
-                              src={entry.avatarUrl}
+                              src={entry.avatarUrl || undefined}
                               alt=""
                               className="w-7 h-7 rounded-lg object-cover border border-slate-200 shrink-0"
                             />
@@ -1324,10 +1324,10 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
             </div>
 
             <div className="p-6 space-y-4 text-xs">
-              {inspectingEntry.avatarUrl && (
+              {Boolean(inspectingEntry.avatarUrl) && (
                 <div className="w-full max-h-48 rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center">
                   <img
-                    src={inspectingEntry.avatarUrl}
+                    src={inspectingEntry.avatarUrl || undefined}
                     alt=""
                     className="max-h-44 object-contain"
                   />
