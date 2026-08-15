@@ -115,7 +115,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
 
   const RoleIcon = roleBadgeInfo.icon;
 
-  // Arrow orientation logic based on Arabic (RTL) vs LTR
   const renderCollapseIcon = () => {
     if (isAr) {
       return isCollapsed ? (
@@ -137,16 +136,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
         isCollapsed ? "w-20" : "w-64"
       }`}
     >
-      {/* 
-        =======================================================
-        CENTERED TOGGLE BUTTON
-        Using `top-1/2 -translate-y-1/2` to center vertically.
-        =======================================================
-      */}
       <button
         onClick={toggleSidebar}
         title={
-          isCollapsed ? (isAr ? "توسيع" : "Déplier") : isAr ? "طي" : "Replier"
+          isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")
+        }
+        aria-label={
+          isCollapsed ? t("sidebar.expand") : t("sidebar.collapse")
         }
         className={`absolute top-1/2 -translate-y-1/2 ${
           isAr ? "-left-3.5" : "-right-3.5"
@@ -156,7 +152,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
       </button>
 
       <div>
-        {/* Centered & Larger Logo Header */}
         <div className="p-4 flex items-center justify-center">
           <div
             className={`rounded-xl flex items-center justify-center overflow-hidden shrink-0 transition-all duration-300 ${
@@ -171,7 +166,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
           </div>
         </div>
 
-        {/* Navigation items */}
         <nav className="p-3 space-y-1">
           {visibleMenuItems.map((item) => {
             const Icon = item.icon;
@@ -208,7 +202,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
         </nav>
       </div>
 
-      {/* Footer / Profile & Role Badge */}
       <div className="p-3 border-t border-slate-100 bg-slate-50/50 space-y-2">
         <div
           className={`flex items-center ${
@@ -248,7 +241,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onLogout, currentUser }) => {
           {!isCollapsed && (
             <button
               onClick={onLogout}
-              title={isAr ? "تسجيل الخروج" : "Déconnexion"}
+              title={t("sidebar.logout")}
+              aria-label={t("sidebar.logout")}
               className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer"
             >
               <LogOut className="w-4 h-4" />

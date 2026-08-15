@@ -19,6 +19,7 @@ import {
 import { Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
 import { uploadPassportToStorage } from "../services/documentsService";
 import { GoogleGenAI, Type } from "@google/genai";
+import { useTranslation } from "react-i18next";
 
 export interface ExtractedPassportData {
   passportNumber: string;
@@ -68,6 +69,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   onImportPilgrim,
   onAutoFillForm,
 }) => {
+  const { t } = useTranslation();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -87,9 +89,6 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
 
-  // Revoke the previous blob URL whenever it changes, and on unmount.
-  // Centralizing this here means callers never have to remember to do it
-  // themselves (a source of leaked blob URLs in the old implementation).
   useEffect(() => {
     return () => {
       if (previewUrl && previewUrl.startsWith("blob:")) {
@@ -118,7 +117,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     const isImage = file.type.startsWith("image/");
     const isPdf = file.type === "application/pdf";
     if (!isImage && !isPdf) {
-      setError("Formats acceptés: JPG, PNG, WEBP, PDF.");
+      setError(t("scanner.accepted_formats"));
       return;
     }
 
@@ -127,8 +126,6 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     setExtractedData(null);
     setCrop(undefined);
     setCompletedCrop(undefined);
-    // PDFs have no inline <img> preview; the file itself is still sent to
-    // the extraction API as base64.
     setPreviewUrl(isImage ? URL.createObjectURL(file) : null);
   };
 
@@ -139,13 +136,10 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     }
   };
 
-  // Used in steps 2/3 to swap in a different photo without discarding the
-  // already-extracted passport data. Replacing the photo invalidates any
-  // previously uploaded document, so we clear that too.
   const handleReplaceImage = (file?: File) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setError("Seules les images (JPG, PNG, WEBP) sont acceptées.");
+      setError(t("scanner.accepted_formats"));
       return;
     }
     setSelectedFile(file);
@@ -224,7 +218,6 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
 
         setSelectedFile(croppedFile);
         setPreviewUrl(URL.createObjectURL(croppedFile));
-        // The crop invalidates any already-uploaded document.
         setPendingDocument(null);
         setUploadFailed(false);
       }
@@ -243,7 +236,6 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
     setError(null);
 
     try {
-      // Read API key from Vite environment variables (.env file)
       const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       if (!apiKey) {
         throw new Error("Clé API Gemini introuvable dans VITE_GEMINI_API_KEY.");
@@ -396,7 +388,6 @@ Attention particulière pour les passeports tunisiens:
     const fullNameLatin =
       `${extractedData.givenNamesLatin || ""} ${extractedData.surnameLatin || ""}`.trim();
 
-    // Ensure tripId is either a valid UUID or empty string to avoid sending mock/demo ids like 'trip-1' to the backend
     const isValidUUID = (s: any) =>
       typeof s === "string" &&
       /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
@@ -415,13 +406,10 @@ Attention particulière pour les passeports tunisiens:
       uniqueCode: `TUN-${Math.floor(100000 + Math.random() * 900000)}`,
       status: "مؤكد" as Pilgrim["status"],
       emergencyContact: `Tél CIN: ${extractedData.cinNumber || "Non spécifié"}`,
-      // Use the passport photo that was actually uploaded/cropped instead of
-      // silently falling back to the placeholder every time.
       avatarUrl: pendingDocument?.fileUrl || DEFAULT_AVATAR_URL,
     };
 
     onImportPilgrim(newPilgrim, pendingDocument || undefined);
-
     onClose();
   };
 
@@ -433,7 +421,7 @@ Attention particulière pour les passeports tunisiens:
       <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-6">
         <div className="bg-white rounded-xl p-4 max-w-3xl w-full">
           <div className="flex items-center justify-between mb-2">
-            <h4 className="font-bold text-sm">Recadrage manuel</h4>
+            <h4 className="font-bold text-sm">{t("scanner.crop_manually")}</h4>
             <div className="flex gap-2">
               <button
                 onClick={() => {
@@ -443,7 +431,7 @@ Attention particulière pour les passeports tunisiens:
                 }}
                 className="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold"
               >
-                Annuler
+                {t("buttons.cancel")}
               </button>
               <button
                 onClick={performCrop}
@@ -469,10 +457,6 @@ Attention particulière pour les passeports tunisiens:
               />
             </ReactCrop>
           </div>
-          <p className="text-[11px] text-slate-500 mt-2">
-            Faites glisser les coins pour ajuster le cadrage, puis cliquez sur «
-            Appliquer ».
-          </p>
         </div>
       </div>
     );
@@ -490,17 +474,17 @@ Attention particulière pour les passeports tunisiens:
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-white tracking-tight">
-                  Extraction de Passeport Tunisien
+                  {t("scanner.modal_title")}
                 </h2>
               </div>
               <p className="text-[11px] text-slate-400">
-                Numérisation automatique par l'intelligence artificielle Gemini
-                (Passeports & PDFs)
+                {t("scanner.modal_subtitle")}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label={t("buttons.close")}
             className="text-slate-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-slate-800"
           >
             <X className="w-5 h-5" />
@@ -514,12 +498,10 @@ Attention particulière pour les passeports tunisiens:
             <div className="text-xs text-slate-700 space-y-0.5">
               <p className="font-bold flex items-center gap-1.5 text-slate-900">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                Lecture automatique sécurisée
+                {t("scanner.secure_read")}
               </p>
               <p className="text-[11px] text-slate-500">
-                Importez une photo claire ou un fichier PDF du passeport
-                tunisien. L'IA extrait automatiquement le numéro, le nom en
-                arabe/latin, la CIN et les dates.
+                {t("scanner.secure_desc")}
               </p>
             </div>
           </div>
@@ -555,10 +537,10 @@ Attention particulière pour les passeports tunisiens:
                   <p className="text-xs font-bold text-slate-800">
                     {selectedFile
                       ? selectedFile.name
-                      : "Glissez-déposez la photo ou le PDF du passeport"}
+                      : t("scanner.drop_text")}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Formats acceptés: JPG, PNG, WEBP, PDF (Max 10Mo)
+                    {t("scanner.accepted_formats")}
                   </p>
                 </div>
 
@@ -592,12 +574,12 @@ Attention particulière pour les passeports tunisiens:
                   {isAnalyzing ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Analyse IA en cours (Gemini)...</span>
+                      <span>{t("scanner.analyzing")}</span>
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />
-                      <span>Lancer la numérisation OCR</span>
+                      <span>{t("scanner.start_ocr")}</span>
                     </>
                   )}
                 </button>
@@ -612,7 +594,7 @@ Attention particulière pour les passeports tunisiens:
                 <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>
-                    Données extraites — Étape 2: Image (recadrer / remplacer)
+                    {t("scanner.data_extracted")} — {t("scanner.step_image")}
                   </span>
                 </div>
               </div>
@@ -638,7 +620,7 @@ Attention particulière pour les passeports tunisiens:
                       disabled={!previewUrl}
                       className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-all"
                     >
-                      Cropper manuellement
+                      {t("scanner.crop_manually")}
                     </button>
 
                     <button
@@ -646,7 +628,7 @@ Attention particulière pour les passeports tunisiens:
                       onClick={() => fileInputRef.current?.click()}
                       className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-all"
                     >
-                      Téléverser une autre image
+                      {t("scanner.upload_other_image")}
                     </button>
 
                     <input
@@ -661,26 +643,18 @@ Attention particulière pour les passeports tunisiens:
                     />
                   </div>
 
-                  <p className="text-xs text-slate-500">
-                    Vous pouvez recadrer manuellement l'image du passeport ou
-                    télécharger une image différente à utiliser comme photo.
-                  </p>
-
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={resetScanState}
                       className="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold"
                     >
-                      Retour
+                      {t("buttons.cancel")}
                     </button>
 
                     <div className="flex items-center gap-2">
                       <button
                         onClick={async () => {
                           await uploadCurrentFile();
-                          // Always advance to assignment step; upload
-                          // failures are surfaced via the warning banner
-                          // and the fallback "continue without upload" option.
                           setCurrentStep(3);
                         }}
                         disabled={isAnalyzing}
@@ -688,20 +662,19 @@ Attention particulière pour les passeports tunisiens:
                       >
                         {isAnalyzing
                           ? "Téléversement..."
-                          : "Suivant: Affecter au voyage"}
+                          : t("scanner.next_assign_trip")}
                       </button>
 
                       {uploadFailed && (
                         <button
                           onClick={() => {
-                            // proceed without upload (fallback)
                             setPendingDocument(null);
                             setUploadFailed(false);
                             setCurrentStep(3);
                           }}
                           className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-700"
                         >
-                          Continuer sans téléversement
+                          {t("scanner.continue_without_upload")}
                         </button>
                       )}
                     </div>
@@ -727,8 +700,8 @@ Attention particulière pour les passeports tunisiens:
                 <div className="flex items-center gap-2 text-emerald-700 font-bold text-xs bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>
-                    Données extraites avec succès (
-                    {extractedData.confidenceScore ?? 95}% de précision)
+                    {t("scanner.data_extracted")} (
+                    {extractedData.confidenceScore ?? 95}%)
                   </span>
                 </div>
 
@@ -737,7 +710,7 @@ Attention particulière pour les passeports tunisiens:
                   className="text-xs text-slate-500 hover:text-black font-semibold underline flex items-center gap-1"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Scanner un autre passeport</span>
+                  <span>{t("scanner.scan_another")}</span>
                 </button>
               </div>
 
@@ -745,90 +718,17 @@ Attention particulière pour les passeports tunisiens:
                 <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>
-                    Le téléversement de l'image a échoué. Le pèlerin sera
-                    enregistré avec la photo par défaut.
+                    Le téléversement de l'image a échoué. Le pèlerin sera enregistré avec la photo par défaut.
                   </span>
                 </div>
               )}
-
-              {/* Image Preview & Manual Crop / Upload Actions */}
-              <div className="flex items-start gap-4">
-                <div className="w-36 h-36 rounded-xl overflow-hidden border border-slate-200 bg-white flex items-center justify-center">
-                  {previewUrl ? (
-                    <img
-                      src={previewUrl}
-                      alt="preview"
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <div className="text-xs text-slate-400">Aucun aperçu</div>
-                  )}
-                </div>
-
-                <div className="flex-1 flex flex-col justify-center gap-2">
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsCropOpen(true)}
-                      disabled={!previewUrl}
-                      className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-all"
-                    >
-                      Cropper manuellement
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-3 py-1.5 rounded-xl border border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-800 hover:border-slate-300 hover:bg-slate-50 transition-all"
-                    >
-                      Téléverser une autre image
-                    </button>
-
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      ref={fileInputRef}
-                      onChange={(e) =>
-                        e.target.files?.[0] &&
-                        handleReplaceImage(e.target.files[0])
-                      }
-                    />
-                  </div>
-
-                  <p className="text-xs text-slate-500">
-                    Vous pouvez recadrer manuellement l'image du passeport ou
-                    télécharger une image différente à utiliser comme photo.
-                    {pendingDocument
-                      ? " Cette image sera enregistrée comme photo du pèlerin."
-                      : ""}
-                  </p>
-
-                  {(previewUrl || selectedFile) &&
-                    !pendingDocument &&
-                    !uploadFailed && (
-                      <button
-                        type="button"
-                        onClick={() => uploadCurrentFile()}
-                        disabled={isAnalyzing}
-                        className="self-start px-3 py-1.5 rounded-xl bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 disabled:opacity-50"
-                      >
-                        {isAnalyzing
-                          ? "Téléversement..."
-                          : "Téléverser cette image"}
-                      </button>
-                    )}
-                </div>
-              </div>
-
-              {renderCropModal()}
 
               {/* Form Grid for Editing Extracted Data */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 {/* Passport Number */}
                 <div className="space-y-1">
                   <label className="font-semibold text-slate-700">
-                    N° de Passeport Tunisien *
+                    {t("scanner.passport_number")}
                   </label>
                   <input
                     type="text"
@@ -846,7 +746,7 @@ Attention particulière pour les passeports tunisiens:
                 {/* CIN Number */}
                 <div className="space-y-1">
                   <label className="font-semibold text-slate-700">
-                    Numéro de CIN (بطاقة تعريف)
+                    {t("scanner.cin")}
                   </label>
                   <input
                     type="text"
@@ -865,7 +765,7 @@ Attention particulière pour les passeports tunisiens:
                 {/* Name Arabic */}
                 <div className="space-y-1 md:col-span-2">
                   <label className="font-semibold text-slate-700">
-                    الاسم واللقب باللغة العربية (Nom & Prénom en Arabe) *
+                    {t("scanner.fullname_ar")}
                   </label>
                   <input
                     type="text"
@@ -883,7 +783,7 @@ Attention particulière pour les passeports tunisiens:
                 {/* Surname Latin */}
                 <div className="space-y-1">
                   <label className="font-semibold text-slate-700">
-                    Nom (Français / Latin)
+                    {t("scanner.surname_latin")}
                   </label>
                   <input
                     type="text"
@@ -901,7 +801,7 @@ Attention particulière pour les passeports tunisiens:
                 {/* Given Names Latin */}
                 <div className="space-y-1">
                   <label className="font-semibold text-slate-700">
-                    Prénom(s) (Français / Latin)
+                    {t("scanner.given_names_latin")}
                   </label>
                   <input
                     type="text"
@@ -919,7 +819,7 @@ Attention particulière pour les passeports tunisiens:
                 {/* Date of Birth & Sex */}
                 <div className="space-y-1">
                   <label className="font-semibold text-slate-700">
-                    Date de Naissance
+                    {t("scanner.birth_date")}
                   </label>
                   <input
                     type="text"
@@ -935,7 +835,7 @@ Attention particulière pour les passeports tunisiens:
                 </div>
 
                 <div className="space-y-1">
-                  <label className="font-semibold text-slate-700">Sexe</label>
+                  <label className="font-semibold text-slate-700">{t("scanner.gender")}</label>
                   <select
                     value={extractedData.sex || "M"}
                     onChange={(e) =>
@@ -946,15 +846,15 @@ Attention particulière pour les passeports tunisiens:
                     }
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-black/5"
                   >
-                    <option value="M">Masculin (Homme / ذكر)</option>
-                    <option value="F">Féminin (Femme / أنثى)</option>
+                    <option value="M">{t("scanner.male")}</option>
+                    <option value="F">{t("scanner.female")}</option>
                   </select>
                 </div>
 
                 {/* Expiry Date & Place of Birth */}
                 <div className="space-y-1">
                   <label className="font-semibold text-slate-700">
-                    Date d'Expiration Passeport
+                    {t("scanner.expiry_date")}
                   </label>
                   <input
                     type="text"
@@ -971,7 +871,7 @@ Attention particulière pour les passeports tunisiens:
 
                 <div className="space-y-1">
                   <label className="font-semibold text-slate-700">
-                    Lieu de Naissance
+                    {t("scanner.place_of_birth")}
                   </label>
                   <input
                     type="text"
@@ -986,22 +886,11 @@ Attention particulière pour les passeports tunisiens:
                   />
                 </div>
 
-                {/* MRZ Band Display */}
-                {extractedData.mrz1 && (
-                  <div className="md:col-span-2 space-y-1 bg-slate-900 text-emerald-400 p-3 rounded-xl font-mono text-[10px] overflow-x-auto">
-                    <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1">
-                      Zone Optique MRZ (Bande Inférieure)
-                    </p>
-                    <p>{extractedData.mrz1}</p>
-                    <p>{extractedData.mrz2}</p>
-                  </div>
-                )}
-
                 {/* Assign to Trip & Phone */}
                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-amber-50/50 border border-amber-200/80 p-4 rounded-xl mt-2">
                   <div className="space-y-1">
                     <label className="font-bold text-slate-800">
-                      Voyage d'Umrah à assigner
+                      {t("scanner.trip_to_assign")}
                     </label>
                     <select
                       value={selectedTripId}
@@ -1018,7 +907,7 @@ Attention particulière pour les passeports tunisiens:
 
                   <div className="space-y-1">
                     <label className="font-bold text-slate-800">
-                      Numéro de Téléphone (Tunisie)
+                      {t("scanner.phone_tunisia")}
                     </label>
                     <input
                       type="text"
@@ -1038,7 +927,7 @@ Attention particulière pour les passeports tunisiens:
                   onClick={onClose}
                   className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
                 >
-                  Annuler
+                  {t("buttons.cancel")}
                 </button>
                 <button
                   type="button"
@@ -1046,7 +935,7 @@ Attention particulière pour les passeports tunisiens:
                   className="px-6 py-2.5 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 shadow-md transition-all flex items-center gap-2 cursor-pointer"
                 >
                   <UserCheck className="w-4 h-4" />
-                  <span>Enregistrer le MOUTAMIR (Pèlerin)</span>
+                  <span>{t("scanner.save_pilgrim")}</span>
                 </button>
               </div>
             </div>

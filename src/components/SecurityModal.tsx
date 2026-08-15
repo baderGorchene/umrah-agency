@@ -340,14 +340,14 @@ export const SecurityModal: React.FC<SecurityModalProps> = ({ isOpen, onClose })
         <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between shrink-0 print:hidden">
           <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
             <Shield className="w-4 h-4 text-emerald-600" />
-            <span>Document Officiel — Umrah Compagnon Security Charter</span>
+            <span>{t('security.title')}</span>
           </div>
 
           <button
             onClick={onClose}
             className="px-6 py-2.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-black text-white transition-all shadow-xs cursor-pointer"
           >
-            Fermer
+            {t('buttons.close')}
           </button>
         </div>
 

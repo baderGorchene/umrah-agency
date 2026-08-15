@@ -6,20 +6,18 @@ import {
   Plus,
   Tag,
   CreditCard,
-  Lock,
   FileSpreadsheet,
   Sparkles,
   Scan,
 } from "lucide-react";
 import { Language, Trip, Pilgrim, AgencySettings } from "../types";
 import { PassportScannerModal } from "./PassportScannerModal";
+import { useTranslation } from "react-i18next";
 
-// Logo lives in /public/logo.jpeg — served from the app root, so it's
-// referenced by path rather than a JS module import.
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.jpeg`;
 
 interface DocumentsViewProps {
-  lang: Language;
+  lang?: Language;
   trips: Trip[];
   pilgrims: Pilgrim[];
   agencySettings: AgencySettings;
@@ -34,7 +32,6 @@ interface DocumentsViewProps {
   ) => void;
 }
 
-// Small reusable header used at the top of every printable document.
 const DocumentLogoHeader: React.FC<{ subtitle?: string }> = ({ subtitle }) => (
   <div className="flex flex-col items-center gap-1 mb-2">
     <img src={LOGO_SRC} alt="Logo" className="h-28 w-auto object-contain" />
@@ -56,13 +53,12 @@ type ModalType =
   | null;
 
 export const DocumentsView: React.FC<DocumentsViewProps> = ({
-  lang,
   trips,
   pilgrims,
   agencySettings,
   onAddPilgrim,
 }) => {
-  const isAr = lang === "AR";
+  const { t } = useTranslation();
   const [selectedTripId, setSelectedTripId] = useState(trips[0]?.id || "");
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [isPassportScannerOpen, setIsPassportScannerOpen] = useState(false);
@@ -85,7 +81,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
     fatherName: "",
     motherName: "",
     address: "",
-    requestType: "تجديد", // تجديد | استخراج لأول مرة | ضياع
+    requestType: "تجديد",
   });
 
   // ID-card-request form state
@@ -142,8 +138,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
     window.print();
   };
 
-  // Opens the passport-request modal and prefills the name from the first
-  // pilgrim of the selected trip (if any) so the form isn't empty.
   const openPassportRequest = () => {
     setPassportRequestForm((prev) => ({
       ...prev,
@@ -162,34 +156,17 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/*
-        Print isolation: when the browser print dialog fires, hide
-        everything on the page except the currently open modal's
-        #print-area so printed output only contains the relevant
-        document, never the whole app shell.
-
-        The modal overlay/box are forced out of `position: fixed` /
-        `overflow: auto` during print — those are what caused the
-        content to be rendered twice (fixed-position elements get
-        repeated on every printed page by the browser).
-      */}
       <style>{`
         @media print {
           @page {
             margin: 12mm;
           }
-          /* Hide everything by default; only the active modal's
-             #print-area is revealed. visibility (not display) is used
-             here so we can selectively re-show a nested element. */
           body * {
             visibility: hidden !important;
           }
           #print-area, #print-area * {
             visibility: visible !important;
           }
-          /* Neutralize the modal's fixed positioning — browsers repeat
-             position:fixed elements on every printed page, which is
-             what caused documents to print duplicated. */
           .print-modal-overlay {
             position: static !important;
             inset: auto !important;
@@ -211,10 +188,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             margin: 0 !important;
             width: 100% !important;
           }
-          /* Anchor the printable content to the top of the page,
-             regardless of how much (invisible) content precedes it in
-             the DOM — this is what stops a blank first page / content
-             being pushed halfway down the sheet. */
           #print-area {
             position: absolute !important;
             top: 0 !important;
@@ -225,19 +198,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
         }
       `}</style>
 
-      {/* Everything below is the dashboard UI — fully removed (not just
-          hidden) from print output so it can never push the printable
-          document down the page or leave a blank leading page. */}
       <div className="print:hidden space-y-6">
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight text-start">
-            {isAr ? "مستندات الرحلة" : "Documents de Voyage"}
+            {t("documents.documents_title")}
           </h1>
           <p className="text-xs text-slate-500 font-medium text-start">
-            {isAr
-              ? "جميع المستندات الإدارية والتنظيمية الخاصة بالرحلة في مكان واحد."
-              : "Tous les documents administratifs et organisationnels de votre voyage en un seul endroit."}
+            {t("documents.documents_subtitle")}
           </p>
         </div>
 
@@ -249,14 +217,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             </div>
             <div>
               <h2 className="font-bold text-slate-900 text-sm text-start">
-                {isAr
-                  ? "خطوة 1: اختر الرحلة النشطة"
-                  : "Étape 1: Sélectionner le voyage actif"}
+                {t("documents.step_select_trip")}
               </h2>
               <p className="text-xs text-slate-500 text-start">
-                {isAr
-                  ? "يجب تحديد الرحلة أولاً لتفعيل وتوليد كافة المستندات والتقارير المرتبطة بها."
-                  : "Sélectionnez un voyage pour activer et générer ses documents et rapports."}
+                {t("documents.step_select_trip_desc")}
               </p>
             </div>
           </div>
@@ -268,13 +232,11 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-black/5 text-start"
             >
               <option value="">
-                {isAr
-                  ? "-- اختر رحلة نشطة --"
-                  : "-- Sélectionner un voyage actif --"}
+                {t("documents.select_active_trip_option")}
               </option>
-              {trips.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.startDate})
+              {trips.map((tItem) => (
+                <option key={tItem.id} value={tItem.id}>
+                  {tItem.name} ({tItem.startDate})
                 </option>
               ))}
             </select>
@@ -292,13 +254,11 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="font-bold text-white text-sm">
-                    Scanner de Passeports Tounsi
+                    {t("documents.passport_scanner_title")}
                   </h3>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Numérisez les passeports tunisiens (PDF ou Image) pour
-                  extraire instantanément le nom en arabe/latin, la CIN, le N°
-                  de passeport et la date d'expiration.
+                  {t("documents.passport_scanner_desc")}
                 </p>
               </div>
             </div>
@@ -308,7 +268,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-5 py-2.5 rounded-xl transition-all flex items-center gap-2 shrink-0 cursor-pointer shadow-xs"
             >
               <Scan className="w-4 h-4" />
-              <span>Numériser un Passeport</span>
+              <span>{t("misc.scanner")}</span>
             </button>
           </div>
 
@@ -327,11 +287,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                     <Printer className="w-5 h-5" />
                   </div>
                   <h4 className="font-bold text-slate-900 text-sm">
-                    Registre d'Appel
+                    {t("documents.attendance_register")}
                   </h4>
                   <p className="text-xs text-slate-500">
-                    Liste de présence prête à imprimer pour les départs et
-                    hébergements.
+                    {t("documents.attendance_register_desc")}
                   </p>
                 </div>
                 <button
@@ -339,7 +298,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   className="w-full bg-slate-100 hover:bg-black hover:text-white text-slate-800 text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Printer className="w-3.5 h-3.5" />
-                  <span>{isAr ? "طباعة" : "Imprimer"}</span>
+                  <span>{t("buttons.print")}</span>
                 </button>
               </div>
 
@@ -349,11 +308,11 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
                     <CreditCard className="w-5 h-5" />
                   </div>
-                  <h4 className="font-bold text-slate-900 text-sm dir-rtl">
-                    وصل الاستخلاص
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {t("documents.receipt_title")}
                   </h4>
-                  <p className="text-xs text-slate-500 dir-rtl">
-                    إصدار وصل دفع رسمي للمعتمر مع خيار الطباعة والمصادقة.
+                  <p className="text-xs text-slate-500">
+                    {t("documents.receipt_desc")}
                   </p>
                 </div>
                 <button
@@ -361,7 +320,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   className="w-full bg-slate-100 hover:bg-black hover:text-white text-slate-800 text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>{isAr ? "إنشاء" : "Créer"}</span>
+                  <span>{t("buttons.create")}</span>
                 </button>
               </div>
 
@@ -371,11 +330,11 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   <div className="w-9 h-9 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center">
                     <FileText className="w-5 h-5" />
                   </div>
-                  <h4 className="font-bold text-slate-900 text-sm dir-rtl">
-                    طلب استخراج جواز سفر
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {t("documents.passport_request_title")}
                   </h4>
-                  <p className="text-xs text-slate-500 dir-rtl">
-                    استمارة رسمية لاستخراج أو تجديد جواز السفر الخاص بالمعتمر.
+                  <p className="text-xs text-slate-500">
+                    {t("documents.passport_request_desc")}
                   </p>
                 </div>
                 <button
@@ -383,7 +342,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   className="w-full bg-slate-100 hover:bg-black hover:text-white text-slate-800 text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>{isAr ? "إنشاء" : "Créer"}</span>
+                  <span>{t("buttons.create")}</span>
                 </button>
               </div>
 
@@ -393,11 +352,11 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
                     <CreditCard className="w-5 h-5" />
                   </div>
-                  <h4 className="font-bold text-slate-900 text-sm dir-rtl">
-                    طلب استخراج بطاقة هوية
+                  <h4 className="font-bold text-slate-900 text-sm">
+                    {t("documents.id_card_request_title")}
                   </h4>
-                  <p className="text-xs text-slate-500 dir-rtl">
-                    استمارة رسمية لتسهيل إجراءات استخراج بطاقة التعريف الوطنية.
+                  <p className="text-xs text-slate-500">
+                    {t("documents.id_card_request_desc")}
                   </p>
                 </div>
                 <button
@@ -405,7 +364,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   className="w-full bg-slate-100 hover:bg-black hover:text-white text-slate-800 text-xs font-bold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>{isAr ? "إنشاء" : "Créer"}</span>
+                  <span>{t("buttons.create")}</span>
                 </button>
               </div>
             </div>
@@ -424,12 +383,11 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <h4 className="font-bold text-slate-900 text-sm">
-                      Carte Passeport & Documents
+                      {t("documents.passport_card_title")}
                     </h4>
                   </div>
                   <p className="text-xs text-slate-500 max-w-sm">
-                    Carte intelligente à insérer dans le passeport ou dossier
-                    pour éviter les pertes.
+                    {t("documents.passport_card_desc")}
                   </p>
                 </div>
                 <button
@@ -437,7 +395,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   className="bg-slate-100 hover:bg-black hover:text-white text-slate-800 text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>Imprimer</span>
+                  <span>{t("buttons.print")}</span>
                 </button>
               </div>
 
@@ -445,13 +403,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-xs space-y-4 hover:border-slate-300 transition-all flex items-center justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-bold text-slate-900 text-sm dir-rtl">
-                      ملصق الحقيبة
+                    <h4 className="font-bold text-slate-900 text-sm">
+                      {t("documents.luggage_tag_title")}
                     </h4>
                   </div>
-                  <p className="text-xs text-slate-500 max-w-sm dir-rtl">
-                    ملصق أمتعة ذكي يحتوي على كود المعتمر لتفادي ضياع الحقائب في
-                    المطار.
+                  <p className="text-xs text-slate-500 max-w-sm">
+                    {t("documents.luggage_tag_desc")}
                   </p>
                 </div>
                 <button
@@ -459,7 +416,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   className="bg-slate-100 hover:bg-black hover:text-white text-slate-800 text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
                 >
                   <Printer className="w-4 h-4" />
-                  <span>Imprimer</span>
+                  <span>{t("buttons.print")}</span>
                 </button>
               </div>
             </div>
@@ -473,15 +430,13 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Card 1: Exporter Excel */}
               <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-xs space-y-4 hover:border-slate-300 transition-all flex items-center justify-between">
                 <div className="space-y-1">
                   <h4 className="font-bold text-slate-900 text-sm">
-                    Exporter Excel / CSV
+                    {t("documents.export_csv")}
                   </h4>
                   <p className="text-xs text-slate-500">
-                    Liste complète des pèlerins avec leurs numéros et codes
-                    uniques.
+                    {t("documents.export_csv_desc")}
                   </p>
                 </div>
                 <button
@@ -489,15 +444,13 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   className="bg-black hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-xs"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Télécharger CSV</span>
+                  <span>{t("buttons.download_csv")}</span>
                 </button>
               </div>
-
             </div>
           </div>
         </div>
       </div>
-      {/* end of print:hidden dashboard wrapper */}
 
       {/* Attendance List Print Modal */}
       {activeModal === "attendance" && (
@@ -505,17 +458,17 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           <div className="print-modal-box bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-3xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
               <h2 className="font-bold text-slate-900 text-base">
-                Liste de Présence - {selectedTrip?.name || "مسك طيبة"}
+                {t("documents.attendance_register")} - {selectedTrip?.name || "مسك طيبة"}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
+                aria-label={t("buttons.close")}
                 className="text-slate-400 font-bold"
               >
                 ✕
               </button>
             </div>
 
-            {/* Printable Document Content */}
             <div id="print-area" className="space-y-4 font-sans text-slate-900">
               <DocumentLogoHeader />
               <div className="text-center space-y-1 border-b border-slate-200 pb-4">
@@ -523,10 +476,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   {agencySettings.name}
                 </h1>
                 <p className="text-xs font-bold text-slate-600">
-                  قائمة الحضور الرسمية — {selectedTrip?.name}
+                  {t("documents.official_attendance_list")} — {selectedTrip?.name}
                 </p>
                 <p className="text-[11px] text-slate-400">
-                  الفترة: {selectedTrip?.startDate} إلى {selectedTrip?.endDate}
+                  {selectedTrip?.startDate} → {selectedTrip?.endDate}
                 </p>
               </div>
 
@@ -535,7 +488,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   <tr className="bg-slate-100 border-b border-slate-200 font-bold">
                     <th className="p-2 border-r border-slate-200">#</th>
                     <th className="p-2 border-r border-slate-200">
-                      الاسم واللقب
+                      {t("pilgrims.table_header_pilgrim")}
                     </th>
                     <th className="p-2 border-r border-slate-200">Téléphone</th>
                     <th className="p-2 border-r border-slate-200">Passeport</th>
@@ -543,7 +496,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       Code Unique
                     </th>
                     <th className="p-2 text-center">
-                      {isAr ? "التوقيع" : "Emargement"}
+                      {t("documents.emargement")}
                     </th>
                   </tr>
                 </thead>
@@ -579,14 +532,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 onClick={() => setActiveModal(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
               >
-                Fermer
+                {t("buttons.close")}
               </button>
               <button
                 onClick={handlePrint}
                 className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" />
-                <span>Imprimer la Liste</span>
+                <span>{t("documents.print_list")}</span>
               </button>
             </div>
           </div>
@@ -598,11 +551,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
         <div className="print-modal-overlay fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="print-modal-box bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
-              <h2 className="font-bold text-slate-900 text-base dir-rtl">
-                إصدار وصل استخلاص
+              <h2 className="font-bold text-slate-900 text-base">
+                {t("documents.issue_receipt")}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
+                aria-label={t("buttons.close")}
                 className="text-slate-400 font-bold"
               >
                 ✕
@@ -612,7 +566,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             <div className="space-y-3 print:hidden">
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  المعتمر
+                  {t("pilgrims.table_header_pilgrim")}
                 </label>
                 <input
                   type="text"
@@ -623,14 +577,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       pilgrimName: e.target.value,
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-700">
-                    المبلغ
+                    {t("documents.amount")}
                   </label>
                   <input
                     type="text"
@@ -643,7 +597,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700">
-                    العملة
+                    {t("documents.currency")}
                   </label>
                   <input
                     type="text"
@@ -661,7 +615,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
 
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr ? "التاريخ" : "Date"}
+                  Date
                 </label>
                 <input
                   type="date"
@@ -675,59 +629,58 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
 
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  {isAr ? "ملاحظات" : "Notes"}
+                  {t("documents.notes")}
                 </label>
                 <textarea
                   value={receiptForm.notes}
                   onChange={(e) =>
                     setReceiptForm({ ...receiptForm, notes: e.target.value })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl h-20"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs h-20"
                 />
               </div>
             </div>
 
-            {/* Printable receipt — only this block is included in the print output */}
             <div
               id="print-area"
               className="hidden print:block space-y-4 font-sans text-slate-900"
             >
               <DocumentLogoHeader />
               <div className="text-center space-y-1 border-b border-slate-200 pb-4">
-                <h1 className="text-xl font-extrabold text-slate-900 dir-rtl">
+                <h1 className="text-xl font-extrabold text-slate-900">
                   {agencySettings.name}
                 </h1>
-                <p className="text-xs font-bold text-slate-600 dir-rtl">
-                  وصل استخلاص رسمي
+                <p className="text-xs font-bold text-slate-600">
+                  {t("documents.official_receipt")}
                 </p>
               </div>
-              <table className="w-full text-xs border border-slate-200 border-collapse dir-rtl">
+              <table className="w-full text-xs border border-slate-200 border-collapse">
                 <tbody>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50 w-1/3">
-                      المعتمر
+                      {t("pilgrims.table_header_pilgrim")}
                     </td>
                     <td className="p-2">{receiptForm.pilgrimName}</td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 font-semibold bg-slate-50">المبلغ</td>
+                    <td className="p-2 font-semibold bg-slate-50">{t("documents.amount")}</td>
                     <td className="p-2 font-bold">
                       {receiptForm.amount} {receiptForm.currency}
                     </td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 font-semibold bg-slate-50">التاريخ</td>
+                    <td className="p-2 font-semibold bg-slate-50">Date</td>
                     <td className="p-2">{receiptForm.date}</td>
                   </tr>
                   <tr>
-                    <td className="p-2 font-semibold bg-slate-50">ملاحظات</td>
+                    <td className="p-2 font-semibold bg-slate-50">{t("documents.notes")}</td>
                     <td className="p-2">{receiptForm.notes}</td>
                   </tr>
                 </tbody>
               </table>
-              <div className="flex justify-between pt-8 text-[11px] text-slate-500 dir-rtl">
-                <span>إمضاء الوكالة: ____________</span>
-                <span>إمضاء المعتمر: ____________</span>
+              <div className="flex justify-between pt-8 text-[11px] text-slate-500">
+                <span>{t("documents.agency_signature")} ____________</span>
+                <span>{t("documents.pilgrim_signature")} ____________</span>
               </div>
             </div>
 
@@ -736,14 +689,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 onClick={() => setActiveModal(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
               >
-                إلغاء
+                {t("buttons.cancel")}
               </button>
               <button
                 onClick={handlePrint}
                 className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" />
-                <span>طباعة الوصل</span>
+                <span>{t("documents.print_receipt")}</span>
               </button>
             </div>
           </div>
@@ -755,11 +708,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
         <div className="print-modal-overlay fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="print-modal-box bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
-              <h2 className="font-bold text-slate-900 text-base dir-rtl">
-                طلب استخراج جواز سفر
+              <h2 className="font-bold text-slate-900 text-base">
+                {t("documents.passport_request_title")}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
+                aria-label={t("buttons.close")}
                 className="text-slate-400 font-bold"
               >
                 ✕
@@ -769,7 +723,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             <div className="space-y-3 print:hidden">
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  اختر معتمر (اختياري)
+                  {t("documents.select_pilgrim_optional")}
                 </label>
                 <select
                   onChange={(e) => {
@@ -783,9 +737,9 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       });
                     }
                   }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="">-- اختر --</option>
+                  <option value="">-- {t("misc.none")} --</option>
                   {tripPilgrims.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.nameArabic}
@@ -796,7 +750,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
 
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  الاسم واللقب
+                  {t("pilgrims.table_header_pilgrim")}
                 </label>
                 <input
                   type="text"
@@ -807,14 +761,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       pilgrimName: e.target.value,
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-700">
-                    تاريخ الازدياد
+                    {t("pilgrims.form_birthdate")}
                   </label>
                   <input
                     type="date"
@@ -830,7 +784,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700">
-                    مكان الازدياد
+                    {t("documents.birth_place")}
                   </label>
                   <input
                     type="text"
@@ -841,14 +795,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                         birthPlace: e.target.value,
                       })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  رقم بطاقة التعريف الوطنية (CIN)
+                  {t("documents.cin_number")}
                 </label>
                 <input
                   type="text"
@@ -866,7 +820,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-700">
-                    اسم الأب
+                    {t("documents.father_name")}
                   </label>
                   <input
                     type="text"
@@ -877,12 +831,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                         fatherName: e.target.value,
                       })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                   />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700">
-                    اسم الأم
+                    {t("documents.mother_name")}
                   </label>
                   <input
                     type="text"
@@ -893,14 +847,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                         motherName: e.target.value,
                       })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  العنوان
+                  {t("documents.address")}
                 </label>
                 <input
                   type="text"
@@ -911,13 +865,13 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       address: e.target.value,
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 />
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  نوع الطلب
+                  {t("documents.request_type")}
                 </label>
                 <select
                   value={passportRequestForm.requestType}
@@ -927,19 +881,18 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       requestType: e.target.value,
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="استخراج لأول مرة">استخراج لأول مرة</option>
-                  <option value="تجديد">تجديد</option>
-                  <option value="ضياع">ضياع</option>
+                  <option value="استخراج لأول مرة">{t("documents.first_issue")}</option>
+                  <option value="تجديد">{t("documents.renewal")}</option>
+                  <option value="ضياع">{t("documents.loss")}</option>
                 </select>
               </div>
             </div>
 
-            {/* Printable request document */}
             <div
               id="print-area"
-              className="hidden print:block space-y-4 font-sans text-slate-900 dir-rtl"
+              className="hidden print:block space-y-4 font-sans text-slate-900"
             >
               <DocumentLogoHeader />
               <div className="text-center space-y-1 border-b border-slate-200 pb-4">
@@ -947,20 +900,20 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   {agencySettings.name}
                 </h1>
                 <p className="text-xs font-bold text-slate-600">
-                  طلب استخراج / تجديد جواز سفر
+                  {t("documents.passport_request_title")}
                 </p>
               </div>
               <table className="w-full text-xs border border-slate-200 border-collapse">
                 <tbody>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50 w-1/3">
-                      الاسم واللقب
+                      {t("pilgrims.table_header_pilgrim")}
                     </td>
                     <td className="p-2">{passportRequestForm.pilgrimName}</td>
                   </tr>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50">
-                      تاريخ ومكان الازدياد
+                      {t("pilgrims.form_birthdate")} / {t("documents.birth_place")}
                     </td>
                     <td className="p-2">
                       {passportRequestForm.birthDate} —{" "}
@@ -969,13 +922,13 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   </tr>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50">
-                      رقم بطاقة التعريف
+                      {t("documents.cin_number")}
                     </td>
                     <td className="p-2 font-mono">{passportRequestForm.cin}</td>
                   </tr>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50">
-                      اسم الأب / الأم
+                      {t("documents.father_name")} / {t("documents.mother_name")}
                     </td>
                     <td className="p-2">
                       {passportRequestForm.fatherName} /{" "}
@@ -983,11 +936,11 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                     </td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 font-semibold bg-slate-50">العنوان</td>
+                    <td className="p-2 font-semibold bg-slate-50">{t("documents.address")}</td>
                     <td className="p-2">{passportRequestForm.address}</td>
                   </tr>
                   <tr>
-                    <td className="p-2 font-semibold bg-slate-50">نوع الطلب</td>
+                    <td className="p-2 font-semibold bg-slate-50">{t("documents.request_type")}</td>
                     <td className="p-2 font-bold">
                       {passportRequestForm.requestType}
                     </td>
@@ -995,8 +948,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 </tbody>
               </table>
               <div className="flex justify-between pt-8 text-[11px] text-slate-500">
-                <span>إمضاء الوكالة: ____________</span>
-                <span>إمضاء المعني بالأمر: ____________</span>
+                <span>{t("documents.agency_signature")} ____________</span>
+                <span>{t("documents.pilgrim_signature")} ____________</span>
               </div>
             </div>
 
@@ -1005,14 +958,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 onClick={() => setActiveModal(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
               >
-                إلغاء
+                {t("buttons.cancel")}
               </button>
               <button
                 onClick={handlePrint}
                 className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" />
-                <span>طباعة الطلب</span>
+                <span>{t("documents.print_request")}</span>
               </button>
             </div>
           </div>
@@ -1024,11 +977,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
         <div className="print-modal-overlay fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="print-modal-box bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
-              <h2 className="font-bold text-slate-900 text-base dir-rtl">
-                طلب استخراج بطاقة هوية
+              <h2 className="font-bold text-slate-900 text-base">
+                {t("documents.id_card_request_title")}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
+                aria-label={t("buttons.close")}
                 className="text-slate-400 font-bold"
               >
                 ✕
@@ -1038,7 +992,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             <div className="space-y-3 print:hidden">
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  اختر معتمر (اختياري)
+                  {t("documents.select_pilgrim_optional")}
                 </label>
                 <select
                   onChange={(e) => {
@@ -1052,9 +1006,9 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       });
                     }
                   }}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="">-- اختر --</option>
+                  <option value="">-- {t("misc.none")} --</option>
                   {tripPilgrims.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.nameArabic}
@@ -1065,7 +1019,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
 
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  الاسم واللقب
+                  {t("pilgrims.table_header_pilgrim")}
                 </label>
                 <input
                   type="text"
@@ -1076,14 +1030,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       pilgrimName: e.target.value,
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-700">
-                    تاريخ الازدياد
+                    {t("pilgrims.form_birthdate")}
                   </label>
                   <input
                     type="date"
@@ -1099,7 +1053,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700">
-                    مكان الازدياد
+                    {t("documents.birth_place")}
                   </label>
                   <input
                     type="text"
@@ -1110,7 +1064,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                         birthPlace: e.target.value,
                       })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                   />
                 </div>
               </div>
@@ -1118,7 +1072,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-semibold text-slate-700">
-                    اسم الأب
+                    {t("documents.father_name")}
                   </label>
                   <input
                     type="text"
@@ -1129,12 +1083,12 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                         fatherName: e.target.value,
                       })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                   />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-700">
-                    اسم الأم
+                    {t("documents.mother_name")}
                   </label>
                   <input
                     type="text"
@@ -1145,14 +1099,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                         motherName: e.target.value,
                       })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                   />
                 </div>
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  العنوان
+                  {t("documents.address")}
                 </label>
                 <input
                   type="text"
@@ -1163,13 +1117,13 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       address: e.target.value,
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 />
               </div>
 
               <div>
                 <label className="text-xs font-semibold text-slate-700">
-                  نوع الطلب
+                  {t("documents.request_type")}
                 </label>
                 <select
                   value={idCardRequestForm.requestType}
@@ -1179,19 +1133,18 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       requestType: e.target.value,
                     })
                   }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs dir-rtl"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="استخراج لأول مرة">استخراج لأول مرة</option>
-                  <option value="تجديد">تجديد</option>
-                  <option value="ضياع">ضياع</option>
+                  <option value="استخراج لأول مرة">{t("documents.first_issue")}</option>
+                  <option value="تجديد">{t("documents.renewal")}</option>
+                  <option value="ضياع">{t("documents.loss")}</option>
                 </select>
               </div>
             </div>
 
-            {/* Printable request document */}
             <div
               id="print-area"
-              className="hidden print:block space-y-4 font-sans text-slate-900 dir-rtl"
+              className="hidden print:block space-y-4 font-sans text-slate-900"
             >
               <DocumentLogoHeader />
               <div className="text-center space-y-1 border-b border-slate-200 pb-4">
@@ -1199,20 +1152,20 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   {agencySettings.name}
                 </h1>
                 <p className="text-xs font-bold text-slate-600">
-                  طلب استخراج / تجديد بطاقة تعريف وطنية
+                  {t("documents.id_card_request_title")}
                 </p>
               </div>
               <table className="w-full text-xs border border-slate-200 border-collapse">
                 <tbody>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50 w-1/3">
-                      الاسم واللقب
+                      {t("pilgrims.table_header_pilgrim")}
                     </td>
                     <td className="p-2">{idCardRequestForm.pilgrimName}</td>
                   </tr>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50">
-                      تاريخ ومكان الازدياد
+                      {t("pilgrims.form_birthdate")} / {t("documents.birth_place")}
                     </td>
                     <td className="p-2">
                       {idCardRequestForm.birthDate} —{" "}
@@ -1221,7 +1174,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   </tr>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50">
-                      اسم الأب / الأم
+                      {t("documents.father_name")} / {t("documents.mother_name")}
                     </td>
                     <td className="p-2">
                       {idCardRequestForm.fatherName} /{" "}
@@ -1229,11 +1182,11 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                     </td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 font-semibold bg-slate-50">العنوان</td>
+                    <td className="p-2 font-semibold bg-slate-50">{t("documents.address")}</td>
                     <td className="p-2">{idCardRequestForm.address}</td>
                   </tr>
                   <tr>
-                    <td className="p-2 font-semibold bg-slate-50">نوع الطلب</td>
+                    <td className="p-2 font-semibold bg-slate-50">{t("documents.request_type")}</td>
                     <td className="p-2 font-bold">
                       {idCardRequestForm.requestType}
                     </td>
@@ -1241,8 +1194,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 </tbody>
               </table>
               <div className="flex justify-between pt-8 text-[11px] text-slate-500">
-                <span>إمضاء الوكالة: ____________</span>
-                <span>إمضاء المعني بالأمر: ____________</span>
+                <span>{t("documents.agency_signature")} ____________</span>
+                <span>{t("documents.pilgrim_signature")} ____________</span>
               </div>
             </div>
 
@@ -1251,30 +1204,31 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 onClick={() => setActiveModal(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
               >
-                إلغاء
+                {t("buttons.cancel")}
               </button>
               <button
                 onClick={handlePrint}
                 className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" />
-                <span>طباعة الطلب</span>
+                <span>{t("documents.print_request")}</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Carte Passeport Print Preview Modal — one card per pilgrim of the trip */}
+      {/* Carte Passeport Print Preview Modal */}
       {activeModal === "card" && (
         <div className="print-modal-overlay fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="print-modal-box bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-3xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
               <h2 className="font-bold text-slate-900 text-base">
-                Cartes Passeport - {selectedTrip?.name || "مسك طيبة"}
+                {t("documents.passport_card_title")} - {selectedTrip?.name || "مسك طيبة"}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
+                aria-label={t("buttons.close")}
                 className="text-slate-400 font-bold"
               >
                 ✕
@@ -1287,9 +1241,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             >
               {tripPilgrims.length === 0 && (
                 <p className="text-xs text-slate-400 col-span-2 text-center py-6">
-                  {isAr
-                    ? "لا يوجد معتمرون في هذه الرحلة."
-                    : "Aucun pèlerin dans ce voyage."}
+                  {t("documents.no_pilgrims_in_trip")}
                 </p>
               )}
               {tripPilgrims.map((p) => (
@@ -1331,30 +1283,31 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 onClick={() => setActiveModal(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
               >
-                Fermer
+                {t("buttons.close")}
               </button>
               <button
                 onClick={handlePrint}
                 className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" />
-                <span>Imprimer les Cartes</span>
+                <span>{t("documents.print_cards")}</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Luggage Tag Print Preview Modal — one tag per pilgrim of the trip */}
+      {/* Luggage Tag Print Preview Modal */}
       {activeModal === "luggage" && (
         <div className="print-modal-overlay fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="print-modal-box bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-3xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
-              <h2 className="font-bold text-slate-900 text-base dir-rtl">
-                ملصقات الحقائب - {selectedTrip?.name || "مسك طيبة"}
+              <h2 className="font-bold text-slate-900 text-base">
+                {t("documents.luggage_tag_title")} - {selectedTrip?.name || "مسك طيبة"}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
+                aria-label={t("buttons.close")}
                 className="text-slate-400 font-bold"
               >
                 ✕
@@ -1366,8 +1319,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               className="grid grid-cols-1 sm:grid-cols-2 gap-4"
             >
               {tripPilgrims.length === 0 && (
-                <p className="text-xs text-slate-400 col-span-2 text-center py-6 dir-rtl">
-                  لا يوجد معتمرون في هذه الرحلة.
+                <p className="text-xs text-slate-400 col-span-2 text-center py-6">
+                  {t("documents.no_pilgrims_in_trip")}
                 </p>
               )}
               {tripPilgrims.map((p) => (
@@ -1399,14 +1352,14 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                 onClick={() => setActiveModal(null)}
                 className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
               >
-                إلغاء
+                {t("buttons.cancel")}
               </button>
               <button
                 onClick={handlePrint}
                 className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 flex items-center gap-2"
               >
                 <Printer className="w-4 h-4" />
-                <span>طباعة الملصقات</span>
+                <span>{t("documents.print_tags")}</span>
               </button>
             </div>
           </div>

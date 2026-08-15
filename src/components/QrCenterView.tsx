@@ -18,10 +18,6 @@ import {
   Compass,
 } from "lucide-react";
 import jsPDF from "jspdf";
-// Use the "-pro" fork instead of the base "html2canvas" package: Tailwind v4
-// generates colors using modern CSS functions (oklch/lab/lch/color()) that
-// the original html2canvas cannot parse and throws on. html2canvas-pro adds
-// support for these while keeping the same API.
 import html2canvas from "html2canvas-pro";
 import JSZip from "jszip";
 import {
@@ -40,6 +36,7 @@ import {
 } from "../services/generatedBadgesService";
 import { QRCodeView } from "./QRCodeView";
 import { QRPassModal } from "./QRPassModal";
+import { useTranslation } from "react-i18next";
 
 interface BadgeArtworkProps {
   template: BadgeTemplate;
@@ -235,7 +232,6 @@ const buildBadgePageUrl = (uniqueCode: string): string => {
   return `${appOrigin}${baseUrl}#/badge/${encodeURIComponent(uniqueCode)}`;
 };
 
-/** Turns a pilgrim's display name into a filesystem-safe file name. */
 const toSafeFileName = (value: string): string =>
   value
     .normalize("NFKD")
@@ -243,7 +239,6 @@ const toSafeFileName = (value: string): string =>
     .trim()
     .replace(/\s+/g, "_") || "badge";
 
-/** Resolves the best available avatar image for a pilgrim */
 export const resolvePilgrimAvatar = (
   pilgrim: Pilgrim | null | undefined,
 ): string => {
@@ -295,6 +290,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   compact = false,
   className = "",
 }) => {
+  const { t } = useTranslation();
   const visuals = getTemplateVisuals(template.variant, template.accentColor);
   const displayName = pilgrim?.nameArabic || pilgrim?.nameLatin || "معتمر";
   const displayCode = pilgrim?.uniqueCode || "—";
@@ -321,7 +317,6 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
       style={{ borderColor: visuals.borderColor }}
     >
       {compact ? (
-        // ── وضع مصغّر: صورة صغيرة بدون إطار ──
         <>
           <div
             className="relative shrink-0 basis-[30%] overflow-hidden rounded-2xl"
@@ -362,9 +357,8 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
           </div>
         </>
       ) : (
-        // ── وضع كامل ──
         <>
-          {/* الترويسة */}
+          {/* Header */}
           <div className="relative h-20 w-full flex items-center justify-between bg-black px-6">
             <div
               className="flex items-center justify-center"
@@ -396,7 +390,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
             </div>
           </div>
 
-          {/* الصورة — صغيرة نسبيًا (٢٠٪) مع إطار ذهبي جميل */}
+          {/* Avatar */}
           <div className="relative flex w-full shrink-0 justify-center bg-slate-50 px-6 pt-5 pb-3">
             <div
               className="relative overflow-hidden rounded-2xl p-[3px] shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
@@ -426,13 +420,13 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
             </div>
           </div>
 
-          {/* البيانات */}
+          {/* Details */}
           <div className="px-4 py-3 text-right">
-            <InfoRow label="الاسم" value={displayName} />
-            <InfoRow label="فندق مكة المكرمة" value={trip?.makkahHotel} />
-            <InfoRow label="فندق المدينة المنورة" value={trip?.madinahHotel} />
-            <InfoRow label="رئيس المجموعة" value={guide1Name} />
-            <InfoRow label="رقم الهاتف" value={guide1Phone} />
+            <InfoRow label={t("pilgrims.table_header_pilgrim")} value={displayName} />
+            <InfoRow label={t("trips.form.makkah_hotel")} value={trip?.makkahHotel} />
+            <InfoRow label={t("trips.form.madinah_hotel")} value={trip?.madinahHotel} />
+            <InfoRow label={t("badge.accompanist")} value={guide1Name} />
+            <InfoRow label={t("scanner.phone_tunisia")} value={guide1Phone} />
 
             <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-right">
               <div className="flex shrink-0 justify-center rounded-xl border border-slate-200/70 bg-white p-2">
@@ -453,21 +447,21 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[14px] font-bold text-slate-700">
-                  امسح الرمز للمساعدة والدعم
+                  {t("badge.scan_me_help")}
                 </p>
                 <p className="mt-0.5 text-[14px] text-slate-400">
-                  نرافقكم في رحلة الإيمان
+                  {t("badge.accompany_faith")}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* التذييل */}
+          {/* Footer */}
           <div
             className="border-t border-slate-100 py-2 text-[14px] font-semibold text-slate-500"
             style={{ color: visuals.highlightColor }}
           >
-            مسك طيبة للأسفار و السياحة
+            {t("badge.agency_name")}
           </div>
         </>
       )}
@@ -476,7 +470,7 @@ const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
 };
 
 interface QrCenterViewProps {
-  lang: Language;
+  lang?: Language;
   trips: Trip[];
   pilgrims: Pilgrim[];
   staff: Staff[];
@@ -484,13 +478,12 @@ interface QrCenterViewProps {
 }
 
 export const QrCenterView: React.FC<QrCenterViewProps> = ({
-  lang,
   trips,
   pilgrims,
   staff,
   selectedTripId: initialTripId,
 }) => {
-  const isAr = lang === "AR";
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const tripIdFromUrl = searchParams.get("tripId");
   const [activeTripId, setActiveTripId] = useState(
@@ -503,7 +496,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
     }
   }, [tripIdFromUrl]);
 
-  // Assigned staff & emergency contact state
   const [guide1Name, setGuide1Name] = useState("نادر قويعة");
   const [guide1Phone, setGuide1Phone] = useState("+216 25 800 884");
   const [guide2Name, setGuide2Name] = useState("كريمة شاكر");
@@ -521,17 +513,11 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
     getGeneratedBadgeCount(),
   );
 
-  // Export state (PDF / JPG) — drives the disabled/spinner state of the toolbar buttons.
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingJpg, setIsExportingJpg] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  // Off-screen full-size badge nodes, one per pilgrim, used as the source for
-  // html2canvas when exporting to PDF/JPG so exports always use the full
-  // (non-compact) badge layout regardless of what's expanded in the preview.
   const badgeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-
-  // Inspection modal
   const [inspectingPilgrim, setInspectingPilgrim] = useState<Pilgrim | null>(
     null,
   );
@@ -541,7 +527,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
   const tripStaff = staff.filter((s) => s.tripId === activeTripId);
   const hasPilgrims = tripPilgrims.length > 0;
 
-  // Auto populate emergency contacts from assigned trip staff
   useEffect(() => {
     if (tripStaff.length > 0) {
       if (tripStaff[0]) {
@@ -649,7 +634,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
     }
   };
 
-  /** Waits for every <img> inside a node to finish loading (or erroring) before capture. */
   const waitForImages = (node: HTMLElement): Promise<void> => {
     const imgs = Array.from(node.querySelectorAll("img"));
     return Promise.all(
@@ -676,7 +660,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
     });
   };
 
-  // Exporte les badges en PDF, deux badges par page A4.
   const handleExportPDF = async () => {
     if (!hasPilgrims || isExportingPdf) return;
     setIsExportingPdf(true);
@@ -704,7 +687,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
         const canvas = await captureBadgeCanvas(pilgrim);
         if (!canvas) continue;
 
-        const positionOnPage = i % perPage; // 0..3 = position dans la grille 2x2
+        const positionOnPage = i % perPage;
         if (i > 0 && positionOnPage === 0) {
           pdf.addPage();
         }
@@ -714,7 +697,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
         const slotX = margin + col * (slotWidth + gap);
         const slotY = margin + row * (slotHeight + gap);
 
-        // Ajuste l'image dans son emplacement en conservant les proportions.
         const imgRatio = canvas.width / canvas.height;
         const slotRatio = slotWidth / slotHeight;
         let drawWidth = slotWidth;
@@ -741,7 +723,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
     }
   };
 
-  // Exporte chaque badge en JPG, regroupés dans un dossier (fichier .zip).
   const handleExportJPG = async () => {
     if (!hasPilgrims || isExportingJpg) return;
     setIsExportingJpg(true);
@@ -802,15 +783,13 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
             <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-5">
               <h2 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-3 flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-slate-500" />
-                {isAr
-                  ? "إعداد بطاقات الرحلة"
-                  : "Configuration des Badges de Voyage"}
+                {t("qr_center.setup_trip_badges")}
               </h2>
 
               {/* Step 1: Select Trip */}
               <div className="space-y-1.5 text-start">
                 <label className="text-xs font-bold text-slate-700">
-                  {isAr ? "1. اختر الرحلة" : "1. Sélectionner le Voyage"}
+                  {t("qr_center.select_trip_step")}
                 </label>
                 <div className="relative">
                   <Compass className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -823,13 +802,11 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-black/5 text-start appearance-none"
                   >
                     <option value="">
-                      {isAr
-                        ? "-- اختر رحلة نشطة --"
-                        : "-- Sélectionner un voyage actif --"}
+                      {t("qr_center.select_active_trip")}
                     </option>
-                    {trips.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name} ({t.startDate})
+                    {trips.map((tItem) => (
+                      <option key={tItem.id} value={tItem.id}>
+                        {tItem.name} ({tItem.startDate})
                       </option>
                     ))}
                   </select>
@@ -839,9 +816,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
               {/* Emergency Contacts Inputs */}
               <div className="space-y-3 bg-slate-50/70 border border-slate-100 rounded-xl p-4 text-start">
                 <label className="text-xs font-bold text-slate-700 block">
-                  {isAr
-                    ? "أرقام الطوارئ (المرافقون)"
-                    : "Contacts Urgences (Accompagnateurs)"}
+                  {t("qr_center.emergency_contacts")}
                 </label>
 
                 <div className="space-y-2">
@@ -895,11 +870,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                 className="w-full bg-black hover:bg-slate-900 text-white font-bold py-3.5 px-4 rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer text-xs"
               >
                 <QrCode className="w-4 h-4" />
-                <span>
-                  {isAr
-                    ? "توليد ومعاينة البطاقات"
-                    : "Générer & Prévisualiser Badges"}
-                </span>
+                <span>{t("qr_center.generate_preview_badges")}</span>
               </button>
             </div>
 
@@ -907,14 +878,14 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
             <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-4">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
                 <Info className="w-4 h-4 text-slate-400" />
-                Résumé des Données
+                {t("qr_center.data_summary")}
               </h3>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
                   <Users className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
                   <p className="text-[10px] font-bold text-slate-400 uppercase">
-                    PÈLERINS
+                    {t("qr_center.total_pilgrims")}
                   </p>
                   <p className="text-xl font-extrabold text-slate-900">
                     {tripPilgrims.length}
@@ -924,7 +895,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                 <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
                   <UserRound className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
                   <p className="text-[10px] font-bold text-slate-400 uppercase">
-                    ACCOMPAGNATEURS
+                    {t("qr_center.total_accompanists")}
                   </p>
                   <p className="text-xl font-extrabold text-slate-900">
                     {tripStaff.length}
@@ -934,7 +905,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                 <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
                   <IdCard className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
                   <p className="text-[10px] font-bold text-slate-400 uppercase">
-                    BADGES GÉNÉRÉS
+                    {t("qr_center.generated_badges")}
                   </p>
                   <p className="text-xl font-extrabold text-slate-900">
                     {badgesGenerated ? tripPilgrims.length : 0}
@@ -944,11 +915,11 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                 <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
                   <Activity className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
                   <p className="text-[10px] font-bold text-slate-400 uppercase">
-                    STATUT
+                    {t("qr_center.status")}
                   </p>
                   <p className="text-xs font-bold mt-1.5 text-slate-800 flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                    Prêt à générer
+                    {t("qr_center.ready_to_generate")}
                   </p>
                 </div>
               </div>
@@ -961,15 +932,13 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
               {/* Top Toolbar */}
               <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4">
                 <h2 className="font-bold text-slate-900 text-base leading-snug max-w-[220px]">
-                  {isAr
-                    ? "معاينة بطاقات الهوية الرقمية"
-                    : "Aperçu des Cartes d'Identité Numériques"}
+                  {t("qr_center.digital_pass_preview")}
                 </h2>
 
                 <div className="flex items-center gap-2 flex-wrap justify-end">
                   <span className="px-3 py-1.5 bg-emerald-50 text-emerald-600 text-xs font-bold rounded-full flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                    Aperçu en Direct
+                    {t("qr_center.live_preview")}
                   </span>
                   <button
                     onClick={handleExportPDF}
@@ -981,11 +950,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                     ) : (
                       <Download className="w-3.5 h-3.5" />
                     )}
-                    <span>
-                      {isExportingPdf
-                        ? "Export en cours..."
-                        : "Exporter en PDF"}
-                    </span>
+                    <span>{t("qr_center.export_pdf")}</span>
                   </button>
                   <button
                     onClick={handleExportJPG}
@@ -997,18 +962,14 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                     ) : (
                       <ImageIcon className="w-3.5 h-3.5" />
                     )}
-                    <span>
-                      {isExportingJpg
-                        ? "Export en cours..."
-                        : "Exporter en JPG"}
-                    </span>
+                    <span>{t("qr_center.export_jpg")}</span>
                   </button>
                   <button
                     onClick={handleGenerateBadges}
                     className="px-3 py-1.5 bg-black hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Mettre à jour les Badges</span>
+                    <span>{t("qr_center.update_badges")}</span>
                   </button>
                 </div>
               </div>
@@ -1022,17 +983,16 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-bold text-xs text-slate-900 dir-rtl">
-                        قالب بطاقة الهوية
+                        {t("qr_center.id_badge_template")}
                       </h3>
                       <p className="text-[11px] text-slate-500 truncate">
-                        Choisissez un style — l'aperçu se met à jour
-                        instantanément
+                        {t("qr_center.template_subtitle")}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 text-[11px] font-bold rounded-full">
-                      {badgeTemplates.length} modèles
+                      {badgeTemplates.length} {t("qr_center.models_available")}
                     </span>
                     <span className="px-2.5 py-1 bg-slate-100 text-slate-600 text-[11px] font-bold rounded-full">
                       {savedBadgeCount} sauvegardés
@@ -1071,9 +1031,9 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
                     <span className="text-left leading-tight">
-                      <span className="block">Voir et changer</span>
+                      <span className="block">{t("qr_center.see_and_change")}</span>
                       <span className="block text-[10px] font-semibold text-white/60">
-                        {badgeTemplates.length} modèles prêts
+                        {badgeTemplates.length} {t("qr_center.models_available")}
                       </span>
                     </span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -1096,7 +1056,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
 
               {hasPilgrims ? (
                 <div className="space-y-4">
-                  {/* All Badges — flex-wrap reflows around the expanded one, no empty gaps */}
                   <div className="flex flex-wrap gap-4 max-h-[80vh] overflow-y-auto pr-1 content-start">
                     {tripPilgrims.map((p) => {
                       const isExpanded = selectedPilgrimForPreview?.id === p.id;
@@ -1142,7 +1101,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                               className="mt-3 w-full bg-slate-900 hover:bg-black text-white text-[11px] font-bold py-2 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                             >
                               <Eye className="w-3.5 h-3.5 text-amber-400" />
-                              <span>Inspecter le Pass Numérique</span>
+                              <span>{t("qr_center.inspect_digital_pass")}</span>
                             </button>
                           )}
                         </div>
@@ -1157,11 +1116,10 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                   </div>
                   <div className="space-y-1 max-w-xs">
                     <h3 className="font-bold text-slate-900 text-sm">
-                      En attente de Génération de Cartes
+                      {t("qr_center.waiting_badge_gen")}
                     </h3>
                     <p className="text-xs text-slate-400">
-                      Sélectionnez un voyage et configurez les contacts
-                      d'urgence pour afficher les badges imprimables.
+                      {t("qr_center.waiting_badge_gen_desc")}
                     </p>
                   </div>
                 </div>
@@ -1171,9 +1129,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
         </div>
       </div>
 
-      {/* Off-screen full-size badges used as the source for PDF/JPG export.
-          Rendered outside the viewport (not display:none, so layout/fonts
-          compute correctly for html2canvas) for every pilgrim in the trip. */}
       <div
         aria-hidden="true"
         style={{
@@ -1218,15 +1173,15 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
             <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
               <div>
                 <h2 className="font-bold text-slate-900 text-base">
-                  Modèles de Badges de Voyage ({badgeTemplates.length} modèles)
+                  {t("qr_center.badge_templates_title")} ({badgeTemplates.length} modèles)
                 </h2>
                 <p className="text-sm text-slate-500">
-                  Choisissez un style de badge plus riche qu’un simple jeu de
-                  couleurs.
+                  {t("qr_center.template_subtitle")}
                 </p>
               </div>
               <button
                 onClick={() => setIsTemplateModalOpen(false)}
+                aria-label={t("buttons.close")}
                 className="rounded-full border border-slate-200 bg-white p-2 text-slate-500 transition hover:bg-slate-100"
               >
                 ✕
@@ -1295,7 +1250,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                 onClick={() => setIsTemplateModalOpen(false)}
                 className="rounded-xl bg-black px-4 py-2 text-xs font-bold text-white hover:bg-slate-900"
               >
-                Fermer
+                {t("buttons.close")}
               </button>
             </div>
           </div>

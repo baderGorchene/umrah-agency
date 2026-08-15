@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Language, AgencySettings } from "../types";
 import { UsersManagementSection } from "./UsersManagementSection";
+import { useTranslation } from "react-i18next";
 
 interface ExtendedSettingsFields {
   governorate?: string;
@@ -88,17 +89,17 @@ const THEME_SWATCHES: {
 ];
 
 interface SettingsViewProps {
-  lang: Language;
+  lang?: Language;
   settings: AgencySettings;
   onUpdateSettings: (updated: AgencySettings) => void;
 }
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
-  lang,
   settings,
   onUpdateSettings,
 }) => {
-  const isAr = lang === "AR";
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === "ar";
   const [activeTab, setActiveTab] = useState<"agency" | "users">("agency");
   const [formData, setFormData] = useState<AgencySettings>(settings);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -141,12 +142,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* Header */}
       <div className="text-center space-y-1">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-          {isAr ? "إعدادات وهوية الوكالة" : "Configuration & Identité Agence"}
+          {t("settings.title")}
         </h1>
         <p className="text-xs text-slate-500 font-medium">
-          {isAr
-            ? "إدارة معلومات الوكالة، الشعار، وإدارة مستخدمي النظام والحسابات."
-            : "Gérez les informations de l'agence, votre logo et la liste des utilisateurs."}
+          {t("settings.subtitle")}
         </p>
       </div>
 
@@ -162,9 +161,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           }`}
         >
           <Building className="w-4 h-4" />
-          <span>
-            {isAr ? "الملف العام والهوية" : "Profil & Identité Agence"}
-          </span>
+          <span>{t("settings.tab_agency")}</span>
         </button>
 
         <button
@@ -177,27 +174,25 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>
-            {isAr ? "إدارة الحسابات والمستخدمين" : "Gestion des Utilisateurs"}
-          </span>
+          <span>{t("settings.tab_users")}</span>
         </button>
       </div>
 
       {activeTab === "users" ? (
-        <UsersManagementSection lang={lang} />
+        <UsersManagementSection />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 gap-6">
             {/* Section 1: General Profile */}
             <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-6">
               <h2 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-3">
-                {isAr ? "الملف العام للوكالة" : "Profil Général de l'Agence"}
+                {t("settings.agency_profile")}
               </h2>
 
               {/* Banner Upload / Preview Area */}
               <div className="space-y-2 text-start">
                 <label className="text-xs font-bold text-slate-700 block">
-                  {isAr ? "غلاف الوكالة" : "Bannière de l'Agence"}
+                  {t("settings.agency_banner")}
                 </label>
                 <div className="relative rounded-2xl overflow-hidden h-40 border border-slate-200 bg-slate-100 shadow-inner">
                   <img
@@ -211,9 +206,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       className="bg-white/90 hover:bg-white text-slate-900 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      <span>
-                        {isAr ? "تحميل صورة الغلاف" : "Télécharger Bannière"}
-                      </span>
+                      <span>{t("settings.upload_banner")}</span>
                     </button>
                     <button
                       type="button"
@@ -227,7 +220,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       className="bg-red-600/90 hover:bg-red-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-sm cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      <span>{isAr ? "حذف الغلاف" : "Supprimer"}</span>
+                      <span>{t("settings.remove_banner")}</span>
                     </button>
                   </div>
                 </div>
@@ -236,7 +229,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               {/* Logo Upload Area */}
               <div className="space-y-2 text-start">
                 <label className="text-xs font-bold text-slate-700 block">
-                  {isAr ? "شعار الوكالة (Logo)" : "Logo de l'Agence"}
+                  {t("settings.agency_logo")}
                 </label>
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 rounded-2xl bg-black border border-amber-500/50 flex items-center justify-center text-amber-400 font-bold text-sm shadow-md shrink-0">
@@ -252,14 +245,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       className="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer"
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      <span>
-                        {isAr ? "تغيير الشعار" : "Télécharger Nouveau Logo"}
-                      </span>
+                      <span>{t("settings.change_logo")}</span>
                     </button>
                     <p className="text-[10px] text-slate-400 mt-1">
-                      {isAr
-                        ? "يُنصح بخلفية شفافة (150×150 بكسل)"
-                        : "Arrière-plan transparent recommandé (150*150px)"}
+                      {t("settings.logo_recommendation")}
                     </p>
                   </div>
                 </div>
@@ -269,7 +258,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="space-y-4 pt-2">
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {isAr ? "اسم الوكالة *" : "Nom de l'Agence *"}
+                    {t("settings.agency_name")}
                   </label>
                   <input
                     type="text"
@@ -284,7 +273,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
                 <div className="space-y-1 text-start relative">
                   <label className="text-xs font-semibold text-slate-700">
-                    {isAr ? "وصف الوكالة" : "Description de l'Agence"}
+                    {t("settings.agency_description")}
                   </label>
                   <div className="relative">
                     <textarea
@@ -308,13 +297,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <div className="border-t border-slate-100 pt-4 mt-2 space-y-4">
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    {isAr ? "مقر وموقع الوكالة" : "Localisation de l'Agence"}
+                    {t("settings.location")}
                   </h4>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1 text-start">
                       <label className="text-xs font-semibold text-slate-700 block">
-                        {isAr ? "الدولة" : "Pays"}
+                        {t("settings.country")}
                       </label>
                       <input
                         type="text"
@@ -327,7 +316,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
                     <div className="space-y-1 text-start">
                       <label className="text-xs font-semibold text-slate-700 block">
-                        {isAr ? "الولاية (المنطقة)" : "Gouvernorat"}
+                        {t("settings.governorate")}
                       </label>
                       <select
                         value={governorate}
@@ -335,9 +324,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 text-start focus:outline-none focus:ring-2 focus:ring-black/5"
                       >
                         <option value="">
-                          {isAr
-                            ? "-- اختر الولاية --"
-                            : "-- Sélectionner le gouvernorat --"}
+                          {t("settings.select_governorate")}
                         </option>
                         {TUNISIA_GOVERNORATES.map((g) => (
                           <option key={g.value} value={g.value}>
@@ -351,7 +338,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
                   <div className="space-y-1 text-start">
                     <label className="text-xs font-semibold text-slate-700 block">
-                      {isAr ? "المدينة (اختياري)" : "Ville (optionnel)"}
+                      {t("settings.city")}
                     </label>
                     <input
                       type="text"
@@ -365,7 +352,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                     <Phone className="w-3.5 h-3.5 text-slate-400" />
-                    {isAr ? "رقم هاتف الوكالة" : "N° Téléphone International"}
+                    {t("settings.phone")}
                   </label>
                   <input
                     type="tel"
@@ -380,9 +367,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-slate-400" />
-                    {isAr
-                      ? "البريد الإلكتروني الرسمي"
-                      : "E-mail Support Opérationnel"}
+                    {t("settings.email")}
                   </label>
                   <input
                     type="email"
@@ -400,7 +385,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-5">
               <h2 className="font-bold text-slate-900 text-sm border-b border-slate-100 pb-3 flex items-center gap-2">
                 <Palette className="w-4 h-4 text-slate-500" />
-                {isAr ? "الهوية البصرية والسمة" : "Identité Visuelle & Thème"}
+                {t("settings.visual_identity")}
               </h2>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -431,9 +416,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
               <div className="space-y-1.5 text-start pt-2">
                 <label className="text-xs font-semibold text-slate-700 block">
-                  {isAr
-                    ? "لون مخصص للوكالة"
-                    : "Couleur personnalisée de l'agence"}
+                  {t("settings.custom_color")}
                 </label>
                 <div className="flex items-center gap-2">
                   <input
@@ -457,7 +440,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="space-y-1.5 text-start">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5 text-slate-400" />
-                  {isAr ? "اللغة الافتراضية" : "Langue par défaut"}
+                  {t("settings.default_language")}
                 </h3>
                 <select
                   value={defaultLang}
@@ -478,11 +461,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             {savedSuccess && (
               <span className="text-xs font-bold text-emerald-600 flex items-center gap-1">
                 <Check className="w-4 h-4" />
-                <span>
-                  {isAr
-                    ? "تم حفظ التعديلات بنجاح!"
-                    : "Modifications enregistrées avec succès !"}
-                </span>
+                <span>{t("settings.saved_success")}</span>
               </span>
             )}
             <button
@@ -490,9 +469,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               className="w-full sm:w-auto min-w-[220px] bg-black hover:bg-slate-900 text-white font-bold py-2.5 px-6 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer text-xs"
             >
               <Save className="w-4 h-4" />
-              <span>
-                {isAr ? "حفظ التغييرات" : "Enregistrer Configurations"}
-              </span>
+              <span>{t("settings.save_changes")}</span>
             </button>
           </div>
         </form>
