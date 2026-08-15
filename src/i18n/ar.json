@@ -212,10 +212,10 @@
     "description": "إدارة وتعيين المرشدين الدينيين ورؤساء الحافلات.",
     "add_button": "إضافة مرافق",
     "roles": {
-      "chef_de_bus": "رئيس حافلة (Chef de Bus)",
-      "coordonnateur": "منسق إداري (Coordonnateur Administratif)",
-      "guide": "مرشد ديني (Guide Spirituel)",
-      "medical": "مسؤول طبي (Responsable Médical)"
+      "chef_de_bus": "رئيس حافلة",
+      "coordonnateur": "منسق إداري",
+      "guide": "مرشد ديني",
+      "medical": "مسؤول طبي"
     },
     "table": {
       "role": "الدور",
