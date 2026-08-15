@@ -211,6 +211,12 @@
     "title": "Accompagnateurs & Personnel",
     "description": "Gérer et attribuer des guides spirituels et des chefs de groupe.",
     "add_button": "Ajouter un accompagnateur",
+    "roles": {
+      "chef_de_bus": "Chef de Bus",
+      "coordonnateur": "Coordonnateur Administratif",
+      "guide": "Guide Spirituel",
+      "medical": "Responsable Médical"
+    },
     "table": {
       "role": "Rôle",
       "whatsapp": "WhatsApp (Tunisie)",
@@ -456,6 +462,8 @@
     "visual_identity": "Identité Visuelle & Thème",
     "custom_color": "Couleur personnalisée de l'agence",
     "default_language": "Langue par défaut",
+    "lang_ar": "Arabe (RTL)",
+    "lang_fr": "Français (LTR)",
     "save_changes": "Enregistrer Configurations",
     "saved_success": "Modifications enregistrées avec succès !"
   },

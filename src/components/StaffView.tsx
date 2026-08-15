@@ -385,13 +385,17 @@ export const StaffView: React.FC<StaffViewProps> = ({
                   }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="Chef de Bus">Chef de Bus</option>
-                  <option value="Coordonnateur Administratif">
-                    Coordonnateur Administratif
+                  <option value="Chef de Bus">
+                    {t("staff.roles.chef_de_bus")}
                   </option>
-                  <option value="Guide Spirituel">Guide Spirituel</option>
+                  <option value="Coordonnateur Administratif">
+                    {t("staff.roles.coordonnateur")}
+                  </option>
+                  <option value="Guide Spirituel">
+                    {t("staff.roles.guide")}
+                  </option>
                   <option value="Responsable Médical">
-                    Responsable Médical
+                    {t("staff.roles.medical")}
                   </option>
                 </select>
               </div>
@@ -529,13 +533,17 @@ export const StaffView: React.FC<StaffViewProps> = ({
                   }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="Chef de Bus">Chef de Bus</option>
-                  <option value="Coordonnateur Administratif">
-                    Coordonnateur Administratif
+                  <option value="Chef de Bus">
+                    {t("staff.roles.chef_de_bus")}
                   </option>
-                  <option value="Guide Spirituel">Guide Spirituel</option>
+                  <option value="Coordonnateur Administratif">
+                    {t("staff.roles.coordonnateur")}
+                  </option>
+                  <option value="Guide Spirituel">
+                    {t("staff.roles.guide")}
+                  </option>
                   <option value="Responsable Médical">
-                    Responsable Médical
+                    {t("staff.roles.medical")}
                   </option>
                 </select>
               </div>

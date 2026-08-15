@@ -413,8 +413,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 text-start focus:outline-none focus:ring-2 focus:ring-black/5"
                 >
-                  <option value="ar">Arabe (RTL)</option>
-                  <option value="fr">Français (LTR)</option>
+                  <option value="ar">{t("settings.lang_ar")}</option>
+                  <option value="fr">{t("settings.lang_fr")}</option>
                 </select>
               </div>
             </div>
