@@ -211,6 +211,12 @@
     "title": "المرافقون والكادر",
     "description": "إدارة وتعيين المرشدين الدينيين ورؤساء الحافلات.",
     "add_button": "إضافة مرافق",
+    "roles": {
+      "chef_de_bus": "رئيس حافلة (Chef de Bus)",
+      "coordonnateur": "منسق إداري (Coordonnateur Administratif)",
+      "guide": "مرشد ديني (Guide Spirituel)",
+      "medical": "مسؤول طبي (Responsable Médical)"
+    },
     "table": {
       "role": "الدور",
       "whatsapp": "واتساب (تونس)",
@@ -464,6 +470,8 @@
     "visual_identity": "الهوية البصرية والسمة",
     "custom_color": "لون مخصص للوكالة",
     "default_language": "اللغة الافتراضية",
+    "lang_ar": "العربية (RTL)",
+    "lang_fr": "الفرنسية (LTR)",
     "save_changes": "حفظ التغييرات",
     "saving": "جاري الحفظ...",
     "saved_success": "تم حفظ التعديلات بنجاح!",

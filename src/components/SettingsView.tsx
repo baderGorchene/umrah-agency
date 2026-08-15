@@ -701,8 +701,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 onChange={(e) => setDefaultLang(e.target.value as "ar" | "fr")}
                 className="w-full sm:max-w-xs bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 text-start focus:outline-none focus:ring-2 focus:ring-black/10 focus:bg-white font-medium"
               >
-                <option value="ar">العربية (RTL - Arabe)</option>
-                <option value="fr">Français (LTR - Français)</option>
+                <option value="ar">{t("settings.lang_ar")}</option>
+                <option value="fr">{t("settings.lang_fr")}</option>
               </select>
             </div>
           </div>

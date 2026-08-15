@@ -220,4 +220,3 @@ export const uploadAgencyImage = async (
     reader.readAsDataURL(file);
   });
 };
-
