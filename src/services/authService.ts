@@ -16,25 +16,29 @@ export async function fetchUserProfile(userId: string, email: string): Promise<U
       .eq('id', userId)
       .single();
 
+    const { data: userData } = await supabase.auth.getUser();
+    const meta = userData?.user?.user_metadata || {};
+    const authEmail = userData?.user?.email || email;
+
     if (error || !data) {
-      console.warn('Profile record not found, checking metadata:', error?.message);
-      const { data: userData } = await supabase.auth.getUser();
-      const meta = userData?.user?.user_metadata || {};
+      console.warn('Profile record not found in table, extracting from auth metadata:', error?.message);
       return {
         id: userId,
-        email: email,
-        fullName: meta.full_name || email.split('@')[0],
+        email: authEmail,
+        fullName: meta.full_name || meta.name || authEmail.split('@')[0],
         role: (meta.role as UserRole) || 'agent',
+        avatarUrl: meta.avatar_url || meta.picture || undefined,
+        phone: meta.phone || undefined,
       };
     }
 
     return {
       id: data.id,
-      email: data.email || email,
-      fullName: data.full_name || email.split('@')[0],
-      role: (data.role as UserRole) || 'agent',
-      avatarUrl: data.avatar_url,
-      phone: data.phone,
+      email: data.email || authEmail,
+      fullName: data.full_name || meta.full_name || authEmail.split('@')[0],
+      role: (data.role as UserRole) || (meta.role as UserRole) || 'agent',
+      avatarUrl: data.avatar_url || meta.avatar_url || meta.picture,
+      phone: data.phone || meta.phone,
       tripId: data.trip_id,
       createdAt: data.created_at,
     };
@@ -87,11 +91,14 @@ export async function loginWithSupabase(
     let profile = await fetchUserProfile(data.user.id, data.user.email || email);
 
     if (!profile) {
+      const meta = data.user.user_metadata || {};
       profile = {
         id: data.user.id,
         email: data.user.email || email,
-        fullName: data.user.user_metadata?.full_name || email.split('@')[0],
-        role: (data.user.user_metadata?.role as UserRole) || 'agent',
+        fullName: meta.full_name || meta.name || email.split('@')[0],
+        role: (meta.role as UserRole) || 'agent',
+        avatarUrl: meta.avatar_url || meta.picture,
+        phone: meta.phone,
       };
     }
 
@@ -148,12 +155,16 @@ export async function signUpWithSupabase(
     }
 
     // Insert into profiles table
-    await supabase.from('profiles').upsert({
-      id: data.user.id,
-      email: data.user.email || email,
-      full_name: fullName,
-      role: role,
-    });
+    try {
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        email: data.user.email || email,
+        full_name: fullName,
+        role: role,
+      });
+    } catch (dbErr) {
+      console.warn('Could not insert profile into public.profiles table:', dbErr);
+    }
 
     const profile: UserProfile = {
       id: data.user.id,
