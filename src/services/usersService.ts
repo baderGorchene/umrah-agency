@@ -73,10 +73,15 @@ export async function getUsers(): Promise<UserProfile[]> {
 /**
  * Create a new user profile record
  */
+const IS_UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
 export async function createUser(
   newUser: Omit<UserProfile, 'id'> & { password?: string }
 ): Promise<UserProfile | null> {
-  const generatedId = 'usr-' + Date.now();
+  const generatedId = typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : '00000000-0000-4000-8000-' + Date.now().toString(16).padStart(12, '0');
+
   const created: UserProfile = {
     id: generatedId,
     email: newUser.email,
@@ -158,7 +163,12 @@ export async function createUser(
  * Update an existing user profile
  */
 export async function updateUser(updated: UserProfile): Promise<boolean> {
-  if (!isSupabaseConfigured()) {
+  // Always update local storage
+  const currentLocal = getStoredLocalUsers();
+  const updatedLocal = currentLocal.map((u) => (u.id === updated.id ? updated : u));
+  saveStoredLocalUsers(updatedLocal);
+
+  if (!isSupabaseConfigured() || !IS_UUID_REGEX.test(updated.id)) {
     return true;
   }
 
@@ -188,7 +198,12 @@ export async function updateUser(updated: UserProfile): Promise<boolean> {
  * Delete a user profile
  */
 export async function deleteUser(id: string): Promise<boolean> {
-  if (!isSupabaseConfigured()) {
+  // Always update local storage
+  const currentLocal = getStoredLocalUsers();
+  const filteredLocal = currentLocal.filter((u) => u.id !== id);
+  saveStoredLocalUsers(filteredLocal);
+
+  if (!isSupabaseConfigured() || !IS_UUID_REGEX.test(id)) {
     return true;
   }
 
