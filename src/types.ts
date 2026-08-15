@@ -117,6 +117,10 @@ export interface AgencySettings {
   phone: string;
   email: string;
   licenseNumber: string;
+  governorate?: string;
+  themeColor?: string;
+  customColor?: string;
+  defaultLang?: 'ar' | 'fr';
 }
 
 export interface AppNotification {
