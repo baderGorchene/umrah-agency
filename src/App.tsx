@@ -200,11 +200,29 @@ export default function App() {
     string | undefined
   >(undefined);
 
-  // Supabase Auth State Listener
+  // Supabase Auth State Listener & Session Restoration
   useEffect(() => {
+    // 1. Restore local session cache fallback if Supabase is offline / not configured
+    try {
+      const savedSession = localStorage.getItem("umrah_user_session");
+      if (savedSession) {
+        const { user, token, timestamp } = JSON.parse(savedSession);
+        const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+        if (Date.now() - timestamp < ONE_WEEK_MS) {
+          setCurrentUser(user);
+          setJwtToken(token);
+          setIsLoggedIn(true);
+        } else {
+          localStorage.removeItem("umrah_user_session");
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load saved session from local storage:", e);
+    }
+
     if (!isSupabaseConfigured()) return;
 
-    // Check existing Supabase session
+    // 2. Check existing Supabase session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setJwtToken(session.access_token);
@@ -217,6 +235,7 @@ export default function App() {
       }
     });
 
+    // 3. Listen to Supabase authentication state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -232,6 +251,11 @@ export default function App() {
         setIsLoggedIn(false);
         setCurrentUser(null);
         setJwtToken(null);
+        try {
+          localStorage.removeItem("umrah_user_session");
+        } catch {
+          // ignore
+        }
       }
     });
 
@@ -330,26 +354,6 @@ export default function App() {
 
   // Unread notifications count
   const unreadNotifsCount = notifications.filter((n) => !n.read).length;
-
-  // Restore session from localStorage if within 1 week (604,800,000 ms)
-  useEffect(() => {
-    try {
-      const savedSession = localStorage.getItem("umrah_user_session");
-      if (savedSession) {
-        const { user, token, timestamp } = JSON.parse(savedSession);
-        const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-        if (Date.now() - timestamp < ONE_WEEK_MS) {
-          setCurrentUser(user);
-          setJwtToken(token);
-          setIsLoggedIn(true);
-        } else {
-          localStorage.removeItem("umrah_user_session");
-        }
-      }
-    } catch (e) {
-      console.warn("Failed to load saved session:", e);
-    }
-  }, []);
 
   // Handlers for Auth
   const handleLoginSuccess = (user: UserProfile, token: string | null) => {

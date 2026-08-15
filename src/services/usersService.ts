@@ -100,6 +100,8 @@ export async function createUser(
   }
 
   try {
+    let authUserCreated = false;
+
     // Attempt Auth signup if password provided
     if (newUser.password) {
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -113,26 +115,37 @@ export async function createUser(
         },
       });
 
-      if (!authError && authData.user) {
+      if (!authError && authData?.user) {
         created.id = authData.user.id;
+        authUserCreated = true;
+      } else if (authError) {
+        console.warn('Supabase auth.signUp notice:', authError.message);
       }
     }
 
-    // Insert or update profiles table
-    const { data, error } = await supabase
-      .from('profiles')
-      .upsert({
-        id: created.id,
-        email: created.email,
-        full_name: created.fullName,
-        role: created.role,
-        phone: created.phone,
-      })
-      .select()
-      .single();
+    let data: any = null;
+    let error: any = null;
+
+    // Only insert/upsert into `profiles` table if an `auth.users` record was successfully linked/created
+    // or if no password was supplied and an auth user was verified, to avoid `profiles_id_fkey` constraint violation.
+    if (authUserCreated) {
+      const res = await supabase
+        .from('profiles')
+        .upsert({
+          id: created.id,
+          email: created.email,
+          full_name: created.fullName,
+          role: created.role,
+          phone: created.phone,
+        })
+        .select()
+        .single();
+      data = res.data;
+      error = res.error;
+    }
 
     if (error) {
-      console.error('Failed to create profile in Postgres:', error.message);
+      console.warn('Failed to create profile in Postgres:', error.message);
     }
 
     const finalUser = data
