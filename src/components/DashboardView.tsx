@@ -37,6 +37,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const navigate = useNavigate();
   const activeTrip = trips.find(t => t.active) || trips[0];
 
+  const activeTripPilgrimsCount = activeTrip
+    ? pilgrims.filter((p) => p.tripId === activeTrip.id).length || activeTrip.pilgrimCount || 0
+    : 0;
+
+  const activeTripGuidesCount = activeTrip
+    ? staff.filter((s) => s.tripId === activeTrip.id).length || activeTrip.guideCount || 0
+    : 0;
+
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
@@ -158,7 +166,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="bg-emerald-50/60 border border-emerald-100 rounded-lg p-2.5 flex items-center gap-2">
                   <Users className="w-4 h-4 text-emerald-600" />
                   <div>
-                    <span className="font-bold text-emerald-900 text-sm">{activeTrip.pilgrimCount}</span>
+                    <span className="font-bold text-emerald-900 text-sm">{activeTripPilgrimsCount}</span>
                     <p className="text-[10px] text-emerald-700 font-medium">
                       {t('dashboard.pilgrims_count')}
                     </p>
@@ -168,7 +176,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <div className="bg-sky-50/60 border border-sky-100 rounded-lg p-2.5 flex items-center gap-2">
                   <UserCheck className="w-4 h-4 text-sky-600" />
                   <div>
-                    <span className="font-bold text-sky-900 text-sm">{activeTrip.guideCount}</span>
+                    <span className="font-bold text-sky-900 text-sm">{activeTripGuidesCount}</span>
                     <p className="text-[10px] text-sky-700 font-medium">
                       {t('dashboard.guides_count')}
                     </p>

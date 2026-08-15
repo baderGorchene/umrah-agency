@@ -28,6 +28,17 @@ export const normalizeAvatarUrl = (rawUrl?: string | null): string => {
 
 export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
   if (!isSupabaseConfigured()) {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("umrah_pilgrims_registry");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch (e) {
+        console.warn("Failed to load local pilgrims registry:", e);
+      }
+    }
     return [];
   }
 
@@ -39,12 +50,21 @@ export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
 
     if (error || !data) {
       console.warn("Could not fetch pilgrims from Supabase:", error);
+      if (typeof window !== "undefined") {
+        try {
+          const saved = localStorage.getItem("umrah_pilgrims_registry");
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) return parsed;
+          }
+        } catch (e) {}
+      }
       return [];
     }
 
     const tripsMap = new Map(trips.map((t) => [t.id, t.name]));
 
-    return data.map((p: any) => {
+    const parsedPilgrims: Pilgrim[] = data.map((p: any) => {
       const rawAvatar =
         p.avatar_url || p.avatarUrl || p.photo_url || p.image_url;
       const avatarUrl = normalizeAvatarUrl(rawAvatar);
@@ -65,6 +85,14 @@ export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
         birthDate: p.birth_date || p.birthDate,
       };
     });
+
+    if (typeof window !== "undefined" && parsedPilgrims.length > 0) {
+      try {
+        localStorage.setItem("umrah_pilgrims_registry", JSON.stringify(parsedPilgrims));
+      } catch (e) {}
+    }
+
+    return parsedPilgrims;
   } catch (err) {
     console.error("Error fetching pilgrims from Supabase:", err);
     return [];

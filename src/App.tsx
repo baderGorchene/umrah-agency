@@ -288,45 +288,53 @@ export default function App() {
           setAgencySettings(fetchedSettings);
         }
 
-        // 2. Trips (Core data needed across almost all main views. Load once if not yet populated)
-        let currentTrips = trips;
-        if (trips.length === 0) {
-          currentTrips = await getTrips();
-          setTrips(currentTrips);
-        }
-
-        // 3. Pilgrims (Load on demand for dashboard, pilgrims list, qr-center, or documents)
+        // 2. Core dynamic data: always fetch fresh trips, pilgrims, and staff from Supabase/API
         if (
           path === "/" ||
           path === "/pilgrims" ||
-          path === "/qr-center" ||
-          path === "/documents"
-        ) {
-          if (pilgrims.length === 0) {
-            const fetchedPilgrims = await getPilgrims(currentTrips);
-            setPilgrims(fetchedPilgrims);
-          }
-        }
-
-        // 4. Staff (Load on demand for dashboard, staff list, qr-center, or documents)
-        if (
-          path === "/" ||
           path === "/staff" ||
+          path === "/trips" ||
           path === "/qr-center" ||
           path === "/documents"
         ) {
-          if (staff.length === 0) {
-            const fetchedStaff = await getStaff(currentTrips);
-            setStaff(fetchedStaff);
-          }
+          const fetchedTrips = await getTrips();
+          const currentTrips = fetchedTrips.length > 0 ? fetchedTrips : trips;
+
+          const [fetchedPilgrims, fetchedStaff] = await Promise.all([
+            getPilgrims(currentTrips),
+            getStaff(currentTrips),
+          ]);
+
+          // Compute exact pilgrim and guide counts per trip from actual rows
+          const pilgrimCounts: Record<string, number> = {};
+          fetchedPilgrims.forEach((p) => {
+            if (p.tripId) {
+              pilgrimCounts[p.tripId] = (pilgrimCounts[p.tripId] || 0) + 1;
+            }
+          });
+
+          const staffCounts: Record<string, number> = {};
+          fetchedStaff.forEach((s) => {
+            if (s.tripId) {
+              staffCounts[s.tripId] = (staffCounts[s.tripId] || 0) + 1;
+            }
+          });
+
+          const syncedTrips = currentTrips.map((t) => ({
+            ...t,
+            pilgrimCount: pilgrimCounts[t.id] ?? t.pilgrimCount ?? 0,
+            guideCount: staffCounts[t.id] ?? t.guideCount ?? 0,
+          }));
+
+          setTrips(syncedTrips);
+          setPilgrims(fetchedPilgrims);
+          setStaff(fetchedStaff);
         }
 
-        // 5. Posts (Only load on news view)
+        // 3. Posts (Only load on news view)
         if (path === "/news") {
-          if (posts.length === 0) {
-            const fetchedPosts = await getPosts(currentTrips);
-            setPosts(fetchedPosts);
-          }
+          const fetchedPosts = await getPosts(trips);
+          setPosts(fetchedPosts);
         }
       } catch (err) {
         console.error("Error loading route-specific data:", err);
@@ -457,12 +465,40 @@ export default function App() {
   };
 
   const handleEditPilgrim = async (updated: Pilgrim) => {
+    const oldPilgrim = pilgrims.find((p) => p.id === updated.id);
     setPilgrims((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+
+    if (oldPilgrim && oldPilgrim.tripId !== updated.tripId) {
+      setTrips((prev) =>
+        prev.map((t) => {
+          if (t.id === oldPilgrim.tripId) {
+            return { ...t, pilgrimCount: Math.max(0, (t.pilgrimCount || 1) - 1) };
+          }
+          if (t.id === updated.tripId) {
+            return { ...t, pilgrimCount: (t.pilgrimCount || 0) + 1 };
+          }
+          return t;
+        }),
+      );
+    }
+
     await updatePilgrim(updated);
   };
 
   const handleDeletePilgrim = async (id: string) => {
+    const pilgrimToDelete = pilgrims.find((p) => p.id === id);
     setPilgrims((prev) => prev.filter((p) => p.id !== id));
+
+    if (pilgrimToDelete?.tripId) {
+      setTrips((prev) =>
+        prev.map((t) =>
+          t.id === pilgrimToDelete.tripId
+            ? { ...t, pilgrimCount: Math.max(0, (t.pilgrimCount || 1) - 1) }
+            : t,
+        ),
+      );
+    }
+
     await deletePilgrim(id);
   };
 
@@ -505,16 +541,53 @@ export default function App() {
     const created = await createStaff(newStaffData, trips);
     if (created) {
       setStaff((prev) => [created, ...prev]);
+      if (created.tripId) {
+        setTrips((prev) =>
+          prev.map((t) =>
+            t.id === created.tripId
+              ? { ...t, guideCount: (t.guideCount || 0) + 1 }
+              : t,
+          ),
+        );
+      }
     }
   };
 
   const handleEditStaff = async (updated: Staff) => {
+    const oldStaff = staff.find((s) => s.id === updated.id);
     setStaff((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+
+    if (oldStaff && oldStaff.tripId !== updated.tripId) {
+      setTrips((prev) =>
+        prev.map((t) => {
+          if (t.id === oldStaff.tripId) {
+            return { ...t, guideCount: Math.max(0, (t.guideCount || 1) - 1) };
+          }
+          if (t.id === updated.tripId) {
+            return { ...t, guideCount: (t.guideCount || 0) + 1 };
+          }
+          return t;
+        }),
+      );
+    }
+
     await updateStaff(updated);
   };
 
   const handleDeleteStaff = async (id: string) => {
+    const staffToDelete = staff.find((s) => s.id === id);
     setStaff((prev) => prev.filter((s) => s.id !== id));
+
+    if (staffToDelete?.tripId) {
+      setTrips((prev) =>
+        prev.map((t) =>
+          t.id === staffToDelete.tripId
+            ? { ...t, guideCount: Math.max(0, (t.guideCount || 1) - 1) }
+            : t,
+        ),
+      );
+    }
+
     await deleteStaff(id);
   };
 
