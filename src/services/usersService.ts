@@ -59,7 +59,12 @@ export async function getUsers(): Promise<UserProfile[]> {
       avatarUrl: item.avatar_url,
       tripId: item.trip_id,
       createdAt: item.created_at,
-      isConfirmed: item.role === 'admin' ? true : (item.is_confirmed !== undefined ? Boolean(item.is_confirmed) : true),
+      isConfirmed:
+        item.role === 'admin'
+          ? true
+          : item.is_confirmed !== undefined && item.is_confirmed !== null
+          ? Boolean(item.is_confirmed)
+          : false,
     }));
 
     // Merge DB users with local users, preferring DB records by ID
@@ -196,7 +201,10 @@ export async function createUser(
       fullName: data?.full_name || newUser.fullName.trim(),
       role: (data?.role as UserRole) || newUser.role,
       phone: data?.phone || newUser.phone || '',
-      isConfirmed: data?.is_confirmed !== undefined ? Boolean(data.is_confirmed) : isConfirmed,
+      isConfirmed:
+        data?.is_confirmed !== undefined && data?.is_confirmed !== null
+          ? Boolean(data.is_confirmed)
+          : isConfirmed,
       createdAt: data?.created_at || new Date().toISOString(),
     };
 
@@ -242,7 +250,7 @@ export async function updateUser(updated: UserProfile): Promise<boolean> {
         full_name: updated.fullName,
         role: updated.role,
         phone: updated.phone,
-        is_confirmed: updated.isConfirmed !== undefined ? updated.isConfirmed : true,
+        is_confirmed: updated.isConfirmed !== undefined ? Boolean(updated.isConfirmed) : false,
         updated_at: new Date().toISOString(),
       })
       .eq('id', updated.id)

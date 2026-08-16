@@ -215,7 +215,7 @@ export default function App() {
         const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
         if (
           Date.now() - timestamp < ONE_WEEK_MS &&
-          (user?.role === "admin" || user?.isConfirmed !== false)
+          (user?.role === "admin" || user?.isConfirmed === true)
         ) {
           setCurrentUser(user);
           setJwtToken(token);
@@ -238,7 +238,7 @@ export default function App() {
           session.user.email || "",
         );
         if (profile) {
-          if (profile.role !== "admin" && profile.isConfirmed === false) {
+          if (profile.role !== "admin" && profile.isConfirmed !== true) {
             await logoutUser();
             setIsLoggedIn(false);
             setCurrentUser(null);
@@ -263,7 +263,7 @@ export default function App() {
           session.user.email || "",
         );
         if (profile) {
-          if (profile.role !== "admin" && profile.isConfirmed === false) {
+          if (profile.role !== "admin" && profile.isConfirmed !== true) {
             await logoutUser();
             setIsLoggedIn(false);
             setCurrentUser(null);

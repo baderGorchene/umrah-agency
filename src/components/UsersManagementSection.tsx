@@ -235,8 +235,8 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
   };
 
   const totalUsers = users.length;
-  const confirmedCount = users.filter((u) => u.isConfirmed !== false).length;
-  const pendingCount = users.filter((u) => u.isConfirmed === false).length;
+  const confirmedCount = users.filter((u) => u.isConfirmed === true).length;
+  const pendingCount = users.filter((u) => u.isConfirmed !== true).length;
 
   return (
     <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-6">
@@ -339,7 +339,7 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
               {users.map((u) => {
                 const badge = roleBadges[u.role || 'agent'] || roleBadges.agent;
                 const Icon = badge.icon;
-                const isUserConfirmed = u.isConfirmed !== false;
+                const isUserConfirmed = u.isConfirmed === true;
 
                 return (
                   <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
