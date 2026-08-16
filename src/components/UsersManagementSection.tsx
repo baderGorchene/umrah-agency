@@ -1,7 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, UserCheck, User, Edit3, Trash2, Loader2, CheckCircle2, Phone, Mail, AlertCircle } from 'lucide-react';
+import {
+  Users,
+  UserPlus,
+  UserCheck,
+  User,
+  Edit3,
+  Trash2,
+  Loader2,
+  CheckCircle2,
+  Phone,
+  Mail,
+  AlertCircle,
+  Clock,
+  Check,
+  UserX,
+  ShieldCheck,
+} from 'lucide-react';
 import { Language, UserProfile, UserRole } from '../types';
-import { getUsers, createUser, updateUser, deleteUser } from '../services/usersService';
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  setUserConfirmationStatus,
+} from '../services/usersService';
 import { useTranslation } from 'react-i18next';
 
 interface UsersManagementSectionProps {
@@ -21,6 +43,7 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<UserRole>('agent');
   const [phone, setPhone] = useState('');
+  const [isConfirmed, setIsConfirmed] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -49,6 +72,7 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
     setPassword('');
     setRole('agent');
     setPhone('');
+    setIsConfirmed(true);
     setEditingUser(null);
     setErrorMsg(null);
   };
@@ -69,8 +93,31 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
     setPassword('');
     setRole(u.role || 'agent');
     setPhone(u.phone || '');
+    setIsConfirmed(u.isConfirmed !== false);
     setErrorMsg(null);
     setIsModalOpen(true);
+  };
+
+  const handleToggleConfirmation = async (u: UserProfile, newStatus: boolean) => {
+    if (u.role === 'admin') return;
+    try {
+      const ok = await setUserConfirmationStatus(u.id, newStatus);
+      if (ok) {
+        setUsers((prev) =>
+          prev.map((item) =>
+            item.id === u.id ? { ...item, isConfirmed: newStatus } : item
+          )
+        );
+        setSuccessMsg(t('users.status_updated'));
+        setTimeout(() => setSuccessMsg(null), 3500);
+      } else {
+        setErrorMsg(t('users.status_update_failed'));
+        setTimeout(() => setErrorMsg(null), 4000);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || t('users.status_update_failed'));
+      setTimeout(() => setErrorMsg(null), 4000);
+    }
   };
 
   const handleSubmitUser = async (e: React.FormEvent) => {
@@ -91,6 +138,7 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
           fullName: fullName.trim(),
           role,
           phone: phone.trim(),
+          isConfirmed,
         };
         const ok = await updateUser(updated);
         if (ok) {
@@ -119,12 +167,14 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
           return;
         }
 
+        // Direct creation by admin is confirmed immediately
         const newU = await createUser({
           email: normalizedEmail,
           fullName: fullName.trim(),
           role,
           phone: phone.trim(),
           password,
+          isConfirmed: true,
         });
 
         if (newU) {
@@ -184,6 +234,10 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
     },
   };
 
+  const totalUsers = users.length;
+  const confirmedCount = users.filter((u) => u.isConfirmed !== false).length;
+  const pendingCount = users.filter((u) => u.isConfirmed === false).length;
+
   return (
     <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-6">
       {/* Header with Add Button */}
@@ -208,11 +262,52 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
         </button>
       </div>
 
+      {/* Stats Badges */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-xl flex items-center justify-between">
+          <div className="space-y-0.5 text-start">
+            <p className="text-[11px] text-slate-500 font-medium">{t('users.total_users')}</p>
+            <p className="text-lg font-black text-slate-900">{totalUsers}</p>
+          </div>
+          <Users className="w-5 h-5 text-slate-400" />
+        </div>
+
+        <div className="bg-emerald-50/60 border border-emerald-100 p-3.5 rounded-xl flex items-center justify-between">
+          <div className="space-y-0.5 text-start">
+            <p className="text-[11px] text-emerald-700 font-medium">{t('users.confirmed_users')}</p>
+            <p className="text-lg font-black text-emerald-900">{confirmedCount}</p>
+          </div>
+          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+        </div>
+
+        <div className={`p-3.5 rounded-xl flex items-center justify-between border ${
+          pendingCount > 0 
+            ? 'bg-amber-50 border-amber-200 shadow-2xs' 
+            : 'bg-slate-50 border-slate-100 opacity-80'
+        }`}>
+          <div className="space-y-0.5 text-start">
+            <p className={`text-[11px] font-medium ${pendingCount > 0 ? 'text-amber-800' : 'text-slate-500'}`}>
+              {t('users.pending_users')}
+            </p>
+            <p className={`text-lg font-black ${pendingCount > 0 ? 'text-amber-900' : 'text-slate-900'}`}>
+              {pendingCount}
+            </p>
+          </div>
+          <Clock className={`w-5 h-5 ${pendingCount > 0 ? 'text-amber-600' : 'text-slate-400'}`} />
+        </div>
+      </div>
+
       {/* Alert Banner */}
       {successMsg && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs p-3 rounded-xl flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{successMsg}</span>
+        </div>
+      )}
+      {errorMsg && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs p-3 rounded-xl flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -236,6 +331,7 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
                 <th className="p-3 text-start">E-mail</th>
                 <th className="p-3 text-start">{t('users.phone')}</th>
                 <th className="p-3 text-start">{t('staff.table.role')}</th>
+                <th className="p-3 text-start">{t('users.status_column')}</th>
                 <th className="p-3 text-end">{t('staff.table.actions')}</th>
               </tr>
             </thead>
@@ -243,6 +339,8 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
               {users.map((u) => {
                 const badge = roleBadges[u.role || 'agent'] || roleBadges.agent;
                 const Icon = badge.icon;
+                const isUserConfirmed = u.isConfirmed !== false;
+
                 return (
                   <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="p-3">
@@ -282,12 +380,48 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
                       </span>
                     </td>
 
+                    {/* Confirmation Status Column */}
+                    <td className="p-3">
+                      {isUserConfirmed ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 border border-emerald-200 text-emerald-700">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <span>{t('users.confirmed')}</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 border border-amber-200 text-amber-800 animate-pulse">
+                          <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          <span>{t('users.pending')}</span>
+                        </span>
+                      )}
+                    </td>
+
                     <td className="p-3 text-end">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-1.5">
+                        {!isUserConfirmed ? (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleConfirmation(u, true)}
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                            title={t('users.confirm_user')}
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>{t('users.confirm_btn')}</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleConfirmation(u, false)}
+                            className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                            title={t('users.revoke_confirmation')}
+                          >
+                            <UserX className="w-4 h-4" />
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => handleOpenEditModal(u)}
-                          className="p-1.5 text-slate-500 hover:text-black hover:bg-slate-100 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-500 hover:text-black hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                           title={t('buttons.edit')}
                         >
                           <Edit3 className="w-4 h-4" />
@@ -295,7 +429,7 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
                         <button
                           type="button"
                           onClick={() => handleDeleteUser(u.id, u.fullName || u.email)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                           title={t('buttons.delete')}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -343,6 +477,13 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
             )}
 
             <form onSubmit={handleSubmitUser} className="space-y-4">
+              {!editingUser && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs p-3 rounded-xl flex items-center gap-2 font-medium">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{t('users.auto_confirmed_notice')}</span>
+                </div>
+              )}
+
               <div className="space-y-1 text-start">
                 <label className="text-xs font-semibold text-slate-700">
                   {t('users.fullname')}
@@ -415,11 +556,27 @@ export const UsersManagementSection: React.FC<UsersManagementSectionProps> = () 
                 </select>
               </div>
 
+              {editingUser && (
+                <div className="space-y-1 text-start">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {t('users.confirmation_status')}
+                  </label>
+                  <select
+                    value={isConfirmed ? 'confirmed' : 'pending'}
+                    onChange={(e) => setIsConfirmed(e.target.value === 'confirmed')}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-black/5"
+                  >
+                    <option value="confirmed">{t('users.confirmed')} — {t('users.confirmed_desc')}</option>
+                    <option value="pending">{t('users.pending')} — {t('users.pending_desc')}</option>
+                  </select>
+                </div>
+              )}
+
               <div className="flex items-center justify-end gap-2 pt-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
                 >
                   {t('buttons.cancel')}
                 </button>

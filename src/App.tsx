@@ -213,7 +213,10 @@ export default function App() {
       if (savedSession) {
         const { user, token, timestamp } = JSON.parse(savedSession);
         const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-        if (Date.now() - timestamp < ONE_WEEK_MS) {
+        if (
+          Date.now() - timestamp < ONE_WEEK_MS &&
+          (user?.role === "admin" || user?.isConfirmed !== false)
+        ) {
           setCurrentUser(user);
           setJwtToken(token);
           setIsLoggedIn(true);
@@ -228,15 +231,25 @@ export default function App() {
     if (!isSupabaseConfigured()) return;
 
     // 2. Check existing Supabase session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        setJwtToken(session.access_token);
-        setIsLoggedIn(true);
-        fetchUserProfile(session.user.id, session.user.email || "").then(
-          (profile) => {
-            if (profile) setCurrentUser(profile);
-          },
+        const profile = await fetchUserProfile(
+          session.user.id,
+          session.user.email || "",
         );
+        if (profile) {
+          if (profile.role !== "admin" && profile.isConfirmed === false) {
+            await logoutUser();
+            setIsLoggedIn(false);
+            setCurrentUser(null);
+            setJwtToken(null);
+            localStorage.removeItem("umrah_user_session");
+            return;
+          }
+          setCurrentUser(profile);
+          setJwtToken(session.access_token);
+          setIsLoggedIn(true);
+        }
       }
     });
 
@@ -245,13 +258,23 @@ export default function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        setJwtToken(session.access_token);
-        setIsLoggedIn(true);
         const profile = await fetchUserProfile(
           session.user.id,
           session.user.email || "",
         );
-        if (profile) setCurrentUser(profile);
+        if (profile) {
+          if (profile.role !== "admin" && profile.isConfirmed === false) {
+            await logoutUser();
+            setIsLoggedIn(false);
+            setCurrentUser(null);
+            setJwtToken(null);
+            localStorage.removeItem("umrah_user_session");
+            return;
+          }
+          setCurrentUser(profile);
+          setJwtToken(session.access_token);
+          setIsLoggedIn(true);
+        }
       } else if (_event === "SIGNED_OUT") {
         setIsLoggedIn(false);
         setCurrentUser(null);

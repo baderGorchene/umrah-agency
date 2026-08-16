@@ -294,7 +294,9 @@
     "footer": "Misk Tiba Umrah — Système SaaS de gestion d'agence v2.4",
     "error_credential": "Identifiants incorrects.",
     "error_signup": "Échec de la création du compte.",
-    "success_signup": "Compte créé avec succès ! Connexion..."
+    "success_signup": "Compte créé avec succès !",
+    "pending_confirmation": "Votre compte a été créé avec succès ! Il doit être confirmé par l'administrateur avant que vous puissiez vous connecter.",
+    "unconfirmed_error": "Votre compte est en attente de confirmation par l'administrateur. Veuillez patienter jusqu'à la validation de votre accès."
   },
   "dashboard": {
     "welcome": "Ravi de vous revoir",
@@ -526,14 +528,30 @@
     "fullname": "Nom et Prénom *",
     "phone": "N° Téléphone",
     "role": "Rôle de l'utilisateur *",
+    "status_column": "Confirmation",
+    "confirmed": "Confirmé",
+    "pending": "En attente",
+    "unconfirmed": "Non confirmé",
+    "confirm_user": "Confirmer l'accès",
+    "confirm_btn": "Confirmer",
+    "revoke_confirmation": "Suspendre la confirmation",
+    "confirmation_status": "Statut de confirmation",
+    "confirmed_desc": "Compte validé et autorisé à se connecter",
+    "pending_desc": "En attente de validation par l'administrateur",
+    "auto_confirmed_notice": "Ce compte créé par l'administrateur sera directement confirmé et actif.",
     "edit_user": "Modifier l'utilisateur",
     "create_user": "Nouveau Compte Utilisateur",
     "user_updated": "Utilisateur mis à jour avec succès !",
     "user_deleted": "Utilisateur supprimé avec succès !",
+    "status_updated": "Statut de confirmation mis à jour avec succès !",
+    "status_update_failed": "Échec de la mise à jour du statut.",
     "delete_failed": "Échec de la suppression de l'utilisateur dans la base de données.",
     "email_already_exists": "Cette adresse e-mail est déjà enregistrée.",
     "admin_cannot_be_deleted": "Le compte administrateur principal ne peut pas être modifié ou supprimé.",
-    "creation_failed": "Échec de la création de l'utilisateur."
+    "creation_failed": "Échec de la création de l'utilisateur.",
+    "total_users": "Total Utilisateurs",
+    "confirmed_users": "Comptes Confirmés",
+    "pending_users": "En Attente de Confirmation"
   },
   "sidebar": {
     "expand": "Déplier",

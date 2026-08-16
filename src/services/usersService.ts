@@ -4,7 +4,7 @@ import { UserProfile, UserRole } from '../types';
 /**
  * Fetch all users from public.profiles table
  */
-const getStoredLocalUsers = (): UserProfile[] => {
+export const getStoredLocalUsers = (): UserProfile[] => {
   if (typeof window === "undefined") return [];
   try {
     const saved = localStorage.getItem("umrah_users_registry");
@@ -18,7 +18,7 @@ const getStoredLocalUsers = (): UserProfile[] => {
   return [];
 };
 
-const saveStoredLocalUsers = (users: UserProfile[]) => {
+export const saveStoredLocalUsers = (users: UserProfile[]) => {
   if (typeof window === "undefined") return;
   try {
     localStorage.setItem("umrah_users_registry", JSON.stringify(users));
@@ -59,6 +59,7 @@ export async function getUsers(): Promise<UserProfile[]> {
       avatarUrl: item.avatar_url,
       tripId: item.trip_id,
       createdAt: item.created_at,
+      isConfirmed: item.role === 'admin' ? true : (item.is_confirmed !== undefined ? Boolean(item.is_confirmed) : true),
     }));
 
     // Merge DB users with local users, preferring DB records by ID
@@ -78,9 +79,11 @@ export async function getUsers(): Promise<UserProfile[]> {
 const IS_UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 export async function createUser(
-  newUser: Omit<UserProfile, 'id'> & { password?: string }
+  newUser: Omit<UserProfile, 'id'> & { password?: string; isConfirmed?: boolean }
 ): Promise<UserProfile | null> {
   const normalizedEmail = newUser.email.trim().toLowerCase();
+  // Admin-created users are confirmed directly by default
+  const isConfirmed = newUser.isConfirmed !== undefined ? newUser.isConfirmed : true;
 
   // 1. Enforce that admin accounts cannot be created via the user management section
   if (newUser.role === 'admin') {
@@ -108,6 +111,7 @@ export async function createUser(
       fullName: newUser.fullName.trim(),
       role: newUser.role,
       phone: newUser.phone?.trim() || '',
+      isConfirmed,
       createdAt: new Date().toISOString(),
     };
 
@@ -138,6 +142,7 @@ export async function createUser(
           data: {
             full_name: newUser.fullName.trim(),
             role: newUser.role,
+            is_confirmed: isConfirmed,
           },
         },
       });
@@ -172,6 +177,7 @@ export async function createUser(
         full_name: newUser.fullName.trim(),
         role: newUser.role,
         phone: newUser.phone?.trim() || '',
+        is_confirmed: isConfirmed,
       })
       .select()
       .single();
@@ -190,6 +196,7 @@ export async function createUser(
       fullName: data?.full_name || newUser.fullName.trim(),
       role: (data?.role as UserRole) || newUser.role,
       phone: data?.phone || newUser.phone || '',
+      isConfirmed: data?.is_confirmed !== undefined ? Boolean(data.is_confirmed) : isConfirmed,
       createdAt: data?.created_at || new Date().toISOString(),
     };
 
@@ -235,6 +242,7 @@ export async function updateUser(updated: UserProfile): Promise<boolean> {
         full_name: updated.fullName,
         role: updated.role,
         phone: updated.phone,
+        is_confirmed: updated.isConfirmed !== undefined ? updated.isConfirmed : true,
         updated_at: new Date().toISOString(),
       })
       .eq('id', updated.id)
@@ -247,6 +255,45 @@ export async function updateUser(updated: UserProfile): Promise<boolean> {
     return true;
   } catch (err) {
     console.error('Error updating user profile:', err);
+    return false;
+  }
+}
+
+/**
+ * Update a user's confirmation status
+ */
+export async function setUserConfirmationStatus(id: string, isConfirmed: boolean): Promise<boolean> {
+  const currentLocal = getStoredLocalUsers();
+  const target = currentLocal.find((u) => u.id === id);
+  if (target?.role === 'admin') {
+    console.warn('Cannot alter confirmation for admin account.');
+    return false;
+  }
+
+  const updatedLocal = currentLocal.map((u) => (u.id === id ? { ...u, isConfirmed } : u));
+  saveStoredLocalUsers(updatedLocal);
+
+  if (!isSupabaseConfigured() || !IS_UUID_REGEX.test(id)) {
+    return true;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        is_confirmed: isConfirmed,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .neq('role', 'admin');
+
+    if (error) {
+      console.error('Failed to update user confirmation status in Supabase:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('Error updating confirmation status:', err);
     return false;
   }
 }

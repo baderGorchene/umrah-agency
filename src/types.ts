@@ -10,6 +10,7 @@ export interface UserProfile {
   phone?: string;
   tripId?: string;
   createdAt?: string;
+  isConfirmed?: boolean;
 }
 
 export interface AuthState {

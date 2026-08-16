@@ -6,6 +6,7 @@ import {
   Loader2,
   CheckCircle2,
   Lock,
+  Clock,
 } from "lucide-react";
 import { Language, UserProfile } from "../types";
 import { loginWithSupabase, signUpWithSupabase } from "../services/authService";
@@ -25,7 +26,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const { t, i18n } = useTranslation();
   const [mode, setMode] = useState<"login" | "signup">("login");
 
-  // 1. Cleared hardcoded default values
+  // Form fields
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -49,16 +50,22 @@ export const LoginView: React.FC<LoginViewProps> = ({
           setErrorMsg(res.error || t("login.error_signup"));
           return;
         }
-        setSuccessMsg(t("login.success_signup"));
-        setTimeout(() => {
-          onLoginSuccess(res.user!, res.token);
-        }, 800);
+
+        // Account created but awaiting admin confirmation - DO NOT log in directly
+        setSuccessMsg(t("login.pending_confirmation"));
+        setPassword("");
+        setFullName("");
+        // Switch to login view so user sees the login form once approved
+        setMode("login");
       } else {
-        // 2. Pure Supabase Authentication Check
         const res = await loginWithSupabase(email, password);
 
         if (!res.success || !res.user) {
-          setErrorMsg(res.error || t("login.error_credential"));
+          if (res.isUnconfirmed || res.error === "UNCONFIRMED_USER") {
+            setErrorMsg(t("login.unconfirmed_error"));
+          } else {
+            setErrorMsg(res.error || t("login.error_credential"));
+          }
           return;
         }
 
@@ -66,7 +73,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
       }
     } catch (err: any) {
       console.error("Login submit error:", err);
-      // 3. Removed security-bypassing fallback from catch block
       setErrorMsg(t("login.error_credential"));
     } finally {
       setLoading(false);
@@ -153,9 +159,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
           </div>
         )}
         {successMsg && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs p-3.5 rounded-xl flex items-center gap-2.5 font-medium text-start animate-fadeIn">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-            <span>{successMsg}</span>
+          <div className="bg-amber-50 border border-amber-200 text-amber-900 text-xs p-3.5 rounded-xl flex items-start gap-2.5 font-medium text-start animate-fadeIn">
+            <Clock className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+            <span className="leading-relaxed">{successMsg}</span>
           </div>
         )}
 
