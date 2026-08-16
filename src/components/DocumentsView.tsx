@@ -296,6 +296,26 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
     }
   };
 
+  /**
+   * Sanitizes a cell value for CSV export to prevent CSV / Formula Injection (DDE)
+   * and properly escape fields containing double quotes, commas, or newlines.
+   */
+  const sanitizeCsvCell = (value: string | undefined | null): string => {
+    if (!value) return '""';
+    let str = String(value);
+
+    // Security: Neutralize CSV Formula Injection (=, +, -, @, tab, CR)
+    if (/^[=\+\-@\t\r]/.test(str)) {
+      str = `'${str}`;
+    }
+
+    // Escape double quotes by doubling them
+    const escaped = str.replace(/"/g, '""');
+
+    // Wrap in double quotes to handle commas, newlines, and spaces securely
+    return `"${escaped}"`;
+  };
+
   const handleExportCSV = () => {
     const headers = [
       "Nom (Arabe)",
@@ -314,9 +334,16 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       p.passportNumber || "",
     ]);
 
+    const sanitizedHeaders = headers.map(sanitizeCsvCell).join(",");
+    const sanitizedRows = rows
+      .map((row) => row.map(sanitizeCsvCell).join(","))
+      .join("\n");
+
     const csvContent =
       "data:text/csv;charset=utf-8,\uFEFF" +
-      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+      sanitizedHeaders +
+      "\n" +
+      sanitizedRows;
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
