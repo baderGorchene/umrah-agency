@@ -94,8 +94,11 @@ export async function loginWithSupabase(
 
   // Infer role based on email credentials when Supabase is not configured (offline demo mode)
   let inferredRole: UserRole = 'agent';
-  if (normalizedEmail.includes('admin')) inferredRole = 'admin';
-  else if (normalizedEmail.includes('pilgrim')) inferredRole = 'pilgrim';
+  if (normalizedEmail === 'admin' || normalizedEmail.startsWith('admin@')) {
+    inferredRole = 'admin';
+  } else if (normalizedEmail === 'pilgrim' || normalizedEmail.startsWith('pilgrim@')) {
+    inferredRole = 'pilgrim';
+  }
 
   if (!isSupabaseConfigured()) {
     const localUsers = getStoredLocalUsers();
