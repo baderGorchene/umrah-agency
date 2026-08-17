@@ -71,7 +71,6 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
   const [formData, setFormData] = useState({
     nameArabic: "",
     nameLatin: "",
-    phone: "",
     passportNumber: "",
     birthDate: "",
     paidAmount: "",
@@ -132,13 +131,12 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nameArabic.trim() || !formData.phone.trim()) return;
+    if (!formData.nameArabic.trim()) return;
 
     const selectedTrip = trips.find((t) => t.id === formData.tripId);
     onAddPilgrim({
       nameArabic: formData.nameArabic,
       nameLatin: formData.nameLatin,
-      phone: formData.phone,
       passportNumber: formData.passportNumber,
       birthDate: formData.birthDate || undefined,
       paidAmount: formData.paidAmount !== "" ? Number(formData.paidAmount) : 0,
@@ -156,7 +154,6 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
     setFormData({
       nameArabic: "",
       nameLatin: "",
-      phone: "",
       passportNumber: "",
       birthDate: "",
       paidAmount: "",
@@ -193,7 +190,6 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
       p.nameArabic.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.nameLatin &&
         p.nameLatin.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      p.phone.includes(searchQuery) ||
       p.uniqueCode.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesTrip =
@@ -333,9 +329,11 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                             <p className="font-bold text-slate-900 text-sm dir-rtl">
                               {p.nameArabic}
                             </p>
-                            <p className="text-[11px] text-slate-500 font-mono">
-                              {p.phone}
-                            </p>
+                            {p.nameLatin && (
+                              <p className="text-[11px] text-slate-500 font-sans">
+                                {p.nameLatin}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </td>
@@ -557,22 +555,6 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {t("pilgrims.form_phone")}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    placeholder="99048168"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1 text-start">
-                  <label className="text-xs font-semibold text-slate-700">
                     {t("pilgrims.form_birthdate")}
                   </label>
                   <input
@@ -587,24 +569,24 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-1 text-start">
-                <label className="text-xs font-semibold text-slate-700">
-                  {t("pilgrims.form_passport")}
-                </label>
-                <input
-                  type="text"
-                  value={formData.passportNumber}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      passportNumber: e.target.value,
-                    })
-                  }
-                  placeholder="N2891048"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
-                />
+                <div className="space-y-1 text-start">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {t("pilgrims.form_passport")}
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.passportNumber}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        passportNumber: e.target.value,
+                      })
+                    }
+                    placeholder="N2891048"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -785,23 +767,6 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1 text-start">
                   <label className="text-xs font-semibold text-slate-700">
-                    {t("pilgrims.form_phone")}
-                  </label>
-                  <input
-                    type="text"
-                    value={editingPilgrim.phone}
-                    onChange={(e) =>
-                      setEditingPilgrim({
-                        ...editingPilgrim,
-                        phone: e.target.value,
-                      })
-                    }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
-                  />
-                </div>
-
-                <div className="space-y-1 text-start">
-                  <label className="text-xs font-semibold text-slate-700">
                     {t("pilgrims.form_birthdate")}
                   </label>
                   <input
@@ -816,24 +781,24 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-1 text-start">
-                <label className="text-xs font-semibold text-slate-700">
-                  {t("pilgrims.form_passport")}
-                </label>
-                <input
-                  type="text"
-                  value={editingPilgrim.passportNumber || ""}
-                  onChange={(e) =>
-                    setEditingPilgrim({
-                      ...editingPilgrim,
-                      passportNumber: e.target.value,
-                    })
-                  }
-                  placeholder="N2891048"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
-                />
+                <div className="space-y-1 text-start">
+                  <label className="text-xs font-semibold text-slate-700">
+                    {t("pilgrims.form_passport")}
+                  </label>
+                  <input
+                    type="text"
+                    value={editingPilgrim.passportNumber || ""}
+                    onChange={(e) =>
+                      setEditingPilgrim({
+                        ...editingPilgrim,
+                        passportNumber: e.target.value,
+                      })
+                    }
+                    placeholder="N2891048"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

@@ -567,7 +567,6 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
         transferringEntry.fullNameLatin !== "—"
           ? transferringEntry.fullNameLatin
           : undefined,
-      phone: "98000000",
       passportNumber: transferringEntry.passportNumber,
       birthDate: transferringEntry.birthDate,
       gender: transferringEntry.gender as "M" | "F",

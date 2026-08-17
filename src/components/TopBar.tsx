@@ -43,7 +43,6 @@ export const TopBar: React.FC<TopBarProps> = ({
           p.nameArabic.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (p.nameLatin &&
             p.nameLatin.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          p.phone.includes(searchQuery) ||
           p.uniqueCode.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : [];

@@ -99,7 +99,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
     pilgrimId: "",
     pilgrimName: "انوار زقاب",
     pilgrimNameLatin: "",
-    phone: "",
     passportNumber: "",
     tripName: "",
     uniqueCode: "",
@@ -150,7 +149,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       (p) =>
         p.nameArabic.toLowerCase().includes(q) ||
         (p.nameLatin && p.nameLatin.toLowerCase().includes(q)) ||
-        p.phone.includes(q) ||
         (p.passportNumber && p.passportNumber.toLowerCase().includes(q)) ||
         p.uniqueCode.toLowerCase().includes(q),
     );
@@ -168,7 +166,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
       pilgrimId: p.id,
       pilgrimName: p.nameArabic || p.nameLatin || "معتمر",
       pilgrimNameLatin: p.nameLatin || "",
-      phone: p.phone || "",
       passportNumber: p.passportNumber || "",
       tripName: p.tripName || selectedTrip?.name || "—",
       uniqueCode: p.uniqueCode || "",
@@ -320,7 +317,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
     const headers = [
       "Nom (Arabe)",
       "Nom (Latin)",
-      "Téléphone",
       "Code unique",
       "Statut",
       "Passeport",
@@ -328,7 +324,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
     const rows = tripPilgrims.map((p) => [
       p.nameArabic,
       p.nameLatin || "",
-      p.phone,
       p.uniqueCode,
       p.status,
       p.passportNumber || "",
@@ -716,7 +711,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                     <th className="p-2 border-r border-slate-200">
                       {t("pilgrims.table_header_pilgrim")}
                     </th>
-                    <th className="p-2 border-r border-slate-200">Téléphone</th>
                     <th className="p-2 border-r border-slate-200">Passeport</th>
                     <th className="p-2 border-r border-slate-200 text-center">
                       Code Unique
@@ -734,9 +728,6 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       </td>
                       <td className="p-2 border-r border-slate-200 font-bold dir-rtl">
                         {p.nameArabic}
-                      </td>
-                      <td className="p-2 border-r border-slate-200 font-mono">
-                        {p.phone}
                       </td>
                       <td className="p-2 border-r border-slate-200 font-mono">
                         {p.passportNumber || "N2891048"}
@@ -851,9 +842,9 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                           )}
                         </p>
                         <p className="text-[11px] text-slate-500 font-mono">
-                          {receiptForm.phone}{" "}
-                          {receiptForm.passportNumber &&
-                            `• Pass: ${receiptForm.passportNumber}`}
+                          {receiptForm.passportNumber
+                            ? `Pass: ${receiptForm.passportNumber}`
+                            : receiptForm.tripName || "—"}
                         </p>
                       </div>
                     </div>
@@ -903,7 +894,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                                 )}
                               </p>
                               <p className="text-[10px] text-slate-500 font-mono">
-                                {p.phone} • {p.tripName || "—"}
+                                {p.passportNumber ? `${p.passportNumber} • ` : ""}{p.tripName || "—"}
                               </p>
                             </div>
                             <div className="text-end font-mono text-[10px]">
@@ -1142,8 +1133,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   )}
                 </div>
                 <div>
-                  <span className="font-semibold text-slate-500">الهاتف / Tél :</span>{" "}
-                  <span className="font-bold">{receiptForm.phone || "—"}</span>
+                  <span className="font-semibold text-slate-500">الرمز الفريد / Code :</span>{" "}
+                  <span className="font-mono font-bold">{receiptForm.uniqueCode || "—"}</span>
                 </div>
                 <div>
                   <span className="font-semibold text-slate-500">جواز السفر / N° Pass :</span>{" "}

@@ -56,7 +56,6 @@ export interface Pilgrim {
   id: string;
   nameArabic: string;
   nameLatin?: string;
-  phone: string;
   tripId: string;
   tripName: string;
   uniqueCode: string;

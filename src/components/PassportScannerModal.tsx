@@ -79,7 +79,6 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   const [selectedTripId, setSelectedTripId] = useState<string>(
     trips[0]?.id || "",
   );
-  const [phoneInput, setPhoneInput] = useState<string>("98123456");
 
   const [currentStep, setCurrentStep] = useState<number>(1); // 1: upload/extract, 2: crop/upload, 3: assign/save
   const [pendingDocument, setPendingDocument] =
@@ -398,7 +397,6 @@ Attention particulière pour les passeports tunisiens:
     const newPilgrim = {
       nameArabic: extractedData.fullNameArabic || fullNameLatin || "معتمر جديد",
       nameLatin: fullNameLatin || undefined,
-      phone: phoneInput || "98000000",
       passportNumber: extractedData.passportNumber,
       birthDate: normalizeBirthDate(extractedData.dateOfBirth),
       tripId: safeTripId,
@@ -886,37 +884,22 @@ Attention particulière pour les passeports tunisiens:
                   />
                 </div>
 
-                {/* Assign to Trip & Phone */}
-                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 bg-amber-50/50 border border-amber-200/80 p-4 rounded-xl mt-2">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-800">
-                      {t("scanner.trip_to_assign")}
-                    </label>
-                    <select
-                      value={selectedTripId}
-                      onChange={(e) => setSelectedTripId(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none"
-                    >
-                      {trips.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-800">
-                      {t("scanner.phone_tunisia")}
-                    </label>
-                    <input
-                      type="text"
-                      value={phoneInput}
-                      onChange={(e) => setPhoneInput(e.target.value)}
-                      placeholder="98123456"
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-mono focus:outline-none"
-                    />
-                  </div>
+                {/* Assign to Trip */}
+                <div className="md:col-span-2 bg-amber-50/50 border border-amber-200/80 p-4 rounded-xl mt-2 space-y-1">
+                  <label className="font-bold text-slate-800">
+                    {t("scanner.trip_to_assign")}
+                  </label>
+                  <select
+                    value={selectedTripId}
+                    onChange={(e) => setSelectedTripId(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-slate-900 font-semibold focus:outline-none"
+                  >
+                    {trips.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
