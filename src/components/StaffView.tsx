@@ -257,7 +257,10 @@ export const StaffView: React.FC<StaffViewProps> = ({
                         </div>
                       </td>
 
-                      <td className="py-4 px-6 font-mono font-medium text-slate-700 text-start">
+                      <td
+                        className="py-4 px-6 font-mono font-medium text-slate-700 text-left"
+                        dir="ltr"
+                      >
                         {s.whatsapp}
                       </td>
 
