@@ -23,7 +23,6 @@ import {
   User,
   Users,
   Clock,
-  Info,
 } from "lucide-react";
 import {
   Language,
@@ -256,7 +255,9 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
       const extracted = JSON.parse(response.text || "{}");
 
       if (!extracted.passportNumber) {
-        throw new Error("Numéro de passeport introuvable dans le document analysé.");
+        throw new Error(
+          "Numéro de passeport introuvable dans le document analysé.",
+        );
       }
 
       let resolvedLatinName = extracted.fullNameLatin || "";
@@ -339,7 +340,9 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
     const isImage = file.type.startsWith("image/");
     const isPdf = file.type === "application/pdf";
     if (!isImage && !isPdf) {
-      setScanError("Veuillez sélectionner une image (JPG, PNG, WEBP) ou un fichier PDF.");
+      setScanError(
+        "Veuillez sélectionner une image (JPG, PNG, WEBP) ou un fichier PDF.",
+      );
       return;
     }
     setScanFile(file);
@@ -1357,7 +1360,9 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
                     {t("passports.table_headers.gender")}
                   </p>
                   <p className="text-xs font-bold text-slate-900">
-                    {inspectingEntry.gender === "F" ? t("scanner.female") : t("scanner.male")}
+                    {inspectingEntry.gender === "F"
+                      ? t("scanner.female")
+                      : t("scanner.male")}
                   </p>
                 </div>
 

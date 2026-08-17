@@ -1,8 +1,9 @@
 import React, { useState, useRef } from "react";
 import { Plus, Eye, EyeOff, Edit, Trash2, Camera, Upload } from "lucide-react";
 import { Language, Staff, Trip, DEFAULT_AVATAR_URL } from "../types";
-import { uploadAvatarToStorage } from "../services/documentsService";
 import { useTranslation } from "react-i18next";
+import { uploadAvatarToStorage } from "../services/documentsService";
+import { normalizePhone } from "../services/staffService";
 
 interface StaffViewProps {
   lang?: Language;
@@ -34,6 +35,19 @@ export const StaffView: React.FC<StaffViewProps> = ({
 
   const createAvatarInputRef = useRef<HTMLInputElement>(null);
   const editAvatarInputRef = useRef<HTMLInputElement>(null);
+  const [useForeignNumberCreate, setUseForeignNumberCreate] = useState(false);
+  const [useForeignNumberEdit, setUseForeignNumberEdit] = useState(false);
+
+  const TUNISIA_PREFIX = "+216";
+
+  // Strips the Tunisia prefix for display in the local-digits input.
+  // Returns the raw value unchanged if it's a non-Tunisia number.
+  const toLocalDigits = (value: string) => {
+    if (!value) return "";
+    if (value.startsWith(TUNISIA_PREFIX))
+      return value.slice(TUNISIA_PREFIX.length);
+    return value;
+  };
 
   const [formData, setFormData] = useState({
     nameArabic: "",
@@ -85,14 +99,17 @@ export const StaffView: React.FC<StaffViewProps> = ({
     if (!formData.nameArabic.trim()) return;
 
     const selectedTrip = trips.find((t) => t.id === formData.tripId);
+    const normalizedWhatsapp = useForeignNumberCreate
+      ? normalizePhone(formData.whatsapp)
+      : `${TUNISIA_PREFIX}${formData.whatsapp}`;
+    const normalizedPhone =
+      normalizePhone(formData.phone) || normalizedWhatsapp;
 
     onAddStaff({
       nameArabic: formData.nameArabic,
       nameLatin: formData.nameLatin,
-      phone: formData.phone || formData.whatsapp,
-      whatsapp: formData.whatsapp.startsWith("+")
-        ? formData.whatsapp
-        : `+216${formData.whatsapp}`,
+      phone: normalizedPhone,
+      whatsapp: normalizedWhatsapp,
       role: formData.role,
       uniqueCode: generateUniqueCode(),
       tripId: formData.tripId,
@@ -101,6 +118,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
     });
 
     setIsAddModalOpen(false);
+    setUseForeignNumberCreate(false);
     setFormData({
       nameArabic: "",
       nameLatin: "",
@@ -116,8 +134,14 @@ export const StaffView: React.FC<StaffViewProps> = ({
     e.preventDefault();
     if (!editingStaff) return;
     const selectedTrip = trips.find((t) => t.id === editingStaff.tripId);
+    const normalizedWhatsapp = useForeignNumberEdit
+      ? normalizePhone(editingStaff.whatsapp)
+      : `${TUNISIA_PREFIX}${editingStaff.whatsapp}`;
+
     onEditStaff({
       ...editingStaff,
+      whatsapp: normalizedWhatsapp,
+      phone: normalizePhone(editingStaff.phone) || normalizedWhatsapp,
       tripName: selectedTrip
         ? selectedTrip.name
         : editingStaff.tripId
@@ -125,6 +149,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
           : "—",
     });
     setEditingStaff(null);
+    setUseForeignNumberEdit(false);
   };
 
   const getRoleLabel = (role: Staff["role"]) => {
@@ -247,7 +272,11 @@ export const StaffView: React.FC<StaffViewProps> = ({
                           <span>{codeDisplay}</span>
                           <button
                             onClick={() => toggleRevealCode(s.id)}
-                            title={isRevealed ? t("staff.reveal.hide") : t("staff.reveal.show")}
+                            title={
+                              isRevealed
+                                ? t("staff.reveal.hide")
+                                : t("staff.reveal.show")
+                            }
                             className="text-slate-400 hover:text-slate-700 p-0.5"
                           >
                             {isRevealed ? (
@@ -266,7 +295,12 @@ export const StaffView: React.FC<StaffViewProps> = ({
                       <td className="py-4 px-6 text-end">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => setEditingStaff(s)}
+                            onClick={() => {
+                              setEditingStaff(s);
+                              setUseForeignNumberEdit(
+                                !s.whatsapp.startsWith(TUNISIA_PREFIX),
+                              );
+                            }}
                             title={t("buttons.edit")}
                             className="p-1.5 text-slate-400 hover:text-black hover:bg-slate-100 rounded-lg transition-all"
                           >
@@ -372,18 +406,53 @@ export const StaffView: React.FC<StaffViewProps> = ({
                 <label className="text-xs font-semibold text-slate-700">
                   {t("staff.form.whatsapp")}
                 </label>
-                <input
-                  type="text"
-                  value={formData.whatsapp}
-                  onChange={(e) =>
-                    setFormData({ ...formData, whatsapp: e.target.value })
-                  }
-                  placeholder="+21625800884"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
-                  required
-                />
-              </div>
 
+                {useForeignNumberCreate ? (
+                  <input
+                    type="text"
+                    value={formData.whatsapp}
+                    onChange={(e) =>
+                      setFormData({ ...formData, whatsapp: e.target.value })
+                    }
+                    placeholder="+33612345678"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
+                    required
+                  />
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="shrink-0 px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-600 select-none">
+                      {TUNISIA_PREFIX}
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={formData.whatsapp}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          whatsapp: e.target.value.replace(/\D/g, ""),
+                        })
+                      }
+                      placeholder="25800884"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
+                      required
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUseForeignNumberCreate((prev) => !prev);
+                    setFormData({ ...formData, whatsapp: "" });
+                  }}
+                  className="text-[11px] text-slate-400 hover:text-slate-700 font-medium cursor-pointer"
+                >
+                  {useForeignNumberCreate
+                    ? t("staff.form.use_tunisia_number")
+                    : t("staff.form.use_foreign_number")}
+                </button>
+              </div>
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">
                   {t("staff.form.role")}
@@ -401,12 +470,8 @@ export const StaffView: React.FC<StaffViewProps> = ({
                   <option value="رئيس مجموعة">
                     {t("staff.roles.group_leader")}
                   </option>
-                  <option value="شيخ">
-                    {t("staff.roles.sheikh")}
-                  </option>
-                  <option value="مرافق(ة)">
-                    {t("staff.roles.guide")}
-                  </option>
+                  <option value="شيخ">{t("staff.roles.sheikh")}</option>
+                  <option value="مرافق(ة)">{t("staff.roles.guide")}</option>
                 </select>
               </div>
 
@@ -546,12 +611,8 @@ export const StaffView: React.FC<StaffViewProps> = ({
                   <option value="رئيس مجموعة">
                     {t("staff.roles.group_leader")}
                   </option>
-                  <option value="شيخ">
-                    {t("staff.roles.sheikh")}
-                  </option>
-                  <option value="مرافق(ة)">
-                    {t("staff.roles.guide")}
-                  </option>
+                  <option value="شيخ">{t("staff.roles.sheikh")}</option>
+                  <option value="مرافق(ة)">{t("staff.roles.guide")}</option>
                 </select>
               </div>
 
@@ -573,6 +634,59 @@ export const StaffView: React.FC<StaffViewProps> = ({
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">
+                  {t("staff.form.whatsapp")}
+                </label>
+
+                {useForeignNumberEdit ? (
+                  <input
+                    type="text"
+                    value={editingStaff.whatsapp}
+                    onChange={(e) =>
+                      setEditingStaff({
+                        ...editingStaff,
+                        whatsapp: e.target.value,
+                      })
+                    }
+                    placeholder="+33612345678"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
+                  />
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="shrink-0 px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-600 select-none">
+                      {TUNISIA_PREFIX}
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={toLocalDigits(editingStaff.whatsapp)}
+                      onChange={(e) =>
+                        setEditingStaff({
+                          ...editingStaff,
+                          whatsapp: e.target.value.replace(/\D/g, ""),
+                        })
+                      }
+                      placeholder="25800884"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUseForeignNumberEdit((prev) => !prev);
+                    setEditingStaff({ ...editingStaff, whatsapp: "" });
+                  }}
+                  className="text-[11px] text-slate-400 hover:text-slate-700 font-medium cursor-pointer"
+                >
+                  {useForeignNumberEdit
+                    ? t("staff.form.use_tunisia_number")
+                    : t("staff.form.use_foreign_number")}
+                </button>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">

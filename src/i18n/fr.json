@@ -263,7 +263,9 @@
       "name_ar": "Nom et Prénom (Arabe) *",
       "whatsapp": "Numéro WhatsApp (Tunisie) *",
       "role": "Rôle *",
-      "assigned_trip": "Voyage Assigné (Optionnel)"
+      "assigned_trip": "Voyage Assigné (Optionnel)",
+      "use_foreign_number": "Use a foreign number",
+      "use_tunisia_number": "Use a Tunisia number"
     },
     "avatar": {
       "change": "Changer",
