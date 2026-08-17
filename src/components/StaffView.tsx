@@ -410,22 +410,24 @@ export const StaffView: React.FC<StaffViewProps> = ({
                 {useForeignNumberCreate ? (
                   <input
                     type="text"
+                    dir="ltr"
                     value={formData.whatsapp}
                     onChange={(e) =>
                       setFormData({ ...formData, whatsapp: e.target.value })
                     }
                     placeholder="+33612345678"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-left"
                     required
                   />
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div dir="ltr" className="flex items-center gap-2">
                     <span className="shrink-0 px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-600 select-none">
                       {TUNISIA_PREFIX}
                     </span>
                     <input
                       type="text"
                       inputMode="numeric"
+                      dir="ltr"
                       value={formData.whatsapp}
                       onChange={(e) =>
                         setFormData({
@@ -434,7 +436,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
                         })
                       }
                       placeholder="25800884"
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-left"
                       required
                     />
                   </div>
@@ -618,32 +620,13 @@ export const StaffView: React.FC<StaffViewProps> = ({
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">
-                  {t("staff.form.assigned_trip")}
-                </label>
-                <select
-                  value={editingStaff.tripId || ""}
-                  onChange={(e) =>
-                    setEditingStaff({ ...editingStaff, tripId: e.target.value })
-                  }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
-                >
-                  <option value="">{t("misc.none")}</option>
-                  {trips.map((tItem) => (
-                    <option key={tItem.id} value={tItem.id}>
-                      {tItem.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">
                   {t("staff.form.whatsapp")}
                 </label>
 
                 {useForeignNumberEdit ? (
                   <input
                     type="text"
+                    dir="ltr"
                     value={editingStaff.whatsapp}
                     onChange={(e) =>
                       setEditingStaff({
@@ -652,16 +635,17 @@ export const StaffView: React.FC<StaffViewProps> = ({
                       })
                     }
                     placeholder="+33612345678"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-left"
                   />
                 ) : (
-                  <div className="flex items-center gap-2">
+                  <div dir="ltr" className="flex items-center gap-2">
                     <span className="shrink-0 px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-600 select-none">
                       {TUNISIA_PREFIX}
                     </span>
                     <input
                       type="text"
                       inputMode="numeric"
+                      dir="ltr"
                       value={toLocalDigits(editingStaff.whatsapp)}
                       onChange={(e) =>
                         setEditingStaff({
@@ -670,7 +654,7 @@ export const StaffView: React.FC<StaffViewProps> = ({
                         })
                       }
                       placeholder="25800884"
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-left"
                     />
                   </div>
                 )}
