@@ -407,7 +407,10 @@
     "form_avatar_change": "Changer",
     "form_avatar_upload_optional": "Changer la photo de profil (Optionnel)",
     "form_avatar_uploading": "Téléversement...",
-    "view_qr": "Voir le Pass QR"
+    "view_qr": "Voir le Pass QR",
+    "passport_already_exists": "Un pèlerin avec le numéro de passeport ({{passport}}) existe déjà !",
+    "passport_exists_short": "Ce passeport existe déjà",
+    "error_duplicate_passport": "Ce numéro de passeport est déjà attribué à un autre pèlerin."
   },
   "trips": {
     "title": "Gestion des Voyages",

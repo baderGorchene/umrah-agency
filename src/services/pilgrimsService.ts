@@ -110,12 +110,119 @@ export const getPilgrims = async (trips: Trip[] = []): Promise<Pilgrim[]> => {
   }
 };
 
+export const checkPilgrimPassportExists = async (
+  passportNumber?: string | null,
+  excludeId?: string,
+): Promise<{
+  exists: boolean;
+  existingPilgrim?: {
+    id: string;
+    nameArabic?: string;
+    nameLatin?: string;
+    passportNumber?: string;
+  } | null;
+}> => {
+  if (!passportNumber || !passportNumber.trim()) {
+    return { exists: false, existingPilgrim: null };
+  }
+
+  const normalized = passportNumber.trim().toUpperCase();
+
+  if (isSupabaseConfigured()) {
+    try {
+      let query = supabase
+        .from("pilgrims")
+        .select("id, passport_number, name_arabic, name_latin")
+        .ilike("passport_number", normalized);
+
+      if (excludeId) {
+        query = query.neq("id", excludeId);
+      }
+
+      const { data, error } = await query.limit(1).maybeSingle();
+      if (!error && data) {
+        return {
+          exists: true,
+          existingPilgrim: {
+            id: data.id,
+            nameArabic: data.name_arabic,
+            nameLatin: data.name_latin,
+            passportNumber: data.passport_number,
+          },
+        };
+      }
+    } catch (err) {
+      console.warn("Error checking passport existence in Supabase:", err);
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("umrah_pilgrims_registry");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const match = parsed.find(
+            (p: any) =>
+              (excludeId ? p.id !== excludeId : true) &&
+              p.passportNumber &&
+              p.passportNumber.trim().toUpperCase() === normalized,
+          );
+          if (match) {
+            return {
+              exists: true,
+              existingPilgrim: {
+                id: match.id,
+                nameArabic: match.nameArabic,
+                nameLatin: match.nameLatin,
+                passportNumber: match.passportNumber,
+              },
+            };
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Error checking passport in localStorage:", e);
+    }
+  }
+
+  return { exists: false, existingPilgrim: null };
+};
+
 export const createPilgrim = async (
   pilgrimData: Omit<Pilgrim, "id">,
   trips: Trip[] = [],
 ): Promise<Pilgrim | null> => {
+  const normalizedPassport = pilgrimData.passportNumber?.trim().toUpperCase();
+
+  // Guard: Check if pilgrim with this passport_number already exists
+  if (normalizedPassport) {
+    const check = await checkPilgrimPassportExists(normalizedPassport);
+    if (check.exists) {
+      console.warn(
+        `[pilgrimsService] Pilgrim with passport "${normalizedPassport}" already exists. Creation prevented.`,
+      );
+      return null;
+    }
+  }
+
   if (!isSupabaseConfigured()) {
-    return { ...pilgrimData, id: `pilgrim-${Date.now()}` };
+    const newPilgrim = {
+      ...pilgrimData,
+      passportNumber: normalizedPassport || pilgrimData.passportNumber,
+      id: `pilgrim-${Date.now()}`,
+    };
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("umrah_pilgrims_registry");
+        const list = saved ? JSON.parse(saved) : [];
+        if (Array.isArray(list)) {
+          list.unshift(newPilgrim);
+          localStorage.setItem("umrah_pilgrims_registry", JSON.stringify(list));
+        }
+      } catch (e) {}
+    }
+    return newPilgrim;
   }
 
   try {
@@ -134,7 +241,7 @@ export const createPilgrim = async (
         ? pilgrimData.uniqueCode.trim().toUpperCase()
         : null,
       status: pilgrimData.status,
-      passport_number: pilgrimData.passportNumber,
+      passport_number: normalizedPassport || pilgrimData.passportNumber,
       avatar_url: pilgrimData.avatarUrl,
       emergency_contact: pilgrimData.emergencyContact,
       gender: pilgrimData.gender,
@@ -148,7 +255,20 @@ export const createPilgrim = async (
       .insert([payload])
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      if (
+        error.code === "23505" ||
+        error.message?.toLowerCase().includes("duplicate") ||
+        error.message?.toLowerCase().includes("passport")
+      ) {
+        console.warn(
+          "[pilgrimsService] Duplicate passport_number constraint triggered:",
+          error,
+        );
+        return null;
+      }
+      throw error;
+    }
     if (!data) return null;
 
     const tripsMap = new Map(trips.map((t) => [t.id, t.name]));

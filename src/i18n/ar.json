@@ -407,7 +407,10 @@
     "form_avatar_change": "تغيير",
     "form_avatar_upload_optional": "تغيير الصورة الشخصية (اختياري)",
     "form_avatar_uploading": "جاري الرفع...",
-    "view_qr": "عرض بطاقة QR"
+    "view_qr": "عرض بطاقة QR",
+    "passport_already_exists": "يوجد معتمر مسجل مسبقاً برقم جواز السفر ({{passport}})!",
+    "passport_exists_short": "رقم الجواز مسجل مسبقاً",
+    "error_duplicate_passport": "رقم جواز السفر هذا مستخدم بالفعل لمعتمر آخر."
   },
   "trips": {
     "title": "إدارة الرحلات",

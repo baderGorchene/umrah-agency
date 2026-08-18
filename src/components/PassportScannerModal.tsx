@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
 import { uploadPassportToStorage } from "../services/documentsService";
+import { checkPilgrimPassportExists } from "../services/pilgrimsService";
 import { GoogleGenAI, Type } from "@google/genai";
 import { useTranslation } from "react-i18next";
 
@@ -383,6 +384,17 @@ Attention particulière pour les passeports tunisiens:
   const handleSavePilgrim = async () => {
     if (!extractedData) return;
 
+    const normalizedPassport = extractedData.passportNumber?.trim().toUpperCase();
+    if (normalizedPassport) {
+      const check = await checkPilgrimPassportExists(normalizedPassport);
+      if (check.exists) {
+        setError(
+          `Ce numéro de passeport (${normalizedPassport}) existe déjà dans la base de données !`,
+        );
+        return;
+      }
+    }
+
     const selectedTrip = trips.find((t) => t.id === selectedTripId);
     const fullNameLatin =
       `${extractedData.givenNamesLatin || ""} ${extractedData.surnameLatin || ""}`.trim();
@@ -397,7 +409,7 @@ Attention particulière pour les passeports tunisiens:
     const newPilgrim = {
       nameArabic: extractedData.fullNameArabic || fullNameLatin || "معتمر جديد",
       nameLatin: fullNameLatin || undefined,
-      passportNumber: extractedData.passportNumber,
+      passportNumber: normalizedPassport || extractedData.passportNumber,
       birthDate: normalizeBirthDate(extractedData.dateOfBirth),
       tripId: safeTripId,
       tripName: selectedTrip ? selectedTrip.name : "—",

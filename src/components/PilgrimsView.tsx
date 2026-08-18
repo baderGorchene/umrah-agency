@@ -11,12 +11,14 @@ import {
   Camera,
   Upload,
   QrCode,
+  AlertCircle,
 } from "lucide-react";
 import { Language, Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
 import { PassportScannerModal } from "./PassportScannerModal";
 import { StatusBadge } from "./StatusBadge";
 import { QRPassModal } from "./QRPassModal";
 import { uploadAvatarToStorage } from "../services/documentsService";
+import { checkPilgrimPassportExists } from "../services/pilgrimsService";
 import { useTranslation } from "react-i18next";
 
 interface PilgrimsViewProps {
@@ -67,6 +69,23 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const createAvatarInputRef = useRef<HTMLInputElement>(null);
   const editAvatarInputRef = useRef<HTMLInputElement>(null);
+
+  // Validation / Error states
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isCheckingPassport, setIsCheckingPassport] = useState(false);
+  const [toastMessage, setToastMessage] = useState<{
+    text: string;
+    type: "warning" | "error" | "success";
+  } | null>(null);
+
+  const showToast = (
+    text: string,
+    type: "warning" | "error" | "success" = "warning",
+  ) => {
+    setToastMessage({ text, type });
+    setTimeout(() => setToastMessage(null), 5000);
+  };
 
   const [formData, setFormData] = useState({
     nameArabic: "",
@@ -129,15 +148,59 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
     return res;
   };
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setCreateError(null);
     if (!formData.nameArabic.trim()) return;
+
+    const trimmedPassport = formData.passportNumber.trim().toUpperCase();
+
+    // 1. Guard against duplicate passport_number in state
+    if (trimmedPassport) {
+      const existingInState = pilgrims.find(
+        (p) =>
+          p.passportNumber &&
+          p.passportNumber.trim().toUpperCase() === trimmedPassport,
+      );
+      if (existingInState) {
+        setCreateError(
+          t("pilgrims.passport_already_exists", {
+            passport: trimmedPassport,
+            defaultValue: `Le numéro de passeport (${trimmedPassport}) existe déjà pour le pèlerin "${existingInState.nameArabic}" !`,
+          }),
+        );
+        return;
+      }
+
+      // 2. Guard against duplicate passport_number in Database / Registry
+      setIsCheckingPassport(true);
+      try {
+        const check = await checkPilgrimPassportExists(trimmedPassport);
+        if (check.exists) {
+          const name = check.existingPilgrim?.nameArabic
+            ? ` "${check.existingPilgrim.nameArabic}"`
+            : "";
+          setCreateError(
+            t("pilgrims.passport_already_exists", {
+              passport: trimmedPassport,
+              defaultValue: `Le numéro de passeport (${trimmedPassport}) existe déjà pour le pèlerin${name} !`,
+            }),
+          );
+          setIsCheckingPassport(false);
+          return;
+        }
+      } catch (err) {
+        console.warn("Passport check error:", err);
+      } finally {
+        setIsCheckingPassport(false);
+      }
+    }
 
     const selectedTrip = trips.find((t) => t.id === formData.tripId);
     onAddPilgrim({
       nameArabic: formData.nameArabic,
       nameLatin: formData.nameLatin,
-      passportNumber: formData.passportNumber,
+      passportNumber: trimmedPassport || formData.passportNumber,
       birthDate: formData.birthDate || undefined,
       paidAmount: formData.paidAmount !== "" ? Number(formData.paidAmount) : 0,
       unpaidAmount:
@@ -151,6 +214,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
     });
 
     setIsAddModalOpen(false);
+    setCreateError(null);
     setFormData({
       nameArabic: "",
       nameLatin: "",
@@ -165,12 +229,62 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
     });
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPilgrim) return;
+    setEditError(null);
+
+    const trimmedPassport = editingPilgrim.passportNumber?.trim().toUpperCase();
+
+    if (trimmedPassport) {
+      // Check in state
+      const existingInState = pilgrims.find(
+        (p) =>
+          p.id !== editingPilgrim.id &&
+          p.passportNumber &&
+          p.passportNumber.trim().toUpperCase() === trimmedPassport,
+      );
+      if (existingInState) {
+        setEditError(
+          t("pilgrims.passport_already_exists", {
+            passport: trimmedPassport,
+            defaultValue: `Le numéro de passeport (${trimmedPassport}) existe déjà pour le pèlerin "${existingInState.nameArabic}" !`,
+          }),
+        );
+        return;
+      }
+
+      // Check in DB
+      setIsCheckingPassport(true);
+      try {
+        const check = await checkPilgrimPassportExists(
+          trimmedPassport,
+          editingPilgrim.id,
+        );
+        if (check.exists) {
+          const name = check.existingPilgrim?.nameArabic
+            ? ` "${check.existingPilgrim.nameArabic}"`
+            : "";
+          setEditError(
+            t("pilgrims.passport_already_exists", {
+              passport: trimmedPassport,
+              defaultValue: `Le numéro de passeport (${trimmedPassport}) existe déjà pour le pèlerin${name} !`,
+            }),
+          );
+          setIsCheckingPassport(false);
+          return;
+        }
+      } catch (err) {
+        console.warn("Passport check error on edit:", err);
+      } finally {
+        setIsCheckingPassport(false);
+      }
+    }
+
     const selectedTrip = trips.find((t) => t.id === editingPilgrim.tripId);
     onEditPilgrim({
       ...editingPilgrim,
+      passportNumber: trimmedPassport || editingPilgrim.passportNumber,
       tripName: selectedTrip ? selectedTrip.name : editingPilgrim.tripName,
       paidAmount:
         editingPilgrim.paidAmount != null
@@ -182,6 +296,53 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
           : 0,
     });
     setEditingPilgrim(null);
+    setEditError(null);
+  };
+
+  const handleImportFromScanner = async (
+    newPilgrim: Omit<Pilgrim, "id">,
+    pendingDocument?: {
+      filePath: string;
+      fileUrl?: string;
+      mimeType?: string;
+      fileName?: string;
+    },
+  ) => {
+    const trimmedPassport = newPilgrim.passportNumber?.trim().toUpperCase();
+    if (trimmedPassport) {
+      const existingInState = pilgrims.find(
+        (p) =>
+          p.passportNumber &&
+          p.passportNumber.trim().toUpperCase() === trimmedPassport,
+      );
+      if (existingInState) {
+        showToast(
+          t("pilgrims.passport_already_exists", {
+            passport: trimmedPassport,
+            defaultValue: `Le numéro de passeport (${trimmedPassport}) existe déjà pour le pèlerin "${existingInState.nameArabic}" !`,
+          }),
+          "warning",
+        );
+        return;
+      }
+
+      const check = await checkPilgrimPassportExists(trimmedPassport);
+      if (check.exists) {
+        const name = check.existingPilgrim?.nameArabic
+          ? ` "${check.existingPilgrim.nameArabic}"`
+          : "";
+        showToast(
+          t("pilgrims.passport_already_exists", {
+            passport: trimmedPassport,
+            defaultValue: `Le numéro de passeport (${trimmedPassport}) existe déjà pour le pèlerin${name} !`,
+          }),
+          "warning",
+        );
+        return;
+      }
+    }
+
+    onAddPilgrim(newPilgrim, pendingDocument);
   };
 
   // Filtered List
@@ -190,7 +351,9 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
       p.nameArabic.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (p.nameLatin &&
         p.nameLatin.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      p.uniqueCode.toLowerCase().includes(searchQuery.toLowerCase());
+      p.uniqueCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.passportNumber &&
+        p.passportNumber.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesTrip =
       selectedTripFilter === "ALL" || p.tripId === selectedTripFilter;
@@ -468,12 +631,23 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                 {t("pilgrims.add_title")}
               </h2>
               <button
-                onClick={() => setIsAddModalOpen(false)}
+                onClick={() => {
+                  setIsAddModalOpen(false);
+                  setCreateError(null);
+                }}
                 className="text-slate-400 hover:text-slate-600 font-bold"
               >
                 ✕
               </button>
             </div>
+
+            {/* Error Message for Duplicate Passport */}
+            {createError && (
+              <div className="flex items-start gap-2.5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+                <span className="font-semibold">{createError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">
               {/* Photo de profil (Avatar Upload) */}
@@ -571,20 +745,48 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                 </div>
 
                 <div className="space-y-1 text-start">
-                  <label className="text-xs font-semibold text-slate-700">
-                    {t("pilgrims.form_passport")}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700">
+                      {t("pilgrims.form_passport")}
+                    </label>
+                    {formData.passportNumber.trim() &&
+                      pilgrims.some(
+                        (p) =>
+                          p.passportNumber &&
+                          p.passportNumber.trim().toUpperCase() ===
+                            formData.passportNumber.trim().toUpperCase(),
+                      ) && (
+                        <span className="text-[10px] text-red-600 font-bold flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {t("pilgrims.passport_exists_short", {
+                            defaultValue: "Existe déjà",
+                          })}
+                        </span>
+                      )}
+                  </div>
                   <input
                     type="text"
                     value={formData.passportNumber}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setFormData({
                         ...formData,
                         passportNumber: e.target.value,
-                      })
-                    }
+                      });
+                      if (createError) setCreateError(null);
+                    }}
                     placeholder="N2891048"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                    className={`w-full bg-slate-50 border rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 ${
+                      createError ||
+                      (formData.passportNumber.trim() &&
+                        pilgrims.some(
+                          (p) =>
+                            p.passportNumber &&
+                            p.passportNumber.trim().toUpperCase() ===
+                              formData.passportNumber.trim().toUpperCase(),
+                        ))
+                        ? "border-red-400 focus:ring-red-200 bg-red-50/20"
+                        : "border-slate-200 focus:ring-black/5"
+                    }`}
                   />
                 </div>
               </div>
@@ -650,16 +852,24 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
+                  onClick={() => {
+                    setIsAddModalOpen(false);
+                    setCreateError(null);
+                  }}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
                 >
                   {t("buttons.cancel")}
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 shadow-xs"
+                  disabled={isCheckingPassport}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {t("buttons.save")}
+                  {isCheckingPassport
+                    ? t("passports.processing", {
+                        defaultValue: "Vérification...",
+                      })
+                    : t("buttons.save")}
                 </button>
               </div>
             </form>
@@ -676,12 +886,23 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                 {t("pilgrims.edit_title")}
               </h2>
               <button
-                onClick={() => setEditingPilgrim(null)}
+                onClick={() => {
+                  setEditingPilgrim(null);
+                  setEditError(null);
+                }}
                 className="text-slate-400 font-bold"
               >
                 ✕
               </button>
             </div>
+
+            {/* Error Message for Duplicate Passport on Edit */}
+            {editError && (
+              <div className="flex items-start gap-2.5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+                <span className="font-semibold">{editError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleEditSubmit} className="space-y-4">
               {/* Photo de profil Avatar Edit */}
@@ -783,20 +1004,52 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
                 </div>
 
                 <div className="space-y-1 text-start">
-                  <label className="text-xs font-semibold text-slate-700">
-                    {t("pilgrims.form_passport")}
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700">
+                      {t("pilgrims.form_passport")}
+                    </label>
+                    {editingPilgrim.passportNumber?.trim() &&
+                      pilgrims.some(
+                        (p) =>
+                          p.id !== editingPilgrim.id &&
+                          p.passportNumber &&
+                          p.passportNumber.trim().toUpperCase() ===
+                            editingPilgrim.passportNumber?.trim().toUpperCase(),
+                      ) && (
+                        <span className="text-[10px] text-red-600 font-bold flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {t("pilgrims.passport_exists_short", {
+                            defaultValue: "Existe déjà",
+                          })}
+                        </span>
+                      )}
+                  </div>
                   <input
                     type="text"
                     value={editingPilgrim.passportNumber || ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
                       setEditingPilgrim({
                         ...editingPilgrim,
                         passportNumber: e.target.value,
-                      })
-                    }
+                      });
+                      if (editError) setEditError(null);
+                    }}
                     placeholder="N2891048"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 focus:ring-black/5"
+                    className={`w-full bg-slate-50 border rounded-xl px-3.5 py-2 text-xs text-start focus:outline-none focus:ring-2 ${
+                      editError ||
+                      (editingPilgrim.passportNumber?.trim() &&
+                        pilgrims.some(
+                          (p) =>
+                            p.id !== editingPilgrim.id &&
+                            p.passportNumber &&
+                            p.passportNumber.trim().toUpperCase() ===
+                              editingPilgrim.passportNumber
+                                ?.trim()
+                                .toUpperCase(),
+                        ))
+                        ? "border-red-400 focus:ring-red-200 bg-red-50/20"
+                        : "border-slate-200 focus:ring-black/5"
+                    }`}
                   />
                 </div>
               </div>
@@ -870,16 +1123,24 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setEditingPilgrim(null)}
+                  onClick={() => {
+                    setEditingPilgrim(null);
+                    setEditError(null);
+                  }}
                   className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
                 >
                   {t("buttons.cancel")}
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900"
+                  disabled={isCheckingPassport}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-black text-white hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {t("buttons.update")}
+                  {isCheckingPassport
+                    ? t("passports.processing", {
+                        defaultValue: "Vérification...",
+                      })
+                    : t("buttons.update")}
                 </button>
               </div>
             </form>
@@ -923,7 +1184,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
         isOpen={isPassportScannerOpen}
         onClose={() => setIsPassportScannerOpen(false)}
         trips={trips}
-        onImportPilgrim={onAddPilgrim}
+        onImportPilgrim={handleImportFromScanner}
       />
 
       {/* QR Pass Modal */}
@@ -933,6 +1194,28 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
         pilgrim={inspectingPilgrim}
         trip={trips.find((t) => t.id === inspectingPilgrim?.tripId)}
       />
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          className={`fixed bottom-6 right-6 rtl:right-auto rtl:left-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 ${
+            toastMessage.type === "error"
+              ? "bg-red-50 border-red-200 text-red-800"
+              : toastMessage.type === "warning"
+                ? "bg-amber-50 border-amber-200 text-amber-800"
+                : "bg-emerald-50 border-emerald-200 text-emerald-800"
+          }`}
+        >
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{toastMessage.text}</span>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="p-1 hover:opacity-75 cursor-pointer font-bold ml-2 rtl:ml-0 rtl:mr-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 };
