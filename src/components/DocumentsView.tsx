@@ -1889,7 +1889,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   <p className="text-base font-extrabold text-slate-900 dir-rtl">
                     {p.nameArabic}
                   </p>
-                  <p className="text-xs font-mono text-slate-600">{p.phone}</p>
+                  <p className="text-xs font-mono text-slate-600">{p.emergencyContact}</p>
                   <p className="text-[11px] text-slate-500 dir-rtl">
                     {selectedTrip?.name}
                   </p>

@@ -27,7 +27,9 @@ export function buildBadgePublicUrl(uniqueCode: string): string {
       ? window.location.origin
       : "http://localhost:3000";
   const basePath = import.meta.env.BASE_URL || "/";
-  return `${origin}${basePath}#/badge/${encodeURIComponent(uniqueCode)}`;
+  // Security: Sanitize uniqueCode input by trimming and URL encoding
+  const sanitizedCode = encodeURIComponent((uniqueCode || "").trim());
+  return `${origin}${basePath}#/badge/${sanitizedCode}`;
 }
 
 /**
@@ -47,19 +49,21 @@ export async function generateQRCodeDataUrl(
   let content: string;
 
   if (typeof textOrPayload === "string") {
+    const trimmedInput = textOrPayload.trim();
+    // Security: Only treat as external absolute URL if strictly starting with http:// or https://
     if (
-      textOrPayload.startsWith("http://") ||
-      textOrPayload.startsWith("https://")
+      trimmedInput.startsWith("http://") ||
+      trimmedInput.startsWith("https://")
     ) {
-      content = textOrPayload;
-    } else if (textOrPayload.startsWith("/")) {
+      content = trimmedInput;
+    } else if (trimmedInput.startsWith("/")) {
       const origin =
         typeof window !== "undefined" && window.location?.origin
           ? window.location.origin
           : "";
-      content = `${origin}${textOrPayload}`;
+      content = `${origin}${trimmedInput}`;
     } else {
-      content = buildBadgePublicUrl(textOrPayload);
+      content = buildBadgePublicUrl(trimmedInput);
     }
   } else {
     content = buildBadgePublicUrl(textOrPayload.uniqueCode);
