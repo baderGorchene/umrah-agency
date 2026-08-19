@@ -685,7 +685,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                 badgeRefs.current.delete(p.id);
               }
             }}
-            style={{ width: "380px" }}
+            style={{ width: "600px" }}
           >
             <BadgeArtwork
               template={selectedTemplate}

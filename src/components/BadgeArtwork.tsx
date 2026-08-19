@@ -4,7 +4,10 @@ import { QRCodeView } from "./QRCodeView";
 import { QRPayload } from "../lib/qrCode";
 import { useTranslation } from "react-i18next";
 
-export const getTemplateVisuals = (variant?: string, accentColor: string = "#d97706") => {
+export const getTemplateVisuals = (
+  variant?: string,
+  accentColor: string = "#d97706",
+) => {
   const base = {
     headerBg: accentColor,
     bodyBg: "#FFFFFF",
@@ -267,12 +270,12 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
     isPhone?: boolean;
   }) => (
     <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5">
-      <span className="text-[14px] font-semibold text-slate-950 shrink-0 text-start">
+      <span className="text-[14px] font-semibold text-slate-950 text-start">
         {label}
       </span>
       <span
-        className={`text-[14px] font-bold text-slate-800 text-end truncate ${
-          isPhone ? "font-mono" : ""
+        className={`text-[14px] font-bold text-slate-800 text-end ${
+          isPhone ? "font-mono shrink-0 whitespace-nowrap" : "leading-snug"
         }`}
         dir={isPhone ? "ltr" : undefined}
       >
@@ -394,12 +397,27 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
           </div>
 
           {/* Details */}
-          <div className="px-4 py-3 text-start">
-            <InfoRow label={t("pilgrims.table_header_pilgrim")} value={displayName} />
-            <InfoRow label={t("trips.form.makkah_hotel")} value={trip?.makkahHotel} />
-            <InfoRow label={t("trips.form.madinah_hotel")} value={trip?.madinahHotel} />
-            <InfoRow label={t("badge.accompanist")} value={guide1Name} />
-            <InfoRow label={t("scanner.phone_tunisia")} value={guide1Phone} isPhone />
+          <div className="px-10 py-3 text-start">
+            <div className="px-2.5 space-y-0.5">
+              <InfoRow
+                label={t("pilgrims.table_header_pilgrim")}
+                value={displayName}
+              />
+              <InfoRow
+                label={t("trips.form.makkah_hotel")}
+                value={trip?.makkahHotel}
+              />
+              <InfoRow
+                label={t("trips.form.madinah_hotel")}
+                value={trip?.madinahHotel}
+              />
+              <InfoRow label={t("badge.accompanist")} value={guide1Name} />
+              <InfoRow
+                label={t("scanner.phone_tunisia")}
+                value={guide1Phone}
+                isPhone
+              />
+            </div>
 
             <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-start">
               <div className="flex shrink-0 justify-center rounded-xl border border-slate-200/70 bg-white p-2">
