@@ -475,8 +475,8 @@ export default function App() {
         title: lang === "FR" ? "Nouveau Pèlerin" : "معتمر جديد",
         message:
           lang === "FR"
-            ? `Le pèlerin ${created.nameArabic} a été ajouté (${created.uniqueCode})`
-            : `تمت إضافة المعتمر ${created.nameArabic} وتوليد الكود ${created.uniqueCode}`,
+            ? `Le pèlerin ${created.nameLatin || created.nameArabic || "pèlerin"} a été ajouté (${created.uniqueCode})`
+            : `تمت إضافة المعتمر ${created.nameArabic || created.nameLatin || "المعتمر"} وتوليد الكود ${created.uniqueCode}`,
         read: false,
         type: "trip" as const,
       };

@@ -252,7 +252,10 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
     template?.variant,
     template?.accentColor || "#d97706",
   );
-  const displayName = pilgrim?.nameArabic || pilgrim?.nameLatin || "معتمر";
+  const defaultDisplayName = isAr ? "معتمر" : "Pèlerin";
+  const displayName = isAr
+    ? pilgrim?.nameArabic || pilgrim?.nameLatin || defaultDisplayName
+    : pilgrim?.nameLatin || pilgrim?.nameArabic || defaultDisplayName;
   const displayCode = pilgrim?.uniqueCode || "—";
   const avatarInitial = displayName.slice(0, 1).toUpperCase();
   const effectiveAvatar = resolvePilgrimAvatar(pilgrim);
@@ -328,7 +331,10 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
               className="mt-0.5 text-[14px] font-semibold"
               style={{ color: visuals.highlightColor }}
             >
-              {template?.name || "بطاقة تعريف المعتمر"}
+              {template?.name ||
+                (isAr
+                  ? "بطاقة تعريف المعتمر"
+                  : "Badge d'identification du pèlerin")}
             </p>
           </div>
         </>

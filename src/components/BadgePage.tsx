@@ -301,7 +301,7 @@ export const BadgePage: React.FC = () => {
         agencyLogo,
         uniqueCode: searchCode.toUpperCase(),
         nameArabic: "معتمر",
-        nameLatin: "",
+        nameLatin: "Pèlerin",
         passportNumber: "",
         birthDate: "",
         tripName: "رحلة العمرة المباركة",
@@ -350,7 +350,10 @@ export const BadgePage: React.FC = () => {
   ): string => {
     const targetPhone = cleanPhoneForWhatsApp(data?.accompanistPhone);
 
-    const pilgrimName = data?.nameArabic || "معتمر";
+    const defaultPilgrimName = isAr ? "معتمر" : "Pèlerin";
+    const pilgrimName = isAr
+      ? data?.nameArabic || data?.nameLatin || defaultPilgrimName
+      : data?.nameLatin || data?.nameArabic || defaultPilgrimName;
     const agencyName = data?.agencyName || "مسك طيبة للأسفار و العمرة";
     const accompanistName = data?.accompanistName || "المرافق المسؤول";
     const pilgrimCode = data?.uniqueCode || code || "—";
@@ -483,7 +486,10 @@ ${locationLink}`
     );
   }
 
-  const pilgrimName = data?.nameArabic || "معتمر";
+  const defaultPilgrimName = isAr ? "معتمر" : "Pèlerin";
+  const pilgrimName = isAr
+    ? data?.nameArabic || data?.nameLatin || defaultPilgrimName
+    : data?.nameLatin || data?.nameArabic || defaultPilgrimName;
   const agencyName = data?.agencyName || "مسك طيبة للأسفار و العمرة";
   const accompanistName = data?.accompanistName || "نادر قويعة";
 
@@ -585,7 +591,7 @@ ${locationLink}`
             <div className="flex-1 min-w-0 text-start">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-200">
-                  {data?.status || "معتمر مؤكد"}
+                  {data?.status || (isAr ? "معتمر مؤكد" : "Pèlerin confirmé")}
                 </span>
                 <span className="px-2.5 py-0.5 rounded-md bg-slate-200/80 text-slate-700 font-mono text-xs font-bold">
                   {data?.uniqueCode || code}
