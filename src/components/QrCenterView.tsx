@@ -101,9 +101,21 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
   const hasPilgrims = tripPilgrims.length > 0;
 
   useEffect(() => {
-    if (tripStaff.length > 0 && tripStaff[0]) {
-      setGuide1Name(tripStaff[0].nameArabic);
-      setGuide1Phone(tripStaff[0].phone || tripStaff[0].whatsapp);
+    // Always find staff member with role "رئيس مجموعة" (Group Leader)
+    const leaderStaff =
+      tripStaff.find((s) => s.role === "رئيس مجموعة") ||
+      staff.find((s) => s.tripId === activeTripId && s.role === "رئيس مجموعة") ||
+      staff.find((s) => s.role === "رئيس مجموعة") ||
+      tripStaff[0];
+
+    if (leaderStaff) {
+      setGuide1Name(leaderStaff.nameArabic || "نادر قويعة");
+      setGuide1Phone(
+        leaderStaff.whatsapp || leaderStaff.phone || "+216 25 800 884",
+      );
+    } else {
+      setGuide1Name("نادر قويعة");
+      setGuide1Phone("+216 25 800 884");
     }
   }, [activeTripId, staff]);
 
