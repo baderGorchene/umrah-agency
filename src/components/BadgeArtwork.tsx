@@ -273,11 +273,11 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
     isPhone?: boolean;
   }) => (
     <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5">
-      <span className="text-[14px] font-semibold text-slate-950 text-start">
+      <span className="text-[24px] font-semibold text-slate-950 text-start">
         {label}
       </span>
       <span
-        className={`text-[14px] font-bold text-slate-800 text-end ${
+        className={`text-[24px] font-bold text-slate-800 text-end ${
           isPhone ? "font-mono shrink-0 whitespace-nowrap" : "leading-snug"
         }`}
         dir={isPhone ? "ltr" : undefined}
@@ -377,8 +377,8 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
             <div
               className="relative overflow-hidden rounded-2xl p-[3px] shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
               style={{
-                width: "70%",
-                minWidth: "72px",
+                width: "50%",
+                minWidth: "88px",
                 aspectRatio: "9 / 9",
                 background: `linear-gradient(135deg, ${visuals.highlightColor}, ${visuals.borderColor})`,
               }}
@@ -401,7 +401,15 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
               </div>
             </div>
           </div>
-
+          <div className="text-center text-[24px] text-slate-900 font-bold">
+            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+              <span>{guide1Name}</span>
+              <span className="text-red-600">({t("badge.accompanist")})</span>
+            </div>
+            <div>
+              <bdi dir="ltr">{guide1Phone}</bdi>
+            </div>
+          </div>
           {/* Details */}
           <div className="px-10 py-3 text-start">
             <div className="px-2.5 space-y-0.5">
@@ -416,12 +424,6 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
               <InfoRow
                 label={t("trips.form.madinah_hotel")}
                 value={trip?.madinahHotel}
-              />
-              <InfoRow label={t("badge.accompanist")} value={guide1Name} />
-              <InfoRow
-                label={t("scanner.phone_tunisia")}
-                value={guide1Phone}
-                isPhone
               />
             </div>
 

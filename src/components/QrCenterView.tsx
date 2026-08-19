@@ -44,6 +44,50 @@ const toSafeFileName = (value: string): string =>
     .trim()
     .replace(/\s+/g, "_") || "badge";
 
+const fixRtlParenthesesInClone = (root: HTMLElement) => {
+  if (!root) return;
+  const walker = root.ownerDocument.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT,
+    null,
+  );
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
+    const text = node.nodeValue;
+    if (!text || !/[()[\]{}«»‹›]/.test(text)) continue;
+
+    const parent = node.parentElement;
+    if (!parent) continue;
+
+    const closestDirEl = parent.closest("[dir]");
+    const isExplicitLtr = closestDirEl?.getAttribute("dir") === "ltr";
+    const isArabic = /[\u0600-\u06FF]/.test(text);
+
+    // If explicit LTR and contains no Arabic characters (e.g., phone numbers or Latin names), do not swap
+    if (isExplicitLtr && !isArabic) {
+      continue;
+    }
+
+    // In Arabic RTL context, swap mirrored punctuation so html2canvas renders them in visual reading order
+    node.nodeValue = text
+      .split("")
+      .map((char) => {
+        if (char === "(") return ")";
+        if (char === ")") return "(";
+        if (char === "[") return "]";
+        if (char === "]") return "[";
+        if (char === "{") return "}";
+        if (char === "}") return "{";
+        if (char === "«") return "»";
+        if (char === "»") return "«";
+        if (char === "‹") return "›";
+        if (char === "›") return "‹";
+        return char;
+      })
+      .join("");
+  }
+};
+
 interface QrCenterViewProps {
   lang?: Language;
   trips: Trip[];
@@ -231,6 +275,9 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
       scale: 3,
       useCORS: true,
       backgroundColor: "#ffffff",
+      onclone: (_clonedDoc, clonedElement) => {
+        fixRtlParenthesesInClone(clonedElement);
+      },
     });
   };
 
