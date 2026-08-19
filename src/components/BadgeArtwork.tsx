@@ -243,7 +243,8 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
   compact = false,
   className = "",
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isAr = i18n.language === "ar";
   const visuals = getTemplateVisuals(
     template?.variant,
     template?.accentColor || "#d97706",
@@ -256,17 +257,33 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
     effectiveAvatar && effectiveAvatar !== DEFAULT_AVATAR_URL,
   );
 
-  const InfoRow = ({ label, value }: { label: string; value?: string }) => (
-    <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5 text-right">
-      <span className="text-[14px] font-bold text-slate-800">
+  const InfoRow = ({
+    label,
+    value,
+    isPhone,
+  }: {
+    label: string;
+    value?: string;
+    isPhone?: boolean;
+  }) => (
+    <div className="flex items-center justify-between gap-3 border-b border-slate-100 py-2.5">
+      <span className="text-[14px] font-semibold text-slate-950 shrink-0 text-start">
+        {label}
+      </span>
+      <span
+        className={`text-[14px] font-bold text-slate-800 text-end truncate ${
+          isPhone ? "font-mono" : ""
+        }`}
+        dir={isPhone ? "ltr" : undefined}
+      >
         {value || "—"}
       </span>
-      <span className="text-[14px] font-semibold text-slate-950">{label}</span>
     </div>
   );
 
   return (
     <div
+      dir={isAr ? "rtl" : "ltr"}
       className={`relative mx-auto flex overflow-hidden rounded-[24px] border bg-white text-center shadow-[0_18px_45px_rgba(15,23,42,0.14)] ${
         compact ? "w-full max-w-md flex-row items-center gap-4 p-4" : "flex-col"
       } ${className}`}
@@ -300,7 +317,7 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
             )}
           </div>
 
-          <div className="min-w-0 flex-1 text-right">
+          <div className="min-w-0 flex-1 text-start">
             <p className="truncate text-sm font-black text-slate-900">
               {displayName}
             </p>
@@ -377,14 +394,14 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
           </div>
 
           {/* Details */}
-          <div className="px-4 py-3 text-right">
+          <div className="px-4 py-3 text-start">
             <InfoRow label={t("pilgrims.table_header_pilgrim")} value={displayName} />
             <InfoRow label={t("trips.form.makkah_hotel")} value={trip?.makkahHotel} />
             <InfoRow label={t("trips.form.madinah_hotel")} value={trip?.madinahHotel} />
             <InfoRow label={t("badge.accompanist")} value={guide1Name} />
-            <InfoRow label={t("scanner.phone_tunisia")} value={guide1Phone} />
+            <InfoRow label={t("scanner.phone_tunisia")} value={guide1Phone} isPhone />
 
-            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-right">
+            <div className="mt-3 flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50 p-3 text-start">
               <div className="flex shrink-0 justify-center rounded-xl border border-slate-200/70 bg-white p-2">
                 <QRCodeView
                   payload={
@@ -401,7 +418,7 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
                   size={qrSize}
                 />
               </div>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 text-start">
                 <p className="text-[14px] font-bold text-slate-700">
                   {t("badge.scan_me_help")}
                 </p>

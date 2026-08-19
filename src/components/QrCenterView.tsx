@@ -565,7 +565,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                     className="bg-black hover:bg-slate-900 text-white text-xs font-bold pl-3 pr-2.5 py-2 rounded-xl flex items-center gap-2 cursor-pointer shrink-0"
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
-                    <span className="text-left leading-tight">
+                    <span className="text-start leading-tight">
                       <span className="block">
                         {t("qr_center.see_and_change")}
                       </span>
@@ -612,7 +612,7 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                                 isExpanded ? null : p,
                               )
                             }
-                            className="block w-full cursor-pointer text-left"
+                            className="block w-full cursor-pointer text-start"
                           >
                             <BadgeArtwork
                               template={selectedTemplate}
