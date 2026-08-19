@@ -226,8 +226,6 @@ export interface BadgeArtworkProps {
   trip?: Trip;
   guide1Name?: string;
   guide1Phone?: string;
-  guide2Name?: string;
-  guide2Phone?: string;
   qrPayload?: string | QRPayload;
   qrSize?: number;
   compact?: boolean;

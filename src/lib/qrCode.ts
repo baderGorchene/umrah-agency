@@ -14,7 +14,6 @@ export interface QRPayload {
   makkahHotel?: string;
   madinahHotel?: string;
   emergencyGuide1?: string;
-  emergencyGuide2?: string;
   groupLeader?: string;
 }
 

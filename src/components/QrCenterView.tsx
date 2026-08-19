@@ -20,13 +20,7 @@ import {
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas-pro";
 import JSZip from "jszip";
-import {
-  Trip,
-  Pilgrim,
-  Staff,
-  BadgeTemplate,
-  Language,
-} from "../types";
+import { Trip, Pilgrim, Staff, BadgeTemplate, Language } from "../types";
 import { generateQRCodeDataUrl } from "../lib/qrCode";
 import { badgeTemplates } from "../mockData";
 import {
@@ -79,8 +73,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
 
   const [guide1Name, setGuide1Name] = useState("نادر قويعة");
   const [guide1Phone, setGuide1Phone] = useState("+216 25 800 884");
-  const [guide2Name, setGuide2Name] = useState("كريمة شاكر");
-  const [guide2Phone, setGuide2Phone] = useState("+216 21 805 829");
 
   const [selectedTemplate, setSelectedTemplate] = useState<BadgeTemplate>(
     badgeTemplates[0],
@@ -109,18 +101,9 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
   const hasPilgrims = tripPilgrims.length > 0;
 
   useEffect(() => {
-    if (tripStaff.length > 0) {
-      if (tripStaff[0]) {
-        setGuide1Name(tripStaff[0].nameArabic);
-        setGuide1Phone(tripStaff[0].phone || tripStaff[0].whatsapp);
-      }
-      if (tripStaff[1]) {
-        setGuide2Name(tripStaff[1].nameArabic);
-        setGuide2Phone(tripStaff[1].phone || tripStaff[1].whatsapp);
-      } else {
-        setGuide2Name("");
-        setGuide2Phone("");
-      }
+    if (tripStaff.length > 0 && tripStaff[0]) {
+      setGuide1Name(tripStaff[0].nameArabic);
+      setGuide1Phone(tripStaff[0].phone || tripStaff[0].whatsapp);
     }
   }, [activeTripId, staff]);
 
@@ -185,8 +168,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
           accentColor: selectedTemplate.accentColor,
           guide1Name,
           guide1Phone,
-          guide2Name,
-          guide2Phone,
           payload: {
             agency: "مسك طيبة للاسفار و السياحة",
             uniqueCode: pilgrim.uniqueCode,
@@ -394,52 +375,25 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                 </div>
               </div>
 
-              {/* Emergency Contacts Inputs */}
+              {/* Emergency Contact Input */}
               <div className="space-y-3 bg-slate-50/70 border border-slate-100 rounded-xl p-4 text-start">
                 <label className="text-xs font-bold text-slate-700 block">
                   {t("qr_center.emergency_contacts")}
                 </label>
 
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center shrink-0">
-                      1
-                    </span>
-                    <input
-                      type="text"
-                      value={guide1Name}
-                      onChange={(e) => setGuide1Name(e.target.value)}
-                      placeholder="اسم المرافق الأول"
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-start"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    value={guide1Name}
+                    onChange={(e) => setGuide1Name(e.target.value)}
+                    placeholder="اسم المرافق"
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-start"
+                  />
                   <input
                     type="text"
                     value={guide1Phone}
                     onChange={(e) => setGuide1Phone(e.target.value)}
-                    placeholder="+966 5..."
-                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs"
-                  />
-                </div>
-
-                <div className="space-y-2 pt-2 border-t border-slate-200/60">
-                  <div className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold flex items-center justify-center shrink-0">
-                      2
-                    </span>
-                    <input
-                      type="text"
-                      value={guide2Name}
-                      onChange={(e) => setGuide2Name(e.target.value)}
-                      placeholder="اسم المرافق الثاني"
-                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    value={guide2Phone}
-                    onChange={(e) => setGuide2Phone(e.target.value)}
-                    placeholder="+966 5..."
+                    placeholder="+216 ... / +966 ..."
                     className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs"
                   />
                 </div>
@@ -612,9 +566,12 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                   >
                     <LayoutGrid className="w-3.5 h-3.5" />
                     <span className="text-left leading-tight">
-                      <span className="block">{t("qr_center.see_and_change")}</span>
+                      <span className="block">
+                        {t("qr_center.see_and_change")}
+                      </span>
                       <span className="block text-[10px] font-semibold text-white/60">
-                        {badgeTemplates.length} {t("qr_center.models_available")}
+                        {badgeTemplates.length}{" "}
+                        {t("qr_center.models_available")}
                       </span>
                     </span>
                     <ChevronRight className="w-3.5 h-3.5" />
@@ -663,8 +620,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                               trip={selectedTrip}
                               guide1Name={guide1Name}
                               guide1Phone={guide1Phone}
-                              guide2Name={guide2Name}
-                              guide2Phone={guide2Phone}
                               qrPayload={buildBadgePageUrl(p.uniqueCode)}
                               compact={!isExpanded}
                               className={`w-full transition-all duration-300 ease-out ${
@@ -738,8 +693,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
               trip={selectedTrip}
               guide1Name={guide1Name}
               guide1Phone={guide1Phone}
-              guide2Name={guide2Name}
-              guide2Phone={guide2Phone}
               qrPayload={buildBadgePageUrl(p.uniqueCode)}
               compact={false}
             />
@@ -754,7 +707,8 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
             <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 px-6 py-4">
               <div>
                 <h2 className="font-bold text-slate-900 text-base">
-                  {t("qr_center.badge_templates_title")} ({badgeTemplates.length} modèles)
+                  {t("qr_center.badge_templates_title")} (
+                  {badgeTemplates.length} modèles)
                 </h2>
                 <p className="text-sm text-slate-500">
                   {t("qr_center.template_subtitle")}
@@ -794,8 +748,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
                         trip={selectedTrip}
                         guide1Name={guide1Name}
                         guide1Phone={guide1Phone}
-                        guide2Name={guide2Name}
-                        guide2Phone={guide2Phone}
                         qrPayload={
                           previewPilgrim
                             ? buildBadgePageUrl(previewPilgrim.uniqueCode)
@@ -846,7 +798,6 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
         trip={selectedTrip}
         staffList={staff}
         emergencyGuide1={{ name: guide1Name, phone: guide1Phone }}
-        emergencyGuide2={{ name: guide2Name, phone: guide2Phone }}
       />
     </>
   );

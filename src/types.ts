@@ -159,8 +159,8 @@ export interface GeneratedBadgeRecord {
   accentColor: string;
   guide1Name: string;
   guide1Phone: string;
-  guide2Name: string;
-  guide2Phone: string;
+  guide2Name?: string;
+  guide2Phone?: string;
   pageUrl?: string;
   qrCodeDataUrl?: string;
   payload: Record<string, unknown>;

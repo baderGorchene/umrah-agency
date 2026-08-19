@@ -13,7 +13,6 @@ interface QRPassModalProps {
   trip?: Trip;
   staffList?: Staff[];
   emergencyGuide1?: { name: string; phone: string };
-  emergencyGuide2?: { name: string; phone: string };
 }
 
 export const QRPassModal: React.FC<QRPassModalProps> = ({
