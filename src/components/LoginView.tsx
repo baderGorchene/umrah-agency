@@ -20,7 +20,7 @@ interface LoginViewProps {
 
 export const LoginView: React.FC<LoginViewProps> = ({
   onLoginSuccess,
-  lang = "FR",
+  lang = "AR",
   onLanguageToggle,
 }) => {
   const { t, i18n } = useTranslation();

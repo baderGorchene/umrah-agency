@@ -129,7 +129,17 @@ export default function App() {
   const [, setJwtToken] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const [lang, setLang] = useState<Language>("FR");
+  const [lang, setLang] = useState<Language>(() => {
+    try {
+      const saved = localStorage.getItem("umrah_app_language");
+      if (saved === "FR" || saved === "AR") {
+        return saved;
+      }
+    } catch {
+      // ignore
+    }
+    return "AR";
+  });
 
   // Core Dynamic Data States
   const [agencySettings, setAgencySettings] = useState<AgencySettings>(
@@ -381,12 +391,17 @@ export default function App() {
     document.documentElement.setAttribute("dir", lang === "AR" ? "rtl" : "ltr");
     document.documentElement.setAttribute("lang", lang.toLowerCase());
 
+    try {
+      localStorage.setItem("umrah_app_language", lang);
+    } catch {
+      // ignore
+    }
+
     // sync i18next
     try {
       i18n.changeLanguage(lang === "FR" ? "fr" : "ar");
     } catch (err) {
       // ignore if i18n not available
-      // console.warn('i18n not initialized yet', err);
     }
   }, [lang]);
 

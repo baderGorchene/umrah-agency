@@ -404,7 +404,7 @@ export const BadgeArtwork: React.FC<BadgeArtworkProps> = ({
           <div className="text-center text-[24px] text-slate-900 font-bold">
             <div className="flex items-center justify-center gap-1.5 flex-wrap">
               <span>{guide1Name}</span>
-              <span className="text-red-600">({t("badge.accompanist")})</span>
+              <span className="text-red-600">{t("badge.accompanist")}</span>
             </div>
             <div>
               <bdi dir="ltr">{guide1Phone}</bdi>

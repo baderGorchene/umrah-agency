@@ -8,12 +8,25 @@ const resources = {
   ar: { translation: ar },
 };
 
+const getInitialLanguage = (): string => {
+  if (typeof window !== 'undefined') {
+    try {
+      const saved = localStorage.getItem('umrah_app_language');
+      if (saved === 'FR') return 'fr';
+      if (saved === 'AR') return 'ar';
+    } catch {
+      // ignore
+    }
+  }
+  return 'ar';
+};
+
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'fr',
-    fallbackLng: 'fr',
+    lng: getInitialLanguage(),
+    fallbackLng: 'ar',
     interpolation: {
       escapeValue: false, // react already safes from xss
     },
