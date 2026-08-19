@@ -21,12 +21,14 @@ export interface QRPayload {
  * Builds a direct public URL for a pilgrim badge without requiring authentication
  */
 export function buildBadgePublicUrl(uniqueCode: string): string {
+  // Sanitize uniqueCode to prevent URL injection
+  const safeCode = uniqueCode.replace(/[^a-zA-Z0-9_-]/g, '');
   const origin =
     typeof window !== "undefined" && window.location?.origin
       ? window.location.origin
       : "http://localhost:3000";
   const basePath = import.meta.env.BASE_URL || "/";
-  return `${origin}${basePath}#/badge/${encodeURIComponent(uniqueCode)}`;
+  return `${origin}${basePath}#/badge/${encodeURIComponent(safeCode)}`;
 }
 
 /**
@@ -46,11 +48,15 @@ export async function generateQRCodeDataUrl(
   let content: string;
 
   if (typeof textOrPayload === "string") {
-    if (
-      textOrPayload.startsWith("http://") ||
-      textOrPayload.startsWith("https://")
-    ) {
-      content = textOrPayload;
+    // Check if it's a URL-like string or path
+    if (/^[a-zA-Z][a-zA-Z0-9+\-.]*:/i.test(textOrPayload)) {
+      // It has a scheme. Only allow safe schemes.
+      if (/^(http|https|mailto|tel):/i.test(textOrPayload)) {
+        content = textOrPayload;
+      } else {
+        // Fallback to treat it as a uniqueCode if it uses a dangerous scheme
+        content = buildBadgePublicUrl(textOrPayload);
+      }
     } else if (textOrPayload.startsWith("/")) {
       const origin =
         typeof window !== "undefined" && window.location?.origin

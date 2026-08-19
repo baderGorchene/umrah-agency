@@ -121,13 +121,13 @@ export const BadgePage: React.FC = () => {
   const location = useLocation();
 
   const extractCodeFromAnySource = (): string | undefined => {
-    if (params.code && params.code.trim()) return params.code.trim();
-    if (params.id && params.id.trim()) return params.id.trim();
+    if (params.code && params.code.trim()) return params.code.trim().replace(/[^a-zA-Z0-9_-]/g, '');
+    if (params.id && params.id.trim()) return params.id.trim().replace(/[^a-zA-Z0-9_-]/g, '');
 
     if (location.search) {
       const searchParams = new URLSearchParams(location.search);
       const qCode = searchParams.get("code") || searchParams.get("id");
-      if (qCode && qCode.trim()) return qCode.trim();
+      if (qCode && qCode.trim()) return qCode.trim().replace(/[^a-zA-Z0-9_-]/g, '');
     }
 
     if (typeof window !== "undefined" && window.location.hash) {
@@ -138,7 +138,8 @@ export const BadgePage: React.FC = () => {
         !lastSegment.startsWith("#") &&
         lastSegment.toLowerCase() !== "badge"
       ) {
-        return decodeURIComponent(lastSegment.split("?")[0].trim());
+        const val = decodeURIComponent(lastSegment.split("?")[0].trim());
+        return val.replace(/[^a-zA-Z0-9_-]/g, '');
       }
     }
 
@@ -146,7 +147,8 @@ export const BadgePage: React.FC = () => {
       const pathSegments = window.location.pathname.split("/").filter(Boolean);
       const lastSegment = pathSegments[pathSegments.length - 1];
       if (lastSegment && lastSegment.toLowerCase() !== "badge") {
-        return decodeURIComponent(lastSegment.split("?")[0].trim());
+        const val = decodeURIComponent(lastSegment.split("?")[0].trim());
+        return val.replace(/[^a-zA-Z0-9_-]/g, '');
       }
     }
 
