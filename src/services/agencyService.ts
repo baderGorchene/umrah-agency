@@ -6,8 +6,21 @@ const SETTINGS_CACHE_KEY = 'umrah_agency_settings_cache';
 
 const sanitizeUrl = (url?: string | null): string => {
   if (!url || typeof url !== 'string') return '';
-  if (url.includes('unsplash.com')) return '';
-  return url;
+  const trimmed = url.trim();
+  if (!trimmed || trimmed.includes('unsplash.com')) return '';
+
+  // Allow safe relative paths
+  if (trimmed.startsWith('/') || trimmed.startsWith('./')) return trimmed;
+
+  // Validate schemes for explicit URLs (only allow safe image/asset schemes: http, https, blob, data:image/)
+  if (/^[a-zA-Z][a-zA-Z0-9+\-.]*:/i.test(trimmed)) {
+    if (/^(https?:\/\/|blob:|data:image\/)/i.test(trimmed)) {
+      return trimmed;
+    }
+    return '';
+  }
+
+  return trimmed;
 };
 
 export const getAgencySettings = async (): Promise<AgencySettings> => {

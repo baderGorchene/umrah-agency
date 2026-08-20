@@ -10,3 +10,8 @@
 1. Require exact specific emails (e.g., `admin@demo.com`) instead of relying on `.includes()` for admin role escalation.
 2. Restrict URL payload generation strictly to safe schemes (`http`, `https`, `mailto`, `tel`).
 3. Clean dynamically read URL parameters/hash fragments with strict whitelisting (`[^a-zA-Z0-9_-]`).
+
+## 2026-03-30 - URL Scheme Injection & XSS in Agency Settings
+**Vulnerability:** `sanitizeUrl` in `agencyService.ts` and `SettingsView.tsx` only checked for string type and domain exclusion (`unsplash.com`), allowing dangerous URL schemes such as `javascript:` or `data:text/html` to pass unsanitized into asset attributes (`<img src="...">`).
+**Learning:** Checking for string types or specific blocked domains is insufficient for sanitizing user-provided image/asset URLs. Unchecked scheme execution can lead to XSS or protocol injection when URLs are rendered in DOM attributes.
+**Prevention:** Always restrict URL sanitizers to an explicit allowlist of safe schemes (`http:`, `https:`, `blob:`, `data:image/`) and safe relative paths (`/`, `./`).
