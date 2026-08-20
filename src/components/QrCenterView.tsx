@@ -148,7 +148,9 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
     // Always find staff member with role "رئيس مجموعة" (Group Leader)
     const leaderStaff =
       tripStaff.find((s) => s.role === "رئيس مجموعة") ||
-      staff.find((s) => s.tripId === activeTripId && s.role === "رئيس مجموعة") ||
+      staff.find(
+        (s) => s.tripId === activeTripId && s.role === "رئيس مجموعة",
+      ) ||
       staff.find((s) => s.role === "رئيس مجموعة") ||
       tripStaff[0];
 
@@ -471,50 +473,58 @@ export const QrCenterView: React.FC<QrCenterViewProps> = ({
             {/* Data Summary Cards */}
             <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-xs space-y-4">
               <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                <Info className="w-4 h-4 text-slate-400" />
-                {t("qr_center.data_summary")}
+                <Info className="w-4 h-4 text-slate-400 shrink-0" />
+                <span>{t("qr_center.data_summary")}</span>
               </h3>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
-                  <Users className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">
-                    {t("qr_center.total_pilgrims")}
-                  </p>
-                  <p className="text-xl font-extrabold text-slate-900">
-                    {tripPilgrims.length}
-                  </p>
+                  <Users className="w-4 h-4 text-slate-300 absolute top-3 end-3" />
+                  <div className="pe-6">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">
+                      {t("qr_center.total_pilgrims")}
+                    </p>
+                    <p className="text-xl font-extrabold text-slate-900">
+                      {tripPilgrims.length}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
-                  <UserRound className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">
-                    {t("qr_center.total_accompanists")}
-                  </p>
-                  <p className="text-xl font-extrabold text-slate-900">
-                    {tripStaff.length}
-                  </p>
+                  <UserRound className="w-4 h-4 text-slate-300 absolute top-3 end-3" />
+                  <div className="pe-6">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">
+                      {t("qr_center.total_accompanists")}
+                    </p>
+                    <p className="text-xl font-extrabold text-slate-900">
+                      {tripStaff.length}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
-                  <IdCard className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">
-                    {t("qr_center.generated_badges")}
-                  </p>
-                  <p className="text-xl font-extrabold text-slate-900">
-                    {badgesGenerated ? tripPilgrims.length : 0}
-                  </p>
+                  <IdCard className="w-4 h-4 text-slate-300 absolute top-3 end-3" />
+                  <div className="pe-6">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">
+                      {t("qr_center.generated_badges")}
+                    </p>
+                    <p className="text-xl font-extrabold text-slate-900">
+                      {badgesGenerated ? tripPilgrims.length : 0}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl relative overflow-hidden">
-                  <Activity className="w-4 h-4 text-slate-300 absolute top-3 right-3" />
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">
-                    {t("qr_center.status")}
-                  </p>
-                  <p className="text-xs font-bold mt-1.5 text-slate-800 flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                    {t("qr_center.ready_to_generate")}
-                  </p>
+                  <Activity className="w-4 h-4 text-slate-300 absolute top-3 end-3" />
+                  <div className="pe-6">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">
+                      {t("qr_center.status")}
+                    </p>
+                    <p className="text-xs font-bold mt-1.5 text-slate-800 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shrink-0" />
+                      <span>{t("qr_center.ready_to_generate")}</span>
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
