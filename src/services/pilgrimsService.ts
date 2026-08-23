@@ -2,16 +2,21 @@ import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
 
 export const normalizeAvatarUrl = (rawUrl?: string | null): string => {
-  if (!rawUrl || rawUrl.trim() === "") return DEFAULT_AVATAR_URL;
+  if (!rawUrl || typeof rawUrl !== "string") return DEFAULT_AVATAR_URL;
   const trimmed = rawUrl.trim();
-  if (trimmed.includes("unsplash.com")) return DEFAULT_AVATAR_URL;
-  if (
-    trimmed.startsWith("http://") ||
-    trimmed.startsWith("https://") ||
-    trimmed.startsWith("data:")
-  ) {
-    return trimmed;
+  if (!trimmed || trimmed.includes("unsplash.com")) return DEFAULT_AVATAR_URL;
+
+  // Allow safe relative paths
+  if (trimmed.startsWith("/") || trimmed.startsWith("./")) return trimmed;
+
+  // Validate schemes for explicit URLs (only allow safe image/asset schemes: http, https, blob, data:image/)
+  if (/^[a-zA-Z][a-zA-Z0-9+\-.]*:/i.test(trimmed)) {
+    if (/^(https?:\/\/|blob:|data:image\/)/i.test(trimmed)) {
+      return trimmed;
+    }
+    return DEFAULT_AVATAR_URL;
   }
+
   if (isSupabaseConfigured()) {
     try {
       const cleanPath = trimmed.startsWith("avatars/")
