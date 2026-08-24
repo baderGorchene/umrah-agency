@@ -1291,6 +1291,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
         isOpen={isPassportScannerOpen}
         onClose={() => setIsPassportScannerOpen(false)}
         trips={trips}
+        existingPilgrims={pilgrims}
         onImportPilgrim={handleImportFromScanner}
       />
 

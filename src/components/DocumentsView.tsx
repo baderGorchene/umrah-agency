@@ -2011,6 +2011,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           isOpen={isPassportScannerOpen}
           onClose={() => setIsPassportScannerOpen(false)}
           trips={trips}
+          existingPilgrims={pilgrims}
           onImportPilgrim={(newPilgrim, pendingDocument, extractedData) => {
             if (onAddPilgrim) {
               onAddPilgrim(newPilgrim, pendingDocument);

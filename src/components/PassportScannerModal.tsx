@@ -56,6 +56,7 @@ interface PassportScannerModalProps {
   isOpen: boolean;
   onClose: () => void;
   trips: Trip[];
+  existingPilgrims?: Pilgrim[];
   onImportPilgrim: (
     newPilgrim: Omit<Pilgrim, "id">,
     pendingDocument?: {
@@ -73,6 +74,7 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
   isOpen,
   onClose,
   trips,
+  existingPilgrims,
   onImportPilgrim,
   onAutoFillForm,
 }) => {
@@ -412,12 +414,39 @@ Règles impératives d'extraction des noms:
       ?.trim()
       .toUpperCase();
     if (normalizedPassport) {
-      const check = await checkPilgrimPassportExists(normalizedPassport);
-      if (check.exists) {
+      // 1. Check local state list if available
+      const localExisting = existingPilgrims?.find(
+        (p) =>
+          p.passportNumber &&
+          p.passportNumber.trim().toUpperCase() === normalizedPassport,
+      );
+      if (localExisting) {
         setError(
-          `Ce numéro de passeport (${normalizedPassport}) existe déjà dans la base de données !`,
+          t("pilgrims.passport_already_exists", {
+            passport: normalizedPassport,
+            defaultValue: `Le numéro de passeport (${normalizedPassport}) existe déjà pour le pèlerin "${localExisting.nameArabic || localExisting.nameLatin}" !`,
+          }),
         );
         return;
+      }
+
+      // 2. Check Database
+      try {
+        const check = await checkPilgrimPassportExists(normalizedPassport);
+        if (check.exists) {
+          const name = check.existingPilgrim?.nameArabic
+            ? ` "${check.existingPilgrim.nameArabic}"`
+            : "";
+          setError(
+            t("pilgrims.passport_already_exists", {
+              passport: normalizedPassport,
+              defaultValue: `Le numéro de passeport (${normalizedPassport}) existe déjà pour le pèlerin${name} !`,
+            }),
+          );
+          return;
+        }
+      } catch (err) {
+        console.warn("Error checking passport existence:", err);
       }
     }
 
@@ -763,6 +792,14 @@ Règles impératives d'extraction des noms:
                 </div>
               )}
 
+              {/* Error Message for Duplicate Passport or validation in Step 3 */}
+              {error && currentStep === 3 && (
+                <div className="flex items-start gap-2.5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+                  <span className="font-semibold">{error}</span>
+                </div>
+              )}
+
               {/* Form Grid for Editing Extracted Data */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 {/* Passport Number */}
@@ -773,12 +810,13 @@ Règles impératives d'extraction des noms:
                   <input
                     type="text"
                     value={extractedData.passportNumber || ""}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      if (error) setError(null);
                       setExtractedData({
                         ...extractedData,
                         passportNumber: e.target.value,
-                      })
-                    }
+                      });
+                    }}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-black/5"
                   />
                 </div>
