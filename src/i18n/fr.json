@@ -31,7 +31,8 @@
     "add": "Ajouter",
     "scanner": "Scanner",
     "close": "Fermer",
-    "copy": "Copier"
+    "copy": "Copier",
+    "apply": "Appliquer"
   },
   "badge": {
     "digital_card_title": "Carte d'identité numérique du pèlerin",
