@@ -13,13 +13,23 @@ import {
   QrCode,
   AlertCircle,
 } from "lucide-react";
-import { Language, Pilgrim, Trip, DEFAULT_AVATAR_URL } from "../types";
-import { PassportScannerModal } from "./PassportScannerModal";
+import {
+  Language,
+  Pilgrim,
+  Trip,
+  PassportEntry,
+  DEFAULT_AVATAR_URL,
+} from "../types";
+import {
+  PassportScannerModal,
+  ExtractedPassportData,
+} from "./PassportScannerModal";
 import { StatusBadge } from "./StatusBadge";
 import { QRPassModal } from "./QRPassModal";
 import { uploadAvatarToStorage } from "../services/documentsService";
 import { checkPilgrimPassportExists } from "../services/pilgrimsService";
 import { useTranslation } from "react-i18next";
+import { cleanArabicFullName } from "../lib/passportUtils";
 
 interface PilgrimsViewProps {
   lang?: Language;
@@ -38,6 +48,11 @@ interface PilgrimsViewProps {
   onDeletePilgrim: (id: string) => void;
   isAddModalOpen: boolean;
   setIsAddModalOpen: (open: boolean) => void;
+  onAddPassport?: (entry: Omit<PassportEntry, "id" | "scannedAt">) => {
+    success: boolean;
+    duplicate?: boolean;
+    existing?: PassportEntry;
+  };
 }
 
 export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
@@ -48,6 +63,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
   onDeletePilgrim,
   isAddModalOpen,
   setIsAddModalOpen,
+  onAddPassport,
 }) => {
   const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -85,6 +101,21 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
   ) => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 5000);
+  };
+
+  const formatDisplayDate = (val?: string): string => {
+    if (!val) return "—";
+    const trimmed = val.trim();
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) return trimmed;
+    const iso = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (iso) {
+      return `${iso[3].padStart(2, "0")}/${iso[2].padStart(2, "0")}/${iso[1]}`;
+    }
+    const dash = trimmed.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+    if (dash) {
+      return `${dash[1].padStart(2, "0")}/${dash[2].padStart(2, "0")}/${dash[3]}`;
+    }
+    return trimmed;
   };
 
   const [formData, setFormData] = useState({
@@ -197,7 +228,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
     }
 
     const selectedTrip = trips.find((t) => t.id === formData.tripId);
-    onAddPilgrim({
+    const newPilgrimData = {
       nameArabic: formData.nameArabic,
       nameLatin: formData.nameLatin,
       passportNumber: trimmedPassport || formData.passportNumber,
@@ -208,10 +239,25 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
       tripId: formData.tripId,
       tripName: selectedTrip ? selectedTrip.name : "—",
       uniqueCode: generateUniqueCode(),
-      status: "مؤكد",
+      status: "مؤكد" as Pilgrim["status"],
       emergencyContact: formData.emergencyContact,
       avatarUrl: formData.avatarUrl || DEFAULT_AVATAR_URL,
-    });
+    };
+
+    onAddPilgrim(newPilgrimData);
+
+    if (onAddPassport && trimmedPassport) {
+      onAddPassport({
+        fullNameArabic: formData.nameArabic.trim() || "—",
+        fullNameLatin: formData.nameLatin.trim() || "—",
+        gender: formData.gender || "F",
+        passportNumber: trimmedPassport,
+        birthDate: formatDisplayDate(formData.birthDate),
+        deliberationDate: "—",
+        expiryDate: "—",
+        avatarUrl: formData.avatarUrl || DEFAULT_AVATAR_URL,
+      });
+    }
 
     setIsAddModalOpen(false);
     setCreateError(null);
@@ -307,6 +353,7 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
       mimeType?: string;
       fileName?: string;
     },
+    extractedPassport?: ExtractedPassportData,
   ) => {
     const trimmedPassport = newPilgrim.passportNumber?.trim().toUpperCase();
     if (trimmedPassport) {
@@ -342,7 +389,64 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
       }
     }
 
-    onAddPilgrim(newPilgrim, pendingDocument);
+    const cleanedArabicName = cleanArabicFullName(
+      newPilgrim.nameArabic || extractedPassport?.fullNameArabic || "",
+    );
+
+    const pilgrimToSave = {
+      ...newPilgrim,
+      nameArabic: cleanedArabicName || newPilgrim.nameArabic,
+    };
+
+    // 1. Create Pilgrim
+    onAddPilgrim(pilgrimToSave, pendingDocument);
+
+    // 2. Also save to Passports registry so it appears in PassportsView
+    if (onAddPassport && (extractedPassport || trimmedPassport)) {
+      const fullNameLatin = extractedPassport
+        ? `${extractedPassport.givenNamesLatin || ""} ${extractedPassport.surnameLatin || ""}`.trim()
+        : newPilgrim.nameLatin || "—";
+
+      const resolvedGender =
+        extractedPassport?.sex === "F" || newPilgrim.gender === "F" ? "F" : "M";
+
+      onAddPassport({
+        fullNameArabic:
+          cleanArabicFullName(extractedPassport?.fullNameArabic) ||
+          cleanedArabicName ||
+          newPilgrim.nameArabic ||
+          "—",
+        fullNameLatin: fullNameLatin || "—",
+        gender: resolvedGender,
+        passportNumber:
+          trimmedPassport ||
+          extractedPassport?.passportNumber?.trim().toUpperCase() ||
+          "—",
+        birthDate: formatDisplayDate(
+          extractedPassport?.dateOfBirth || newPilgrim.birthDate,
+        ),
+        deliberationDate: formatDisplayDate(extractedPassport?.issueDate),
+        expiryDate: formatDisplayDate(extractedPassport?.expiryDate),
+        cinNumber: extractedPassport?.cinNumber || undefined,
+        nationality: extractedPassport?.nationality || "TUNISIENNE",
+        placeOfBirth: extractedPassport?.placeOfBirth || undefined,
+        issuingAuthority: extractedPassport?.issuingAuthority || undefined,
+        avatarUrl:
+          pendingDocument?.fileUrl ||
+          newPilgrim.avatarUrl ||
+          DEFAULT_AVATAR_URL,
+        notes: extractedPassport?.mrz1
+          ? `MRZ: ${extractedPassport.mrz1}`
+          : undefined,
+      });
+    }
+
+    showToast(
+      t("scanner.import_success", {
+        defaultValue: "Pèlerin importé et passeport enregistré avec succès !",
+      }),
+      "success",
+    );
   };
 
   // Filtered List

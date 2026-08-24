@@ -510,7 +510,10 @@ export default function App() {
       setTrips((prev) =>
         prev.map((t) => {
           if (t.id === oldPilgrim.tripId) {
-            return { ...t, pilgrimCount: Math.max(0, (t.pilgrimCount || 1) - 1) };
+            return {
+              ...t,
+              pilgrimCount: Math.max(0, (t.pilgrimCount || 1) - 1),
+            };
           }
           if (t.id === updated.tripId) {
             return { ...t, pilgrimCount: (t.pilgrimCount || 0) + 1 };
@@ -799,6 +802,7 @@ export default function App() {
                       onDeletePilgrim={handleDeletePilgrim}
                       isAddModalOpen={isAddPilgrimModalOpen}
                       setIsAddModalOpen={setIsAddPilgrimModalOpen}
+                      onAddPassport={handleAddPassport}
                     />
                   ) : (
                     <Navigate to="/" replace />
@@ -899,6 +903,7 @@ export default function App() {
                       agencySettings={agencySettings}
                       onAddPilgrim={handleAddPilgrim}
                       onEditPilgrim={handleEditPilgrim}
+                      onAddPassport={handleAddPassport}
                     />
                   ) : (
                     <Navigate to="/" replace />

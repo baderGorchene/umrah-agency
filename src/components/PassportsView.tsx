@@ -35,6 +35,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { uploadPassportToStorage } from "../services/documentsService";
 import * as XLSX from "xlsx";
 import { useTranslation } from "react-i18next";
+import { cleanArabicFullName } from "../lib/passportUtils";
 
 interface PassportsViewProps {
   lang?: Language;
@@ -214,6 +215,10 @@ export const PassportsView: React.FC<PassportsViewProps> = ({
       const prompt = `
 Vous êtes un expert OCR spécialisé dans la lecture et l'extraction de données à partir de passeports tunisiens (Passeport de la République Tunisienne / الجمهورية التونسية - جواز سفر).
 Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni et extrait toutes les informations clés dans le format JSON strict requis.
+
+Attention particulière pour les passeports tunisiens:
+- Le nom et le prénom apparaissent en français (latin) et en arabe.
+- Nom complet en arabe (fullNameArabic): Sur le passeport tunisien, le nom en arabe est souvent écrit sous la forme "[الاسم] بن/بنت [اسم الأب] [اللقب]" (ex: "بدر بن البشير قرشان" ou "مريم بنت محمد الطرابلسي"). Vous devez extraire UNIQUEMENT le prénom et le nom de famille en arabe (ex: "بدر قرشان", "مريم الطرابلسي"), en omettant la filiation ("بن/بنت [اسم الأب]").
 `;
 
       const response = await ai.models.generateContent({
@@ -253,6 +258,12 @@ Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni e
       });
 
       const extracted = JSON.parse(response.text || "{}");
+
+      if (extracted.fullNameArabic) {
+        extracted.fullNameArabic = cleanArabicFullName(
+          extracted.fullNameArabic,
+        );
+      }
 
       if (!extracted.passportNumber) {
         throw new Error(

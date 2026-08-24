@@ -18,8 +18,18 @@ import {
   ChevronDown,
   X,
 } from "lucide-react";
-import { Language, Trip, Pilgrim, AgencySettings, DEFAULT_AVATAR_URL } from "../types";
-import { PassportScannerModal } from "./PassportScannerModal";
+import {
+  Language,
+  Trip,
+  Pilgrim,
+  PassportEntry,
+  AgencySettings,
+  DEFAULT_AVATAR_URL,
+} from "../types";
+import {
+  PassportScannerModal,
+  ExtractedPassportData,
+} from "./PassportScannerModal";
 import { updatePilgrim } from "../services/pilgrimsService";
 import { useTranslation } from "react-i18next";
 
@@ -40,6 +50,11 @@ interface DocumentsViewProps {
     },
   ) => void;
   onEditPilgrim?: (updated: Pilgrim) => void;
+  onAddPassport?: (entry: Omit<PassportEntry, "id" | "scannedAt">) => {
+    success: boolean;
+    duplicate?: boolean;
+    existing?: PassportEntry;
+  };
 }
 
 const DocumentLogoHeader: React.FC<{ subtitle?: string; logoUrl?: string }> = ({
@@ -78,6 +93,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
   agencySettings,
   onAddPilgrim,
   onEditPilgrim,
+  onAddPassport,
 }) => {
   const { t } = useTranslation();
   const [selectedTripId, setSelectedTripId] = useState(trips[0]?.id || "");
@@ -247,9 +263,7 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
     }));
   };
 
-  const handleSaveReceiptAndPilgrim = async (
-    triggerPrint: boolean = false,
-  ) => {
+  const handleSaveReceiptAndPilgrim = async (triggerPrint: boolean = false) => {
     if (!receiptForm.pilgrimId) {
       if (triggerPrint) handlePrint();
       return;
@@ -676,7 +690,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           <div className="print-modal-box bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-3xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
               <h2 className="font-bold text-slate-900 text-base">
-                {t("documents.attendance_register")} - {selectedTrip?.name || "مسك طيبة"}
+                {t("documents.attendance_register")} -{" "}
+                {selectedTrip?.name || "مسك طيبة"}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
@@ -697,7 +712,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   {agencySettings.name}
                 </h1>
                 <p className="text-xs font-bold text-slate-600">
-                  {t("documents.official_attendance_list")} — {selectedTrip?.name}
+                  {t("documents.official_attendance_list")} —{" "}
+                  {selectedTrip?.name}
                 </p>
                 <p className="text-[11px] text-slate-400">
                   {selectedTrip?.startDate} → {selectedTrip?.endDate}
@@ -851,7 +867,9 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
 
                     <div className="text-end shrink-0 font-mono text-[11px]">
                       <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md font-semibold inline-block">
-                        Payé: {Number(receiptForm.alreadyPaid || 0).toLocaleString()} د.ت
+                        Payé:{" "}
+                        {Number(receiptForm.alreadyPaid || 0).toLocaleString()}{" "}
+                        د.ت
                       </span>
                     </div>
                   </div>
@@ -865,7 +883,9 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                       <input
                         type="text"
                         value={receiptPilgrimSearch}
-                        onChange={(e) => setReceiptPilgrimSearch(e.target.value)}
+                        onChange={(e) =>
+                          setReceiptPilgrimSearch(e.target.value)
+                        }
                         placeholder={t("documents.search_pilgrim")}
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-8 pr-3 rtl:pl-3 rtl:pr-8 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-black/5"
                         autoFocus
@@ -894,7 +914,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                                 )}
                               </p>
                               <p className="text-[10px] text-slate-500 font-mono">
-                                {p.passportNumber ? `${p.passportNumber} • ` : ""}{p.tripName || "—"}
+                                {p.passportNumber
+                                  ? `${p.passportNumber} • `
+                                  : ""}
+                                {p.tripName || "—"}
                               </p>
                             </div>
                             <div className="text-end font-mono text-[10px]">
@@ -902,7 +925,9 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                                 {Number(p.paidAmount || 0).toLocaleString()} د.ت
                               </span>
                               <span className="text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                                Rest: {Number(p.unpaidAmount || 0).toLocaleString()} د.ت
+                                Rest:{" "}
+                                {Number(p.unpaidAmount || 0).toLocaleString()}{" "}
+                                د.ت
                               </span>
                             </div>
                           </div>
@@ -1001,25 +1026,37 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   <div className="flex justify-between items-center text-slate-500">
                     <span>{t("documents.total_cost")}</span>
                     <span className="font-semibold text-slate-800">
-                      {Number(receiptForm.totalAmount || 0).toLocaleString()} TND
+                      {Number(receiptForm.totalAmount || 0).toLocaleString()}{" "}
+                      TND
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-slate-500">
                     <span>{t("documents.previous_payments")}</span>
-                    <span>{Number(receiptForm.alreadyPaid || 0).toLocaleString()} TND</span>
+                    <span>
+                      {Number(receiptForm.alreadyPaid || 0).toLocaleString()}{" "}
+                      TND
+                    </span>
                   </div>
                   <div className="flex justify-between items-center text-emerald-700 font-bold">
                     <span>{t("documents.current_payment")}</span>
-                    <span>+ {Number(receiptForm.paymentNow || 0).toLocaleString()} TND</span>
+                    <span>
+                      + {Number(receiptForm.paymentNow || 0).toLocaleString()}{" "}
+                      TND
+                    </span>
                   </div>
                   <div className="border-t border-slate-100 pt-1 flex justify-between items-center font-bold">
-                    <span className="text-slate-800">{t("documents.total_paid_after")}</span>
+                    <span className="text-slate-800">
+                      {t("documents.total_paid_after")}
+                    </span>
                     <span className="text-emerald-700">
-                      {Number(receiptForm.newTotalPaid || 0).toLocaleString()} TND
+                      {Number(receiptForm.newTotalPaid || 0).toLocaleString()}{" "}
+                      TND
                     </span>
                   </div>
                   <div className="flex justify-between items-center font-bold">
-                    <span className="text-amber-800">{t("documents.solde_restant")}</span>
+                    <span className="text-amber-800">
+                      {t("documents.solde_restant")}
+                    </span>
                     <span
                       className={
                         Number(receiptForm.remainingUnpaid) > 0
@@ -1027,7 +1064,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                           : "text-emerald-600"
                       }
                     >
-                      {Number(receiptForm.remainingUnpaid || 0).toLocaleString()} TND
+                      {Number(
+                        receiptForm.remainingUnpaid || 0,
+                      ).toLocaleString()}{" "}
+                      TND
                     </span>
                   </div>
                 </div>
@@ -1115,14 +1155,17 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   {t("documents.official_receipt")}
                 </p>
                 <p className="text-[10px] text-slate-500 font-mono">
-                  {t("documents.receipt_no")}: {receiptNumber} • Date: {receiptForm.date}
+                  {t("documents.receipt_no")}: {receiptNumber} • Date:{" "}
+                  {receiptForm.date}
                 </p>
               </div>
 
               {/* Pilgrim Details */}
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs grid grid-cols-2 gap-2">
                 <div>
-                  <span className="font-semibold text-slate-500">المعتمر / Pèlerin :</span>{" "}
+                  <span className="font-semibold text-slate-500">
+                    المعتمر / Pèlerin :
+                  </span>{" "}
                   <span className="font-bold text-slate-900">
                     {receiptForm.pilgrimName}
                   </span>
@@ -1133,17 +1176,25 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   )}
                 </div>
                 <div>
-                  <span className="font-semibold text-slate-500">الرمز الفريد / Code :</span>{" "}
-                  <span className="font-mono font-bold">{receiptForm.uniqueCode || "—"}</span>
+                  <span className="font-semibold text-slate-500">
+                    الرمز الفريد / Code :
+                  </span>{" "}
+                  <span className="font-mono font-bold">
+                    {receiptForm.uniqueCode || "—"}
+                  </span>
                 </div>
                 <div>
-                  <span className="font-semibold text-slate-500">جواز السفر / N° Pass :</span>{" "}
+                  <span className="font-semibold text-slate-500">
+                    جواز السفر / N° Pass :
+                  </span>{" "}
                   <span className="font-mono font-bold">
                     {receiptForm.passportNumber || "—"}
                   </span>
                 </div>
                 <div>
-                  <span className="font-semibold text-slate-500">الرحلة / Voyage :</span>{" "}
+                  <span className="font-semibold text-slate-500">
+                    الرحلة / Voyage :
+                  </span>{" "}
                   <span className="font-bold">{receiptForm.tripName}</span>
                 </div>
               </div>
@@ -1192,12 +1243,20 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                     </td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 font-semibold bg-slate-50">Mode de Règlement</td>
-                    <td className="p-2 font-medium">{receiptForm.paymentMethod}</td>
+                    <td className="p-2 font-semibold bg-slate-50">
+                      Mode de Règlement
+                    </td>
+                    <td className="p-2 font-medium">
+                      {receiptForm.paymentMethod}
+                    </td>
                   </tr>
                   <tr>
-                    <td className="p-2 font-semibold bg-slate-50">{t("documents.notes")}</td>
-                    <td className="p-2 text-slate-700">{receiptForm.notes || "—"}</td>
+                    <td className="p-2 font-semibold bg-slate-50">
+                      {t("documents.notes")}
+                    </td>
+                    <td className="p-2 text-slate-700">
+                      {receiptForm.notes || "—"}
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -1205,11 +1264,17 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
               <div className="flex justify-between pt-8 text-[11px] text-slate-600">
                 <div className="text-center">
                   <p className="font-bold">{t("documents.agency_signature")}</p>
-                  <p className="text-[10px] text-slate-400 mt-10">ختم وإمضاء الوكالة</p>
+                  <p className="text-[10px] text-slate-400 mt-10">
+                    ختم وإمضاء الوكالة
+                  </p>
                 </div>
                 <div className="text-center">
-                  <p className="font-bold">{t("documents.pilgrim_signature")}</p>
-                  <p className="text-[10px] text-slate-400 mt-10">إمضاء المعتمر</p>
+                  <p className="font-bold">
+                    {t("documents.pilgrim_signature")}
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-10">
+                    إمضاء المعتمر
+                  </p>
                 </div>
               </div>
             </div>
@@ -1430,7 +1495,9 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="استخراج لأول مرة">{t("documents.first_issue")}</option>
+                  <option value="استخراج لأول مرة">
+                    {t("documents.first_issue")}
+                  </option>
                   <option value="تجديد">{t("documents.renewal")}</option>
                   <option value="ضياع">{t("documents.loss")}</option>
                 </select>
@@ -1463,7 +1530,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   </tr>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50">
-                      {t("pilgrims.form_birthdate")} / {t("documents.birth_place")}
+                      {t("pilgrims.form_birthdate")} /{" "}
+                      {t("documents.birth_place")}
                     </td>
                     <td className="p-2">
                       {passportRequestForm.birthDate} —{" "}
@@ -1478,7 +1546,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   </tr>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50">
-                      {t("documents.father_name")} / {t("documents.mother_name")}
+                      {t("documents.father_name")} /{" "}
+                      {t("documents.mother_name")}
                     </td>
                     <td className="p-2">
                       {passportRequestForm.fatherName} /{" "}
@@ -1486,11 +1555,15 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                     </td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 font-semibold bg-slate-50">{t("documents.address")}</td>
+                    <td className="p-2 font-semibold bg-slate-50">
+                      {t("documents.address")}
+                    </td>
                     <td className="p-2">{passportRequestForm.address}</td>
                   </tr>
                   <tr>
-                    <td className="p-2 font-semibold bg-slate-50">{t("documents.request_type")}</td>
+                    <td className="p-2 font-semibold bg-slate-50">
+                      {t("documents.request_type")}
+                    </td>
                     <td className="p-2 font-bold">
                       {passportRequestForm.requestType}
                     </td>
@@ -1685,7 +1758,9 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   }
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs"
                 >
-                  <option value="استخراج لأول مرة">{t("documents.first_issue")}</option>
+                  <option value="استخراج لأول مرة">
+                    {t("documents.first_issue")}
+                  </option>
                   <option value="تجديد">{t("documents.renewal")}</option>
                   <option value="ضياع">{t("documents.loss")}</option>
                 </select>
@@ -1718,7 +1793,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   </tr>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50">
-                      {t("pilgrims.form_birthdate")} / {t("documents.birth_place")}
+                      {t("pilgrims.form_birthdate")} /{" "}
+                      {t("documents.birth_place")}
                     </td>
                     <td className="p-2">
                       {idCardRequestForm.birthDate} —{" "}
@@ -1727,7 +1803,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                   </tr>
                   <tr className="border-b border-slate-200">
                     <td className="p-2 font-semibold bg-slate-50">
-                      {t("documents.father_name")} / {t("documents.mother_name")}
+                      {t("documents.father_name")} /{" "}
+                      {t("documents.mother_name")}
                     </td>
                     <td className="p-2">
                       {idCardRequestForm.fatherName} /{" "}
@@ -1735,11 +1812,15 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
                     </td>
                   </tr>
                   <tr className="border-b border-slate-200">
-                    <td className="p-2 font-semibold bg-slate-50">{t("documents.address")}</td>
+                    <td className="p-2 font-semibold bg-slate-50">
+                      {t("documents.address")}
+                    </td>
                     <td className="p-2">{idCardRequestForm.address}</td>
                   </tr>
                   <tr>
-                    <td className="p-2 font-semibold bg-slate-50">{t("documents.request_type")}</td>
+                    <td className="p-2 font-semibold bg-slate-50">
+                      {t("documents.request_type")}
+                    </td>
                     <td className="p-2 font-bold">
                       {idCardRequestForm.requestType}
                     </td>
@@ -1777,7 +1858,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           <div className="print-modal-box bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-3xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
               <h2 className="font-bold text-slate-900 text-base">
-                {t("documents.passport_card_title")} - {selectedTrip?.name || "مسك طيبة"}
+                {t("documents.passport_card_title")} -{" "}
+                {selectedTrip?.name || "مسك طيبة"}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
@@ -1856,7 +1938,8 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           <div className="print-modal-box bg-white border border-slate-100 rounded-2xl shadow-2xl w-full max-w-3xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 print:hidden">
               <h2 className="font-bold text-slate-900 text-base">
-                {t("documents.luggage_tag_title")} - {selectedTrip?.name || "مسك طيبة"}
+                {t("documents.luggage_tag_title")} -{" "}
+                {selectedTrip?.name || "مسك طيبة"}
               </h2>
               <button
                 onClick={() => setActiveModal(null)}
@@ -1927,9 +2010,44 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
           isOpen={isPassportScannerOpen}
           onClose={() => setIsPassportScannerOpen(false)}
           trips={trips}
-          onImportPilgrim={(newPilgrim, pendingDocument) => {
+          onImportPilgrim={(newPilgrim, pendingDocument, extractedData) => {
             if (onAddPilgrim) {
               onAddPilgrim(newPilgrim, pendingDocument);
+            }
+            if (onAddPassport && (extractedData || newPilgrim.passportNumber)) {
+              const fullNameLatin = extractedData
+                ? `${extractedData.givenNamesLatin || ""} ${extractedData.surnameLatin || ""}`.trim()
+                : newPilgrim.nameLatin || "—";
+              const resolvedGender =
+                extractedData?.sex === "F" || newPilgrim.gender === "F"
+                  ? "F"
+                  : "M";
+
+              onAddPassport({
+                fullNameArabic:
+                  extractedData?.fullNameArabic || newPilgrim.nameArabic || "—",
+                fullNameLatin: fullNameLatin || "—",
+                gender: resolvedGender,
+                passportNumber:
+                  newPilgrim.passportNumber?.trim().toUpperCase() ||
+                  extractedData?.passportNumber?.trim().toUpperCase() ||
+                  "—",
+                birthDate:
+                  extractedData?.dateOfBirth || newPilgrim.birthDate || "—",
+                deliberationDate: extractedData?.issueDate || "—",
+                expiryDate: extractedData?.expiryDate || "—",
+                cinNumber: extractedData?.cinNumber || undefined,
+                nationality: extractedData?.nationality || "TUNISIENNE",
+                placeOfBirth: extractedData?.placeOfBirth || undefined,
+                issuingAuthority: extractedData?.issuingAuthority || undefined,
+                avatarUrl:
+                  pendingDocument?.fileUrl ||
+                  newPilgrim.avatarUrl ||
+                  DEFAULT_AVATAR_URL,
+                notes: extractedData?.mrz1
+                  ? `MRZ: ${extractedData.mrz1}`
+                  : undefined,
+              });
             }
           }}
         />

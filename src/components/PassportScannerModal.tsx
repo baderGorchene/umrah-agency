@@ -59,6 +59,7 @@ interface PassportScannerModalProps {
       mimeType?: string;
       fileName?: string;
     },
+    extractedData?: ExtractedPassportData,
   ) => void;
   onAutoFillForm?: (data: ExtractedPassportData) => void;
 }
@@ -384,7 +385,9 @@ Attention particulière pour les passeports tunisiens:
   const handleSavePilgrim = async () => {
     if (!extractedData) return;
 
-    const normalizedPassport = extractedData.passportNumber?.trim().toUpperCase();
+    const normalizedPassport = extractedData.passportNumber
+      ?.trim()
+      .toUpperCase();
     if (normalizedPassport) {
       const check = await checkPilgrimPassportExists(normalizedPassport);
       if (check.exists) {
@@ -419,7 +422,7 @@ Attention particulière pour les passeports tunisiens:
       avatarUrl: pendingDocument?.fileUrl || DEFAULT_AVATAR_URL,
     };
 
-    onImportPilgrim(newPilgrim, pendingDocument || undefined);
+    onImportPilgrim(newPilgrim, pendingDocument || undefined, extractedData);
     onClose();
   };
 
@@ -545,9 +548,7 @@ Attention particulière pour les passeports tunisiens:
 
                 <div>
                   <p className="text-xs font-bold text-slate-800">
-                    {selectedFile
-                      ? selectedFile.name
-                      : t("scanner.drop_text")}
+                    {selectedFile ? selectedFile.name : t("scanner.drop_text")}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-1">
                     {t("scanner.accepted_formats")}
@@ -728,7 +729,8 @@ Attention particulière pour les passeports tunisiens:
                 <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>
-                    Le téléversement de l'image a échoué. Le pèlerin sera enregistré avec la photo par défaut.
+                    Le téléversement de l'image a échoué. Le pèlerin sera
+                    enregistré avec la photo par défaut.
                   </span>
                 </div>
               )}
@@ -845,7 +847,9 @@ Attention particulière pour les passeports tunisiens:
                 </div>
 
                 <div className="space-y-1">
-                  <label className="font-semibold text-slate-700">{t("scanner.gender")}</label>
+                  <label className="font-semibold text-slate-700">
+                    {t("scanner.gender")}
+                  </label>
                   <select
                     value={extractedData.sex || "M"}
                     onChange={(e) =>
