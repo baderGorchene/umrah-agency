@@ -29,7 +29,7 @@ import { QRPassModal } from "./QRPassModal";
 import { uploadAvatarToStorage } from "../services/documentsService";
 import { checkPilgrimPassportExists } from "../services/pilgrimsService";
 import { useTranslation } from "react-i18next";
-import { cleanArabicFullName } from "../lib/passportUtils";
+import { cleanArabicFullName, formatLatinFullName } from "../lib/passportUtils";
 
 interface PilgrimsViewProps {
   lang?: Language;
@@ -404,7 +404,10 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
     // 2. Also save to Passports registry so it appears in PassportsView
     if (onAddPassport && (extractedPassport || trimmedPassport)) {
       const fullNameLatin = extractedPassport
-        ? `${extractedPassport.givenNamesLatin || ""} ${extractedPassport.surnameLatin || ""}`.trim()
+        ? formatLatinFullName(
+            extractedPassport.surnameLatin,
+            extractedPassport.givenNamesLatin,
+          )
         : newPilgrim.nameLatin || "—";
 
       const resolvedGender =

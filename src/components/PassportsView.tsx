@@ -35,7 +35,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { uploadPassportToStorage } from "../services/documentsService";
 import * as XLSX from "xlsx";
 import { useTranslation } from "react-i18next";
-import { cleanArabicFullName } from "../lib/passportUtils";
+import {
+  cleanArabicFullName,
+  cleanLatinSurname,
+  formatLatinFullName,
+} from "../lib/passportUtils";
 
 interface PassportsViewProps {
   lang?: Language;
@@ -216,9 +220,13 @@ export const PassportsView: React.FC<PassportsViewProps> = ({
 Vous êtes un expert OCR spécialisé dans la lecture et l'extraction de données à partir de passeports tunisiens (Passeport de la République Tunisienne / الجمهورية التونسية - جواز سفر).
 Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni et extrait toutes les informations clés dans le format JSON strict requis.
 
-Attention particulière pour les passeports tunisiens:
-- Le nom et le prénom apparaissent en français (latin) et en arabe.
-- Nom complet en arabe (fullNameArabic): Sur le passeport tunisien, le nom en arabe est souvent écrit sous la forme "[الاسم] بن/بنت [اسم الأب] [اللقب]" (ex: "بدر بن البشير قرشان" ou "مريم بنت محمد الطرابلسي"). Vous devez extraire UNIQUEMENT le prénom et le nom de famille en arabe (ex: "بدر قرشان", "مريم الطرابلسي"), en omettant la filiation ("بن/بنت [اسم الأب]").
+Règles impératives d'extraction des noms:
+1. Nom de famille et prénom(s) en français / latin (surnameLatin, givenNamesLatin):
+   - Pour les hommes et femmes célibataires: extrayez le nom de famille (Surname) dans surnameLatin (ex: "GOLLI") et le(s) prénom(s) (Given names) dans givenNamesLatin (ex: "BECHIR").
+   - Pour les femmes mariées: sur le passeport, le champ Surname affiche souvent le nom de jeune fille suivi de "EP" et du nom du mari (ex: "ZGUEB EP SAIBI"). Vous devez extraire UNIQUEMENT son nom de famille d'origine / de jeune fille dans surnameLatin (ex: "ZGUEB") et son prénom dans givenNamesLatin (ex: "ANWAR"). Ignorez totalement la mention "EP [Nom du mari]".
+2. Nom complet en arabe (fullNameArabic):
+   - Pour les hommes: sur le passeport tunisien, le nom est écrit sous la forme "[الاسم] بن [اسم الأب] [اللقب]" (ex: "البشير بن بوراوي القلي" ou "بدر بن البشير قرشان"). Extrayez UNIQUEMENT le prénom et le nom de famille en arabe (ex: "البشير القلي", "بدر قرشان"), sans inclure la filiation ("بن [اسم الأب]").
+   - Pour les femmes mariées: sur le passeport tunisien, le nom est écrit sous la forme "[الاسم] بنت [اسم الأب] [اللقب الأصلي] حرم [لقب الزوج]" (ex: "أنوار بنت محمد زقاب حرم سائبي"). Extrayez UNIQUEMENT son prénom et son nom de famille d'origine de jeune fille (ex: "أنوار زقاب"), en ignorant la filiation ("بنت [اسم الأب]") ET en ignorant le nom du mari ("حرم [لقب الزوج]").
 `;
 
       const response = await ai.models.generateContent({
@@ -259,6 +267,12 @@ Attention particulière pour les passeports tunisiens:
 
       const extracted = JSON.parse(response.text || "{}");
 
+      if (extracted.surnameLatin) {
+        extracted.surnameLatin = cleanLatinSurname(extracted.surnameLatin);
+      }
+      if (extracted.givenNamesLatin) {
+        extracted.givenNamesLatin = extracted.givenNamesLatin.trim();
+      }
       if (extracted.fullNameArabic) {
         extracted.fullNameArabic = cleanArabicFullName(
           extracted.fullNameArabic,
@@ -271,13 +285,12 @@ Attention particulière pour les passeports tunisiens:
         );
       }
 
-      let resolvedLatinName = extracted.fullNameLatin || "";
-      if (!resolvedLatinName) {
-        resolvedLatinName =
-          `${extracted.surnameLatin || ""} ${extracted.givenNamesLatin || ""}`.trim();
-      }
-      if (!resolvedLatinName) {
-        resolvedLatinName = "—";
+      let resolvedLatinName = formatLatinFullName(
+        extracted.surnameLatin,
+        extracted.givenNamesLatin,
+      );
+      if (resolvedLatinName === "—" && extracted.fullNameLatin) {
+        resolvedLatinName = extracted.fullNameLatin.trim();
       }
 
       let resolvedGender: "M" | "F" = "M";

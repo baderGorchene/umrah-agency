@@ -32,6 +32,7 @@ import {
 } from "./PassportScannerModal";
 import { updatePilgrim } from "../services/pilgrimsService";
 import { useTranslation } from "react-i18next";
+import { cleanArabicFullName, formatLatinFullName } from "../lib/passportUtils";
 
 const LOGO_SRC = `${import.meta.env.BASE_URL}logo.jpeg`;
 
@@ -2016,7 +2017,10 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
             }
             if (onAddPassport && (extractedData || newPilgrim.passportNumber)) {
               const fullNameLatin = extractedData
-                ? `${extractedData.givenNamesLatin || ""} ${extractedData.surnameLatin || ""}`.trim()
+                ? formatLatinFullName(
+                    extractedData.surnameLatin,
+                    extractedData.givenNamesLatin,
+                  )
                 : newPilgrim.nameLatin || "—";
               const resolvedGender =
                 extractedData?.sex === "F" || newPilgrim.gender === "F"
@@ -2025,7 +2029,9 @@ export const DocumentsView: React.FC<DocumentsViewProps> = ({
 
               onAddPassport({
                 fullNameArabic:
-                  extractedData?.fullNameArabic || newPilgrim.nameArabic || "—",
+                  cleanArabicFullName(extractedData?.fullNameArabic) ||
+                  cleanArabicFullName(newPilgrim.nameArabic) ||
+                  "—",
                 fullNameLatin: fullNameLatin || "—",
                 gender: resolvedGender,
                 passportNumber:

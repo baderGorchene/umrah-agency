@@ -21,6 +21,11 @@ import { uploadPassportToStorage } from "../services/documentsService";
 import { checkPilgrimPassportExists } from "../services/pilgrimsService";
 import { GoogleGenAI, Type } from "@google/genai";
 import { useTranslation } from "react-i18next";
+import {
+  cleanArabicFullName,
+  cleanLatinSurname,
+  formatLatinFullName,
+} from "../lib/passportUtils";
 
 export interface ExtractedPassportData {
   passportNumber: string;
@@ -249,12 +254,20 @@ export const PassportScannerModal: React.FC<PassportScannerModalProps> = ({
 Vous êtes un expert OCR spécialisé dans la lecture et l'extraction de données à partir de passeports tunisiens (Passeport de la République Tunisienne / الجمهورية التونسية - جواز سفر).
 Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni et extrait toutes les informations clés dans le format JSON strict requis.
 
-Attention particulière pour les passeports tunisiens:
-- Le nom et le prénom apparaissent en français (latin) et en arabe.
-- Le numéro de passeport tunisien commence généralement par un préfixe (ex: N, P, etc.) suivi de chiffres (ex: N2891048 ou 0881234).
-- Extrais la bande MRZ (Machine Readable Zone) si disponible au bas de la page.
-- Identifie le numéro de carte d'identité nationale (CIN) si mentionné.
-- Extrais le sexe (M ou F), la date de naissance, la date d'émission et la date d'expiration.
+Règles impératives d'extraction des noms:
+1. Nom de famille et prénom(s) en français / latin (surnameLatin, givenNamesLatin):
+   - Pour les hommes et femmes célibataires: extrayez le nom de famille (Surname) dans surnameLatin (ex: "GOLLI") et le(s) prénom(s) (Given names) dans givenNamesLatin (ex: "BECHIR").
+   - Pour les femmes mariées: sur le passeport, le champ Surname affiche souvent le nom de jeune fille suivi de "EP" et du nom du mari (ex: "ZGUEB EP SAIBI"). Vous devez extraire UNIQUEMENT son nom de famille d'origine / de jeune fille dans surnameLatin (ex: "ZGUEB") et son prénom dans givenNamesLatin (ex: "ANWAR"). Ignorez totalement la mention "EP [Nom du mari]".
+2. Nom complet en arabe (fullNameArabic):
+   - Pour les hommes: sur le passeport tunisien, le nom est écrit sous la forme "[الاسم] بن [اسم الأب] [اللقب]" (ex: "البشير بن بوراوي القلي" ou "بدر بن البشير قرشان"). Extrayez UNIQUEMENT le prénom et le nom de famille en arabe (ex: "البشير القلي", "بدر قرشان"), sans inclure la filiation ("بن [اسم الأب]").
+   - Pour les femmes mariées: sur le passeport tunisien, le nom est écrit sous la forme "[الاسم] بنت [اسم الأب] [اللقب الأصلي] حرم [لقب الزوج]" (ex: "أنوار بنت محمد زقاب حرم سائبي"). Extrayez UNIQUEMENT son prénom et son nom de famille d'origine de jeune fille (ex: "أنوار زقاب"), en ignorant la filiation ("بنت [اسم الأب]") ET en ignorant le nom du mari ("حرم [لقب الزوج]").
+3. Autres champs:
+   - Numéro de passeport (passportNumber) (ex: U957040 ou U770586).
+   - CIN (cinNumber): Numéro de carte d'identité nationale (ex: 06426334 ou 02812955).
+   - Sexe (sex): "M" pour ذكر / Homme, "F" pour أنثى / Femme.
+   - Dates: dateOfBirth, issueDate, expiryDate au format JJ-MM-AAAA ou JJ/MM/AAAA.
+   - Lieu de naissance (placeOfBirth) et Autorité d'émission (issuingAuthority).
+   - Bandes MRZ (mrz1, mrz2) si présentes.
 `;
 
       const response = await ai.models.generateContent({
@@ -297,6 +310,16 @@ Attention particulière pour les passeports tunisiens:
       });
 
       const data = JSON.parse(response.text || "{}");
+
+      if (data.surnameLatin) {
+        data.surnameLatin = cleanLatinSurname(data.surnameLatin);
+      }
+      if (data.givenNamesLatin) {
+        data.givenNamesLatin = data.givenNamesLatin.trim();
+      }
+      if (data.fullNameArabic) {
+        data.fullNameArabic = cleanArabicFullName(data.fullNameArabic);
+      }
 
       setExtractedData(data);
       onAutoFillForm?.(data);
@@ -399,8 +422,10 @@ Attention particulière pour les passeports tunisiens:
     }
 
     const selectedTrip = trips.find((t) => t.id === selectedTripId);
-    const fullNameLatin =
-      `${extractedData.givenNamesLatin || ""} ${extractedData.surnameLatin || ""}`.trim();
+    const fullNameLatin = formatLatinFullName(
+      extractedData.surnameLatin,
+      extractedData.givenNamesLatin,
+    );
 
     const isValidUUID = (s: any) =>
       typeof s === "string" &&
@@ -410,7 +435,10 @@ Attention particulière pour les passeports tunisiens:
     const safeTripId = isValidUUID(selectedTripId) ? selectedTripId : "";
 
     const newPilgrim = {
-      nameArabic: extractedData.fullNameArabic || fullNameLatin || "معتمر جديد",
+      nameArabic:
+        cleanArabicFullName(extractedData.fullNameArabic) ||
+        fullNameLatin ||
+        "معتمر جديد",
       nameLatin: fullNameLatin || undefined,
       passportNumber: normalizedPassport || extractedData.passportNumber,
       birthDate: normalizeBirthDate(extractedData.dateOfBirth),
