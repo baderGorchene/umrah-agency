@@ -1,104 +1,119 @@
 /**
- * Utility functions for passport OCR extraction, name cleaning, and formatting.
+ * Utility functions for passport OCR extraction, regex-based name parsing, and formatting.
+ * Handles Tunisian passports for males and females (single, married, widowed).
  */
 
 /**
- * Cleans Tunisian and Arabic passport names formatted as:
- *  - "[First] بن/بنت [Father] [Last]" (e.g. "البشير بن بوراوي القلي" -> "البشير القلي")
- *  - "[First] بنت [Father] [Maiden Last] حرم [Husband Last]" (e.g. "أنوار بنت محمد زقاب حرم سائبي" -> "أنوار زقاب")
- *  - "[First] بنت [Father] [Maiden Last] أرملة [Husband Last]" (e.g. "ساسية بنت علي فحيمة أرملة الدهمـول" -> "ساسية فحيمة")
- *  - "[First] بن [Father] [Last]" (e.g. "بدر بن البشير قرشان" -> "بدر قرشان")
- *
- * Retains strictly the person's first name and actual family name in Arabic.
+ * Checks if a token matches filiation markers (بن / بنت / ابن / ابنة / إبن / إبنة)
+ * with fuzzy OCR fault-tolerance.
  */
-export function cleanArabicFullName(name?: string): string {
-  if (!name) return "";
-  let clean = name.trim().replace(/\s+/g, " ");
-
-  // Remove tatweel / kashida (e.g. الدهمـول -> الدهمول)
-  clean = clean.replace(/ـ/g, "");
-
-  // 1. Remove spouse/married/widow name part if present (e.g. "حرم سائبي", "زوجة بن علي", "أرملة الدهمـول", "ارملة الدهمول")
-  clean = clean.replace(
-    /\s+(?:حرم|زوجة|زوجة\s+المرحوم|أرملة|ارملة|أرملة\s+المرحوم|ارملة\s+المرحوم|مطلقة)\s+.+$/i,
-    "",
-  ).trim();
-
-  const compoundPrefixes = [
-    "عبد",
-    "أبو",
-    "ابو",
-    "بو",
-    "سيدي",
-    "نور",
-    "تقي",
-    "سيف",
-    "شمس",
-    "علاء",
-    "ضياء",
-    "آل",
-    "ال",
-  ];
-
-  const words = clean.split(" ");
-  if (words.length <= 3) return clean;
-
-  // Check if first name is a compound name (e.g. عبد الله or نور الدين)
-  let firstPart = words[0];
-  let remainingWords = words.slice(1);
-  if (compoundPrefixes.includes(words[0]) && words.length >= 4) {
-    firstPart = `${words[0]} ${words[1]}`;
-    remainingWords = words.slice(2);
-  }
-
-  // Find index of بن or بنت or ابن or ابنة in remaining words
-  const binIndex = remainingWords.findIndex((w) =>
-    ["بن", "بنت", "ابن", "ابنة"].includes(w),
+function isFiliationWord(w: string): boolean {
+  if (!w) return false;
+  const normalized = w.replace(/ـ/g, "").replace(/[^\u0621-\u064A]/g, "");
+  // Matches: بن, بنت, ابن, ابنة, إبن, إبنة, بنة, بـن, بـنت, بثت, بئت, etc.
+  return /^(?:[اأإآ]?بن|[اأإآ]?بنت|[اأإآ]?بنة|[اأإآ]?ابن|[اأإآ]?ابنة|ب[نثئ][تة]?)$/.test(
+    normalized,
   );
-
-  if (binIndex !== -1 && remainingWords.length >= 2) {
-    // Check if the last part is a compound surname (e.g. "بن علي", "بو عزيزي", "عبد اللاوي", "أبو بكر")
-    const lastWord = remainingWords[remainingWords.length - 1];
-    const prevToLast = remainingWords[remainingWords.length - 2];
-
-    if (
-      remainingWords.length >= 4 &&
-      ["بن", "بنت", "بو", "أبو", "ابو", "عبد", "آل"].includes(prevToLast)
-    ) {
-      const lastName = `${prevToLast} ${lastWord}`;
-      return `${firstPart} ${lastName}`.trim();
-    }
-    return `${firstPart} ${lastWord}`.trim();
-  }
-
-  // Fallback regex pattern matching
-  const binRegex =
-    /^(.+?)\s+(?:بن|بنت|ابن|ابنة)\s+(?:.+?\s+)?([^\s]+(?:\s+[^\s]+)?)$/;
-  const match = clean.match(binRegex);
-  if (match) {
-    return `${match[1].trim()} ${match[2].trim()}`.trim();
-  }
-
-  return clean;
 }
 
 /**
- * Cleans Latin surname by stripping married / widowed spouse mentions:
- *  - "ZGUEB EP SAIBI" -> "ZGUEB"
+ * Checks if a token matches spouse / widow / divorce markers (حرم / زوجة / أرملة / مطلقة)
+ * with fuzzy OCR fault-tolerance.
+ */
+function isSpouseOrWidowWord(w: string): boolean {
+  if (!w) return false;
+  const normalized = w.replace(/ـ/g, "").replace(/[^\u0621-\u064A]/g, "");
+  // Matches: حرم, حرمة, حرمه, زوجة, زوجه, أرملة, ارملة, ارمله, أرمله, مطلقة, مطلقه
+  return /^(?:حرم[ةه]?|حـرم[ةه]?|زو[جح][ةه]?|[اأإآ]رمل[ةه]?|مطلق[ةه]?)$/.test(
+    normalized,
+  );
+}
+
+/**
+ * Robust Regex & Token-based parser for Arabic passport names:
+ *  - Male: "[الاسم] بن [اسم الأب] [اللقب]" -> "[الاسم] [اللقب]" (e.g. "البشير بن بوراوي القلي" -> "البشير القلي")
+ *  - Married Female: "[الاسم] بنت [اسم الأب] [اللقب الأصلي] حرم [لقب الزوج]" -> "[الاسم] [اللقب الأصلي]" (e.g. "أنوار بنت محمد زقاب حرم سائبي" -> "أنوار زقاب")
+ *  - Widowed Female: "[الاسم] بنت [اسم الأب] [اللقب الأصلي] أرملة [لقب الزوج]" -> "[الاسم] [اللقب الأصلي]" (e.g. "ساسية بنت علي فحيمة أرملة الدهمـول" -> "ساسية فحيمة")
+ *  - Compound Surnames: "[الاسم] بن [اسم الأب] بن علي" -> "[الاسم] بن علي"
+ */
+export function cleanArabicFullName(rawName?: string): string {
+  if (!rawName) return "";
+  let clean = rawName.trim().replace(/\s+/g, " ");
+
+  // 1. Remove tatweel / kashida (ـ)
+  clean = clean.replace(/ـ/g, "");
+
+  // 2. Remove punctuation / noise introduced by OCR
+  clean = clean
+    .replace(/[.:,;/\\|_\-\[\]{}()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // 3. Tokenize
+  let tokens = clean.split(" ").filter(Boolean);
+  if (tokens.length === 0) return "";
+
+  // 4. Strip spouse / widow segment (e.g. "أرملة الدهمول", "حرم سائبي", "زوجة بن سالم")
+  const spouseIdx = tokens.findIndex(isSpouseOrWidowWord);
+  if (spouseIdx !== -1) {
+    tokens = tokens.slice(0, spouseIdx);
+  }
+
+  if (tokens.length === 0) return "";
+
+  // 5. Detect filiation marker (بن / بنت / ابن / ابنة / إبن / إبنة)
+  const filiationIdx = tokens.findIndex(isFiliationWord);
+
+  if (filiationIdx > 0 && filiationIdx < tokens.length - 1) {
+    // First name is all tokens before filiation
+    const firstNameTokens = tokens.slice(0, filiationIdx);
+    const firstName = firstNameTokens.join(" ");
+
+    // Tokens after filiation (Father's name + Actual Family name)
+    const afterTokens = tokens.slice(filiationIdx + 1);
+
+    if (afterTokens.length === 1) {
+      return `${firstName} ${afterTokens[0]}`.trim();
+    }
+
+    // Check for compound surname (e.g. "بن علي", "بو عزيزي", "عبد اللاوي", "أبو بكر", "آل ...")
+    const lastWord = afterTokens[afterTokens.length - 1];
+    const prevWord = afterTokens[afterTokens.length - 2];
+
+    if (
+      afterTokens.length >= 3 &&
+      ["بن", "بنت", "بو", "أبو", "ابو", "عبد", "آل"].includes(prevWord)
+    ) {
+      return `${firstName} ${prevWord} ${lastWord}`.trim();
+    }
+
+    // Standard case: last word is the family name
+    return `${firstName} ${lastWord}`.trim();
+  }
+
+  // If no filiation token was found, return cleaned name
+  return tokens.join(" ");
+}
+
+/**
+ * Regex-based cleaner for Latin surnames on Tunisian passports:
+ *  - Strips married stop words: "EP", "EP.", "EPOUSE", "ÉPOUSE", "E/P"
+ *  - Strips widow stop words: "VV", "VV.", "VVE", "VVE.", "VEUVE", "V/V"
+ *
+ * Examples:
  *  - "FAHIMA VV DAHMOUL" -> "FAHIMA"
+ *  - "ZGUEB EP SAIBI" -> "ZGUEB"
  *  - "BEN ALI EP. TRABELSI" -> "BEN ALI"
- *  - "HAMDI ÉPOUSE GHARBI" -> "HAMDI"
  *  - "GOLLI" -> "GOLLI"
  */
 export function cleanLatinSurname(surname?: string): string {
   if (!surname) return "";
   let clean = surname.trim().replace(/\s+/g, " ");
 
-  // Remove "EP", "EP.", "EPOUSE", "ÉPOUSE", "VV", "VV.", "VVE", "VVE.", "VEUVE" and everything following it
-  clean = clean.replace(
-    /\s+(?:EP\.?|EPOUSE|ÉPOUSE|VV\.?|VVE\.?|VEUVE)\b.*$/i,
-    "",
-  ).trim();
+  // Strip stop words: EP, EP., EPOUSE, ÉPOUSE, VV, VV., VVE, VVE., VEUVE, E/P, V/V, W/O and everything after
+  const latinStopRegex =
+    /(?:^|\s+|[\/_,.-])(?:EP\.?|EPOUSE|ÉPOUSE|VV\.?|VVE\.?|VEUVE|E\/P|V\/V|W\/O)\b.*$/i;
+  clean = clean.replace(latinStopRegex, "").trim();
 
   return clean;
 }

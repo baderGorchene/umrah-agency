@@ -217,15 +217,22 @@ export const PassportsView: React.FC<PassportsViewProps> = ({
       const ai = new GoogleGenAI({ apiKey });
 
       const prompt = `
-Vous êtes un expert OCR spécialisé dans la lecture et l'extraction de données à partir de passeports tunisiens (Passeport de la République Tunisienne / الجمهورية التونسية - جواز سفر).
-Analyse minutieusement l'image ou le document PDF du passeport tunisien fourni et extrait toutes les informations clés dans le format JSON strict requis.
+Vous êtes un système OCR de haute précision pour passeports tunisiens (République Tunisienne / الجمهورية التونسية - جواز سفر).
+Lisez fidèlement le document fourni et extrayez TOUTES les informations textuelles brutes visibles dans le format JSON strict :
 
-Règles impératives d'extraction des noms:
-1. Nom de famille et prénom(s) en français / latin (surnameLatin, givenNamesLatin):
-   - Pour les hommes et femmes célibataires: extrayez le nom de famille (Surname) dans surnameLatin (ex: "GOLLI") et le(s) prénom(s) (Given names) dans givenNamesLatin (ex: "BECHIR").
-   - Pour les femmes mariées ou veuves: sur le passeport, le champ Surname affiche souvent le nom de jeune fille suivi de "EP" (épouse) ou "VV" / "VVE" (veuve) et du nom du mari (ex: "ZGUEB EP SAIBI" ou "FAHIMA VV DAHMOUL"). Vous devez extraire UNIQUEMENT son nom de famille d'origine / de jeune fille dans surnameLatin (ex: "ZGUEB" ou "FAHIMA") et son prénom dans givenNamesLatin (ex: "ANWAR" ou "SASIA"). Ignorez totalement la mention "EP [Nom du mari]" ou "VV [Nom du mari]".
-2. Nom complet en arabe (fullNameArabic):
-   - Extrayez la ligne complète exacte du nom en arabe tel qu'il est écrit en haut à droite du passeport (ex: "ساسية بنت علي فحيمة أرملة الدهمـول" ou "أنوار بنت محمد زقاب حرم سائبي" ou "البشير بن بوراوي القلي"). Ne tronquez aucun mot, retournez le texte arabe intégral visible sur le passeport afin que le système dérive le prénom et le nom de famille d'origine de façon déterministe.
+- passportNumber: Numéro de passeport exact (ex: "U957040", "J500820", "U770586").
+- surnameLatin: Texte intégral brut du champ "Surname" / "Nom" (ex: "GOLLI", "ZGUEB EP SAIBI", "FAHIMA VV DAHMOUL").
+- givenNamesLatin: Texte intégral brut du champ "Given names" / "Prénom" (ex: "BECHIR", "ANWAR", "SASIA").
+- fullNameArabic: Ligne intégrale brute exacte du texte en arabe imprimé en haut à droite sous "الإسم واللقب" (ex: "البشير بن بوراوي القلي", "أنوار بنت محمد زقاب حرم سائبي", "ساسية بنت علي فحيمة أرملة الدهمـول"). Extrayez la totalité de la ligne sans rien omettre ni tronquer.
+- cinNumber: Numéro de carte d'identité nationale (Identity N°) si présent (ex: "02812955", "06426334", "02916402").
+- dateOfBirth: Date de naissance au format JJ-MM-AAAA ou JJ/MM/AAAA.
+- placeOfBirth: Lieu de naissance (ex: "HAMMAM SOUSSE", "MENZEL TEMIME", "M SAKEN").
+- sex: Sexe "M" pour ذكر ou "F" pour أنثى.
+- issueDate: Date d'émission au format JJ-MM-AAAA ou JJ/MM/AAAA.
+- expiryDate: Date d'expiration au format JJ-MM-AAAA ou JJ/MM/AAAA.
+- issuingAuthority: Autorité d'émission (ex: "SOUSSE NORD", "MANOUBA", "SOUSSE SUD").
+- nationality: Nationalité (ex: "TUNISIAN" ou "TUNISIENNE").
+- mrz1, mrz2: Bandes MRZ si lisibles.
 `;
 
       const response = await ai.models.generateContent({
@@ -242,6 +249,7 @@ Règles impératives d'extraction des noms:
               passportNumber: { type: Type.STRING },
               surnameLatin: { type: Type.STRING },
               givenNamesLatin: { type: Type.STRING },
+              rawArabicName: { type: Type.STRING },
               fullNameLatin: { type: Type.STRING },
               fullNameArabic: { type: Type.STRING },
               cinNumber: { type: Type.STRING },
@@ -272,10 +280,11 @@ Règles impératives d'extraction des noms:
       if (extracted.givenNamesLatin) {
         extracted.givenNamesLatin = extracted.givenNamesLatin.trim();
       }
-      if (extracted.fullNameArabic) {
-        extracted.fullNameArabic = cleanArabicFullName(
-          extracted.fullNameArabic,
-        );
+      const rawArabic =
+        extracted.rawArabicName || extracted.fullNameArabic || "";
+      if (rawArabic) {
+        extracted.fullNameArabic =
+          cleanArabicFullName(rawArabic) || extracted.fullNameArabic;
       }
 
       if (!extracted.passportNumber) {
