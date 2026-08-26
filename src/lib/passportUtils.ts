@@ -6,6 +6,7 @@
  * Cleans Tunisian and Arabic passport names formatted as:
  *  - "[First] بن/بنت [Father] [Last]" (e.g. "البشير بن بوراوي القلي" -> "البشير القلي")
  *  - "[First] بنت [Father] [Maiden Last] حرم [Husband Last]" (e.g. "أنوار بنت محمد زقاب حرم سائبي" -> "أنوار زقاب")
+ *  - "[First] بنت [Father] [Maiden Last] أرملة [Husband Last]" (e.g. "ساسية بنت علي فحيمة أرملة الدهمـول" -> "ساسية فحيمة")
  *  - "[First] بن [Father] [Last]" (e.g. "بدر بن البشير قرشان" -> "بدر قرشان")
  *
  * Retains strictly the person's first name and actual family name in Arabic.
@@ -14,8 +15,11 @@ export function cleanArabicFullName(name?: string): string {
   if (!name) return "";
   let clean = name.trim().replace(/\s+/g, " ");
 
-  // 1. Remove spouse/married name part if present (e.g. "حرم سائبي", "زوجة بن علي", "أرملة فلان")
-  clean = clean.replace(/\s+(?:حرم|زوجة|زوجة\s+المرحوم|أرملة)\s+.+$/i, "").trim();
+  // 1. Remove spouse/married/widow name part if present (e.g. "حرم سائبي", "زوجة بن علي", "أرملة الدهمـول", "ارملة الدهمول")
+  clean = clean.replace(
+    /\s+(?:حرم|زوجة|زوجة\s+المرحوم|أرملة|ارملة|أرملة\s+المرحوم|ارملة\s+المرحوم|مطلقة)\s+.+$/i,
+    "",
+  ).trim();
 
   const compoundPrefixes = [
     "عبد",
@@ -76,8 +80,9 @@ export function cleanArabicFullName(name?: string): string {
 }
 
 /**
- * Cleans Latin surname by stripping married spouse mentions:
+ * Cleans Latin surname by stripping married / widowed spouse mentions:
  *  - "ZGUEB EP SAIBI" -> "ZGUEB"
+ *  - "FAHIMA VV DAHMOUL" -> "FAHIMA"
  *  - "BEN ALI EP. TRABELSI" -> "BEN ALI"
  *  - "HAMDI ÉPOUSE GHARBI" -> "HAMDI"
  *  - "GOLLI" -> "GOLLI"
@@ -86,8 +91,11 @@ export function cleanLatinSurname(surname?: string): string {
   if (!surname) return "";
   let clean = surname.trim().replace(/\s+/g, " ");
 
-  // Remove "EP", "EP.", "EPOUSE", "ÉPOUSE", "VVE", "VEUVE" and everything following it
-  clean = clean.replace(/\s+(?:EP\.?|EPOUSE|ÉPOUSE|VVE\.?|VEUVE)\b.*$/i, "").trim();
+  // Remove "EP", "EP.", "EPOUSE", "ÉPOUSE", "VV", "VV.", "VVE", "VVE.", "VEUVE" and everything following it
+  clean = clean.replace(
+    /\s+(?:EP\.?|EPOUSE|ÉPOUSE|VV\.?|VVE\.?|VEUVE)\b.*$/i,
+    "",
+  ).trim();
 
   return clean;
 }
@@ -96,9 +104,13 @@ export function cleanLatinSurname(surname?: string): string {
  * Formats full Latin name as "[Surname / Maiden Name] [Given names]":
  *  - Male: "GOLLI" + "BECHIR" -> "GOLLI BECHIR"
  *  - Married Female: "ZGUEB EP SAIBI" + "ANWAR" -> "ZGUEB ANWAR"
+ *  - Widowed Female: "FAHIMA VV DAHMOUL" + "SASIA" -> "FAHIMA SASIA"
  *  - Unmarried Female: "TRABELSI" + "MARIEM" -> "TRABELSI MARIEM"
  */
-export function formatLatinFullName(surname?: string, givenNames?: string): string {
+export function formatLatinFullName(
+  surname?: string,
+  givenNames?: string,
+): string {
   const cleanSur = cleanLatinSurname(surname);
   const cleanGiv = (givenNames || "").trim().replace(/\s+/g, " ");
 
