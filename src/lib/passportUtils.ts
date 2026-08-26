@@ -15,6 +15,9 @@ export function cleanArabicFullName(name?: string): string {
   if (!name) return "";
   let clean = name.trim().replace(/\s+/g, " ");
 
+  // Remove tatweel / kashida (e.g. الدهمـول -> الدهمول)
+  clean = clean.replace(/ـ/g, "");
+
   // 1. Remove spouse/married/widow name part if present (e.g. "حرم سائبي", "زوجة بن علي", "أرملة الدهمـول", "ارملة الدهمول")
   clean = clean.replace(
     /\s+(?:حرم|زوجة|زوجة\s+المرحوم|أرملة|ارملة|أرملة\s+المرحوم|ارملة\s+المرحوم|مطلقة)\s+.+$/i,
@@ -38,7 +41,7 @@ export function cleanArabicFullName(name?: string): string {
   ];
 
   const words = clean.split(" ");
-  if (words.length < 3) return clean;
+  if (words.length <= 3) return clean;
 
   // Check if first name is a compound name (e.g. عبد الله or نور الدين)
   let firstPart = words[0];
