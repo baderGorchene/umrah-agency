@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 import { Staff, Trip, DEFAULT_AVATAR_URL } from "../types";
+import { normalizeAvatarUrl } from "./pilgrimsService";
 
 const TUNISIA_PREFIX = "+216";
 
@@ -39,9 +40,7 @@ export const getStaff = async (trips: Trip[] = []): Promise<Staff[]> => {
     const tripsMap = new Map(trips.map((t) => [t.id, t.name]));
 
     return data.map((s) => {
-      const isUnsplash = s.avatar_url && s.avatar_url.includes("unsplash.com");
-      const avatarUrl =
-        !s.avatar_url || isUnsplash ? DEFAULT_AVATAR_URL : s.avatar_url;
+      const avatarUrl = normalizeAvatarUrl(s.avatar_url);
 
       return {
         id: s.id,
