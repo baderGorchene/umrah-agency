@@ -12,7 +12,10 @@ import {
   Upload,
   QrCode,
   AlertCircle,
+  Download,
 } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas-pro";
 import {
   Language,
   Pilgrim,
@@ -55,6 +58,48 @@ interface PilgrimsViewProps {
   };
 }
 
+const fixRtlParenthesesInClone = (root: HTMLElement) => {
+  if (!root) return;
+  const walker = root.ownerDocument.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT,
+    null,
+  );
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
+    const text = node.nodeValue;
+    if (!text || !/[()[\]{}«»‹›]/.test(text)) continue;
+
+    const parent = node.parentElement;
+    if (!parent) continue;
+
+    const closestDirEl = parent.closest("[dir]");
+    const isExplicitLtr = closestDirEl?.getAttribute("dir") === "ltr";
+    const isArabic = /[\u0600-\u06FF]/.test(text);
+
+    if (isExplicitLtr && !isArabic) {
+      continue;
+    }
+
+    node.nodeValue = text
+      .split("")
+      .map((char) => {
+        if (char === "(") return ")";
+        if (char === ")") return "(";
+        if (char === "[") return "]";
+        if (char === "]") return "[";
+        if (char === "{") return "}";
+        if (char === "}") return "{";
+        if (char === "«") return "»";
+        if (char === "»") return "«";
+        if (char === "‹") return "›";
+        if (char === "›") return "‹";
+        return char;
+      })
+      .join("");
+  }
+};
+
 export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
   pilgrims,
   trips,
@@ -83,8 +128,10 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
   );
   const [isPassportScannerOpen, setIsPassportScannerOpen] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const createAvatarInputRef = useRef<HTMLInputElement>(null);
   const editAvatarInputRef = useRef<HTMLInputElement>(null);
+  const pdfPrintRef = useRef<HTMLDivElement>(null);
 
   // Validation / Error states
   const [createError, setCreateError] = useState<string | null>(null);
@@ -468,6 +515,98 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
     return matchesSearch && matchesTrip;
   });
 
+  const handleDownloadPDF = async () => {
+    if (filteredPilgrims.length === 0) {
+      showToast(
+        t("pilgrims.pdf_no_data", { defaultValue: "Aucun pèlerin à exporter" }),
+        "warning",
+      );
+      return;
+    }
+
+    setIsGeneratingPdf(true);
+    try {
+      // Small pause to allow React to render the printable markup
+      await new Promise((resolve) => setTimeout(resolve, 200));
+
+      if (!pdfPrintRef.current) {
+        throw new Error("Conteneur d'impression PDF introuvable.");
+      }
+
+      const pageNodes = pdfPrintRef.current.querySelectorAll<HTMLElement>(
+        ".pdf-page-container",
+      );
+      if (!pageNodes || pageNodes.length === 0) {
+        throw new Error("Aucune page PDF à générer.");
+      }
+
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth(); // 297mm
+      const pageHeight = pdf.internal.pageSize.getHeight(); // 210mm
+      const margin = 8;
+      const contentWidth = pageWidth - margin * 2;
+      const contentHeight = pageHeight - margin * 2;
+
+      for (let i = 0; i < pageNodes.length; i++) {
+        const pageNode = pageNodes[i];
+        const canvas = await html2canvas(pageNode, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+          onclone: (_clonedDoc, clonedElement) => {
+            fixRtlParenthesesInClone(clonedElement);
+          },
+        });
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.95);
+        const imgWidth = contentWidth;
+        const imgHeight = (canvas.height * contentWidth) / canvas.width;
+
+        if (i > 0) {
+          pdf.addPage("a4", "landscape");
+        }
+
+        pdf.addImage(
+          imgData,
+          "JPEG",
+          margin,
+          margin,
+          imgWidth,
+          Math.min(imgHeight, contentHeight),
+        );
+      }
+
+      const selectedTripObj = trips.find((t) => t.id === selectedTripFilter);
+      const tripNameClean = selectedTripObj
+        ? selectedTripObj.name
+            .normalize("NFKD")
+            .replace(/[^\w\s-]/g, "")
+            .trim()
+            .replace(/\s+/g, "_")
+        : "tous_les_voyages";
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      pdf.save(`tableau_pelerins_${tripNameClean}_${dateStr}.pdf`);
+
+      showToast(
+        t("pilgrims.pdf_success", {
+          defaultValue: "Tableau des pèlerins téléchargé en PDF avec succès !",
+        }),
+        "success",
+      );
+    } catch (err) {
+      console.error("Error generating pilgrims PDF:", err);
+      showToast("Échec du téléchargement du PDF", "error");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -481,6 +620,29 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
           </p>
         </div>
         <div className="flex items-center gap-2.5">
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isGeneratingPdf || filteredPilgrims.length === 0}
+            className="bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 font-bold py-2.5 px-4 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+            title={t("pilgrims.download_pdf", {
+              defaultValue: "Télécharger PDF",
+            })}
+          >
+            {isGeneratingPdf ? (
+              <div className="w-4 h-4 border-2 border-slate-700 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Download className="w-4 h-4 text-slate-700" />
+            )}
+            <span>
+              {isGeneratingPdf
+                ? t("pilgrims.generating_pdf", {
+                    defaultValue: "Génération PDF...",
+                  })
+                : t("pilgrims.download_pdf", {
+                    defaultValue: "Télécharger PDF",
+                  })}
+            </span>
+          </button>
           <button
             onClick={() => setIsPassportScannerOpen(true)}
             className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-2.5 px-4 rounded-xl shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer text-xs"
@@ -1324,6 +1486,357 @@ export const PilgrimsView: React.FC<PilgrimsViewProps> = ({
           </button>
         </div>
       )}
+
+      {/* Hidden container for clean simple PDF table export */}
+      <div
+        ref={pdfPrintRef}
+        style={{
+          position: "fixed",
+          left: "-9999px",
+          top: 0,
+          width: "1120px",
+          background: "#ffffff",
+          zIndex: -100,
+        }}
+        aria-hidden="true"
+      >
+        {(() => {
+          const ITEMS_PER_PAGE = 14;
+          const pages: Pilgrim[][] = [];
+          for (let i = 0; i < filteredPilgrims.length; i += ITEMS_PER_PAGE) {
+            pages.push(filteredPilgrims.slice(i, i + ITEMS_PER_PAGE));
+          }
+          if (pages.length === 0) pages.push([]);
+
+          const totalPages = pages.length;
+          const totalPaidSum = filteredPilgrims.reduce(
+            (sum, p) => sum + Number(p.paidAmount || 0),
+            0,
+          );
+          const totalUnpaidSum = filteredPilgrims.reduce(
+            (sum, p) => sum + Number(p.unpaidAmount || 0),
+            0,
+          );
+          const selectedTripObj = trips.find(
+            (t) => t.id === selectedTripFilter,
+          );
+
+          return pages.map((pagePilgrims, pageIndex) => (
+            <div
+              key={pageIndex}
+              className="pdf-page-container bg-white p-8 mb-8 text-slate-900"
+              style={{
+                width: "1120px",
+                minHeight: "750px",
+                boxSizing: "border-box",
+                fontFamily:
+                  "system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Arabic', 'Tajawal', 'Cairo', Arial, sans-serif",
+                letterSpacing: "normal",
+                direction: "rtl",
+              }}
+            >
+              {/* Header */}
+              <div
+                className="flex items-center justify-between border-b-2 border-slate-900 pb-4 mb-4"
+                dir="rtl"
+              >
+                <div className="text-right">
+                  <h1
+                    className="text-2xl font-bold text-slate-950 leading-tight"
+                    style={{ letterSpacing: "normal" }}
+                  >
+                    مسك طيبة للعمرة والزيارة
+                  </h1>
+                  <p
+                    className="text-xs font-semibold text-slate-500 mt-1"
+                    dir="ltr"
+                    style={{ letterSpacing: "normal" }}
+                  >
+                    Misk Tiba pour les Voyages & Tourisme
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <div className="bg-slate-900 text-white px-6 py-2 rounded-xl text-center shadow-xs flex flex-col items-center justify-center">
+                    <span
+                      className="text-sm font-bold leading-tight"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      جدول بيانات المعتمرين
+                    </span>
+                    <span
+                      className="text-[10px] text-slate-300 font-medium leading-tight mt-0.5"
+                      dir="ltr"
+                    >
+                      Liste des Pèlerins
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-left text-xs text-slate-700 space-y-1">
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span
+                      className="font-bold text-slate-900"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      تاريخ الإصدار:
+                    </span>
+                    <span dir="ltr" className="font-mono font-medium">
+                      {new Date().toLocaleDateString("fr-FR")}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-end gap-1.5">
+                    <span
+                      className="font-bold text-slate-900"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      الرحلة:
+                    </span>
+                    <span
+                      className="font-medium text-slate-800"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      {selectedTripObj ? selectedTripObj.name : "جميع الرحلات"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Info Meta Strip */}
+              <div
+                className="flex items-center justify-between bg-slate-100 border border-slate-200 rounded-xl px-5 py-2.5 mb-4 text-xs"
+                dir="rtl"
+              >
+                <div className="flex items-center gap-8">
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="font-semibold text-slate-600"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      إجمالي المعتمرين:
+                    </span>
+                    <span className="font-bold text-slate-950 font-mono text-sm">
+                      {filteredPilgrims.length}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="font-semibold text-slate-600"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      المبلغ المدفوع الجملي:
+                    </span>
+                    <span
+                      className="font-bold text-emerald-700 font-mono text-sm"
+                      dir="ltr"
+                    >
+                      {totalPaidSum.toLocaleString()} TND
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="font-semibold text-slate-600"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      المبلغ المتبقي:
+                    </span>
+                    <span
+                      className="font-bold text-amber-700 font-mono text-sm"
+                      dir="ltr"
+                    >
+                      {totalUnpaidSum.toLocaleString()} TND
+                    </span>
+                  </div>
+                </div>
+                <div
+                  className="font-bold text-slate-700 text-xs flex items-center gap-1"
+                  dir="rtl"
+                >
+                  <span style={{ letterSpacing: "normal" }}>الصفحة</span>
+                  <span className="font-mono">{pageIndex + 1}</span>
+                  <span>/</span>
+                  <span className="font-mono">{totalPages}</span>
+                </div>
+              </div>
+
+              {/* The Simple Table */}
+              <table
+                className="w-full border-collapse border border-slate-300 text-xs text-start"
+                dir="rtl"
+              >
+                <thead>
+                  <tr className="bg-slate-900 text-white font-bold text-[11px]">
+                    <th className="border border-slate-700 py-2.5 px-2 text-center w-10">
+                      N°
+                    </th>
+                    <th
+                      className="border border-slate-700 py-2.5 px-3 text-right"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      الاسم واللقب (بالعربية)
+                    </th>
+                    <th
+                      className="border border-slate-700 py-2.5 px-3 text-left"
+                      dir="ltr"
+                    >
+                      Nom & Prénom (Latin)
+                    </th>
+                    <th
+                      className="border border-slate-700 py-2.5 px-2.5 text-center"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      رقم الجواز
+                    </th>
+                    <th
+                      className="border border-slate-700 py-2.5 px-2.5 text-center"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      تاريخ الميلاد
+                    </th>
+                    <th
+                      className="border border-slate-700 py-2.5 px-3 text-right"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      الرحلة
+                    </th>
+                    <th
+                      className="border border-slate-700 py-2.5 px-2.5 text-center"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      المدفوع
+                    </th>
+                    <th
+                      className="border border-slate-700 py-2.5 px-2.5 text-center"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      المتبقي
+                    </th>
+                    <th
+                      className="border border-slate-700 py-2.5 px-2 text-center"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      الكود
+                    </th>
+                    <th
+                      className="border border-slate-700 py-2.5 px-2 text-center"
+                      style={{ letterSpacing: "normal" }}
+                    >
+                      الحالة
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pagePilgrims.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={10}
+                        className="py-6 text-center text-slate-400 border border-slate-300"
+                        style={{ letterSpacing: "normal" }}
+                      >
+                        لا توجد بيانات / Aucun pèlerin
+                      </td>
+                    </tr>
+                  ) : (
+                    pagePilgrims.map((p, pIdx) => {
+                      const globalIndex = pageIndex * ITEMS_PER_PAGE + pIdx + 1;
+                      const isEven = pIdx % 2 === 0;
+                      return (
+                        <tr
+                          key={p.id}
+                          className={isEven ? "bg-white" : "bg-slate-50"}
+                        >
+                          <td className="border border-slate-300 py-2 px-2 text-center font-bold text-slate-600 font-mono">
+                            {globalIndex}
+                          </td>
+                          <td
+                            className="border border-slate-300 py-2 px-3 font-bold text-slate-950 text-right text-sm"
+                            style={{ letterSpacing: "normal" }}
+                          >
+                            {p.nameArabic}
+                          </td>
+                          <td
+                            className="border border-slate-300 py-2 px-3 font-medium text-slate-800 text-left"
+                            dir="ltr"
+                          >
+                            {p.nameLatin || "—"}
+                          </td>
+                          <td
+                            className="border border-slate-300 py-2 px-2.5 text-center font-mono font-bold text-slate-900"
+                            dir="ltr"
+                          >
+                            {p.passportNumber || "—"}
+                          </td>
+                          <td
+                            className="border border-slate-300 py-2 px-2.5 text-center text-slate-700 font-mono"
+                            dir="ltr"
+                          >
+                            {formatDisplayDate(p.birthDate)}
+                          </td>
+                          <td
+                            className="border border-slate-300 py-2 px-3 text-slate-800 font-medium text-right"
+                            style={{ letterSpacing: "normal" }}
+                          >
+                            {p.tripName || "—"}
+                          </td>
+                          <td
+                            className="border border-slate-300 py-2 px-2.5 text-center font-mono font-bold text-emerald-800"
+                            dir="ltr"
+                          >
+                            {Number(p.paidAmount || 0).toLocaleString()} TND
+                          </td>
+                          <td
+                            className="border border-slate-300 py-2 px-2.5 text-center font-mono font-bold text-slate-700"
+                            dir="ltr"
+                          >
+                            {Number(p.unpaidAmount || 0).toLocaleString()} TND
+                          </td>
+                          <td
+                            className="border border-slate-300 py-2 px-2 text-center font-mono text-slate-800 font-semibold"
+                            dir="ltr"
+                          >
+                            {p.uniqueCode}
+                          </td>
+                          <td className="border border-slate-300 py-2 px-2 text-center">
+                            <span
+                              className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                                p.status === "مؤكد"
+                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                                  : p.status === "في الانتظار"
+                                    ? "bg-amber-100 text-amber-800 border border-amber-300"
+                                    : "bg-rose-100 text-rose-800 border border-rose-300"
+                              }`}
+                              style={{ letterSpacing: "normal" }}
+                            >
+                              {p.status}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+
+              {/* Footer info */}
+              <div
+                className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between text-[10px] text-slate-500"
+                dir="rtl"
+              >
+                <div style={{ letterSpacing: "normal" }}>
+                  مسك طيبة للعمرة — نظام إدارة المعتمرين والرحلات | Umrah
+                  Compagnon
+                </div>
+                <div className="flex items-center gap-1">
+                  <span style={{ letterSpacing: "normal" }}>صفحة</span>
+                  <span className="font-mono">{pageIndex + 1}</span>
+                  <span>من</span>
+                  <span className="font-mono">{totalPages}</span>
+                </div>
+              </div>
+            </div>
+          ));
+        })()}
+      </div>
     </div>
   );
 };

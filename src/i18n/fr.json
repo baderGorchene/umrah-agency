@@ -411,7 +411,12 @@
     "view_qr": "Voir le Pass QR",
     "passport_already_exists": "Un pèlerin avec le numéro de passeport ({{passport}}) existe déjà !",
     "passport_exists_short": "Ce passeport existe déjà",
-    "error_duplicate_passport": "Ce numéro de passeport est déjà attribué à un autre pèlerin."
+    "error_duplicate_passport": "Ce numéro de passeport est déjà attribué à un autre pèlerin.",
+    "download_pdf": "Télécharger PDF",
+    "generating_pdf": "Génération du PDF...",
+    "pdf_success": "Tableau des pèlerins téléchargé en PDF avec succès !",
+    "pdf_title": "Liste des Pèlerins",
+    "pdf_no_data": "Aucun pèlerin à exporter."
   },
   "trips": {
     "title": "Gestion des Voyages",

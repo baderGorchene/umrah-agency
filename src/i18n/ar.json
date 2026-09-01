@@ -411,7 +411,12 @@
     "view_qr": "عرض بطاقة QR",
     "passport_already_exists": "يوجد معتمر مسجل مسبقاً برقم جواز السفر ({{passport}})!",
     "passport_exists_short": "رقم الجواز مسجل مسبقاً",
-    "error_duplicate_passport": "رقم جواز السفر هذا مستخدم بالفعل لمعتمر آخر."
+    "error_duplicate_passport": "رقم جواز السفر هذا مستخدم بالفعل لمعتمر آخر.",
+    "download_pdf": "تنزيل PDF",
+    "generating_pdf": "جاري إنشاء PDF...",
+    "pdf_success": "تم تنزيل جدول المعتمرين بصيغة PDF بنجاح!",
+    "pdf_title": "قائمة المعتمرين",
+    "pdf_no_data": "لا يوجد أي معتمر لتصديره."
   },
   "trips": {
     "title": "إدارة الرحلات",
